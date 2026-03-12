@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 
 export const metadata = {
   title: 'Driver Console | NaijaDrops',
@@ -63,16 +64,16 @@ export default async function DriverLayout({ children }) {
               ND <span className="text-emerald-500">Driver</span>
             </div>
             
-            {/* Quick Earnings Stat (Mock for MVP) */}
-            <div className="flex items-center gap-3">
+            {/* Quick Earnings Stat */}
+            <Link href="/driver/wallet" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
               <div className="flex flex-col items-end">
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Today</span>
-                <span className="text-sm font-black text-white">₦0</span>
+                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Wallet</span>
+                <span className="text-sm font-black text-emerald-400">View Earnings</span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-charcoal-800 border border-charcoal-700 flex items-center justify-center">
-                <span className="text-xs font-bold text-emerald-500">₦</span>
+              <div className="w-8 h-8 rounded-full bg-charcoal-800 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)] flex items-center justify-center">
+                <span className="text-sm font-bold text-emerald-500">₦</span>
               </div>
-            </div>
+            </Link>
         </div>
       </nav>
 
