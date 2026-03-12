@@ -1,0 +1,234 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { createClient } from '@/utils/supabase/client';
+import { Phone, MessageSquare, ShieldCheck, Star } from 'lucide-react';
+
+const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { 
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-charcoal-100 animate-pulse flex items-center justify-center">Loading Live Map...</div>
+});
+
+export default function Tracking() {
+  const router = useRouter();
+  const params = useParams();
+  const orderId = params?.orderId;
+  const supabase = createClient();
+
+  const [orderData, setOrderData] = useState(null);
+  const [driverLoc, setDriverLoc] = useState({ lat: 11.9746, lng: 8.5361 });
+  const [driverProfile, setDriverProfile] = useState(null);
+
+  useEffect(() => {
+    if (!orderId) return;
+    let orderSub;
+    let locationSub;
+
+    async function fetchOrder() {
+       const { data } = await supabase.from('orders').select('*').eq('id', orderId).single();
+       if (data) {
+           setOrderData(data);
+           if (data.pickup_lat && data.pickup_lng) {
+               setDriverLoc({ lat: data.pickup_lat, lng: data.pickup_lng });
+           }
+           if (data.driver_id) {
+               fetchDriverProfile(data.driver_id);
+               fetchDriverLocation(data.driver_id);
+               subscribeToLocation(data.driver_id);
+           }
+       }
+    }
+
+    async function fetchDriverProfile(driverId) {
+       const { data } = await supabase.from('profiles').select('*').eq('id', driverId).single();
+       if (data) setDriverProfile(data);
+    }
+
+    async function fetchDriverLocation(driverId) {
+       const { data } = await supabase.from('driver_locations').select('*').eq('driver_id', driverId).single();
+       if (data) setDriverLoc({ lat: data.lat, lng: data.lng });
+    }
+
+    // Secure Realtime Listener for the specific order
+    orderSub = supabase.channel(`order-${orderId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, (payload) => {
+          setOrderData(payload.new);
+          if (payload.new.driver_id && !driverProfile) {
+              fetchDriverProfile(payload.new.driver_id);
+              fetchDriverLocation(payload.new.driver_id);
+              subscribeToLocation(payload.new.driver_id);
+          }
+      }).subscribe();
+
+    // Secure Realtime Listener for driver's GPS coordinates
+    function subscribeToLocation(driverId) {
+        if (locationSub) return;
+        locationSub = supabase.channel(`driver-loc-${driverId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_locations', filter: `driver_id=eq.${driverId}` }, (payload) => {
+                if (payload.new) setDriverLoc({ lat: payload.new.lat, lng: payload.new.lng });
+            }).subscribe();
+    }
+
+    fetchOrder();
+
+    return () => {
+        if (orderSub) supabase.removeChannel(orderSub);
+        if (locationSub) supabase.removeChannel(locationSub);
+    };
+  }, [orderId, supabase]);
+
+  if (!orderData) return <div className="p-10 text-center text-white min-h-screen bg-charcoal-900 flex flex-col items-center justify-center">Loading Live Order...</div>;
+
+  let step = 0;
+  if (orderData.status === 'picked_up') step = 1;
+  else if (orderData.status === 'arriving') step = 2;
+  else if (orderData.status === 'delivered') step = 3;
+
+  const headerStatusText = 
+     orderData.status === 'looking_for_driver' ? 'Finding a driver...' :
+     orderData.status === 'accepted' ? 'Driver on the way' :
+     orderData.status === 'picked_up' ? 'Picked up & En Route' : 
+     orderData.status === 'arriving' ? 'Arriving soon' : 'Delivered!';
+
+  return (
+    <main className="h-screen w-full flex flex-col relative overflow-hidden bg-charcoal-900">
+      
+      {/* Map Area */}
+      <div className="flex-1 relative z-0">
+        <TrackingMap driverLocation={driverLoc} dropoffLocation={{lat: orderData.dropoff_lat, lng: orderData.dropoff_lng}} />
+        
+        {/* Floating Top Nav (Over Map) */}
+        <div className="absolute top-6 left-0 right-0 px-4 z-10">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-3 flex justify-between items-center border border-gray-100">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-xs">
+                        {step === 3 ? '✓' : '12'}
+                    </div>
+                    <div>
+                        <div className="text-sm font-extrabold text-charcoal-900 leading-none">
+                            {headerStatusText}
+                        </div>
+                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">EST. ARRIVAL 14:30</div>
+                    </div>
+                </div>
+                <div className="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-emerald-200 shadow-sm animate-pulse">
+                    Live
+                </div>
+            </div>
+        </div>
+      </div>
+
+      {/* Driver Info Sheet */}
+      <div className="bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] relative z-20 pb-8">
+        
+        {/* Drag Handle */}
+        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-4"></div>
+
+        <div className="px-6">
+            {/* Driver Profile */}
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        {driverProfile ? (
+                            <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${driverProfile.full_name}&backgroundColor=10b981`} alt="Driver" className="w-14 h-14 rounded-full border-2 border-emerald-500 object-cover" />
+                        ) : (
+                            <div className="w-14 h-14 rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></div>
+                            </div>
+                        )}
+                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                            <ShieldCheck size={14} className="text-emerald-500" />
+                        </div>
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-extrabold text-charcoal-900 leading-tight">
+                            {driverProfile ? driverProfile.full_name : 'Waiting for Driver...'}
+                        </h2>
+                        {driverProfile && (
+                            <div className="flex items-center gap-1 text-charcoal-500 text-sm font-medium">
+                                <Star size={14} className="text-yellow-400 fill-yellow-400" /> 4.9 <span className="text-gray-300">•</span> Verified
+                            </div>
+                        )}
+                    </div>
+                </div>
+                
+                {/* Contact Actions */}
+                <div className={`flex gap-2 transition-opacity ${driverProfile ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                    <a href={`tel:${driverProfile?.phone}`} className="w-10 h-10 bg-gray-100 hover:bg-emerald-50 text-charcoal-700 hover:text-emerald-600 rounded-full flex items-center justify-center transition-colors">
+                        <Phone size={18} />
+                    </a>
+                    <button className="w-10 h-10 bg-gray-100 hover:bg-emerald-50 text-charcoal-700 hover:text-emerald-600 rounded-full flex items-center justify-center transition-colors">
+                        <MessageSquare size={18} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Verification Code */}
+            <div className="bg-charcoal-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between mb-6">
+                <div>
+                    <div className="text-xs font-bold text-charcoal-500 uppercase tracking-widest mb-1">Verify Delivery</div>
+                    <div className="text-sm font-medium text-charcoal-900">Show this PIN to the driver</div>
+                </div>
+                <div className="text-xl font-black text-emerald-600 tracking-widest bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
+                    {orderData.id.split('-')[0].toUpperCase().substring(0, 4)}
+                </div>
+            </div>
+
+            {/* Delivery Progress Timeline */}
+            <div className="relative pl-4 h-32 ml-2">
+                {/* Progress Bar Background */}
+                <div className="absolute left-4 top-2 bottom-0 w-0.5 bg-gray-100 rounded-full"></div>
+                {/* Active Progress Bar */}
+                <div className="absolute left-4 top-2 w-0.5 bg-emerald-500 rounded-full transition-all duration-1000" style={{ height: step === 0 ? '0%' : (step === 1 ? '30%' : (step === 2 ? '70%' : '100%')) }}></div>
+
+                {/* Steps */}
+                <div className={`relative z-10 flex items-start gap-4 mb-5 transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className="w-4 h-4 rounded-full bg-emerald-50 ring-2 ring-emerald-500 shadow-[0_0_0_4px_white] -ml-1.5 flex flex-shrink-0 items-center justify-center mt-0.5">
+                        {step === 1 && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>}
+                        {step > 1 && <div className="w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></div>}
+                    </div>
+                    <div>
+                        <h4 className={`text-sm font-bold ${step >= 1 ? 'text-charcoal-900' : 'text-charcoal-500'}`}>Picked Up</h4>
+                        <p className="text-xs text-charcoal-400 font-medium">{orderData.pickup_name}</p>
+                    </div>
+                </div>
+
+                <div className={`relative z-10 flex items-start gap-4 mb-5 transition-opacity duration-500 ${step >= 2 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`w-4 h-4 rounded-full flex flex-shrink-0 items-center justify-center mt-0.5 -ml-1.5 shadow-[0_0_0_4px_white] ${step >= 2 ? 'bg-emerald-50 ring-2 ring-emerald-500' : 'bg-gray-100 ring-2 ring-gray-200'}`}>
+                        {step === 2 && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>}
+                        {step > 2 && <div className="w-4 h-4 bg-emerald-500 rounded-full border-2 border-white"></div>}
+                    </div>
+                    <div>
+                        <h4 className={`text-sm font-bold ${step >= 2 ? 'text-charcoal-900' : 'text-charcoal-500'}`}>Arriving</h4>
+                        <p className="text-xs text-charcoal-400 font-medium">Driver entering your location...</p>
+                    </div>
+                </div>
+
+                <div className={`relative z-10 flex items-start gap-4 transition-opacity duration-500 ${step === 3 ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`w-4 h-4 rounded-full flex flex-shrink-0 items-center justify-center mt-0.5 -ml-1.5 shadow-[0_0_0_4px_white] ${step === 3 ? 'bg-emerald-500 ring-2 ring-emerald-500 text-white' : 'bg-gray-100 ring-2 ring-gray-200'}`}>
+                        {step === 3 && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                    </div>
+                    <div>
+                        <h4 className={`text-sm font-bold ${step === 3 ? 'text-charcoal-900' : 'text-charcoal-500'}`}>Delivered</h4>
+                        <p className="text-xs text-charcoal-400 font-medium">{orderData.dropoff_name}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* End of Trip Dialog Button (Shows when step=3) */}
+            {step === 3 && (
+                <button 
+                  onClick={() => router.push('/')}
+                  className="w-full mt-6 py-4 bg-charcoal-900 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition-transform focus:outline-none flex items-center justify-center animate-fade-in"
+                >
+                  Return to Dashboard
+                </button>
+            )}
+
+        </div>
+      </div>
+    </main>
+  );
+}
