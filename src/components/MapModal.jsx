@@ -49,6 +49,20 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   const [position, setPosition] = useState(initialLocation || { lat: 11.9746, lng: 8.5361 }); // Kano default
   const [address, setAddress] = useState("Loading address...");
 
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setPosition(newPos);
+      setGpsLoading(false);
+    }, () => {
+      setGpsLoading(false);
+    }, { enableHighAccuracy: true, timeout: 5000 });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -71,6 +85,18 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
           />
           <LocationMarker position={position} setPosition={setPosition} setAddress={setAddress} />
         </MapContainer>
+
+        {/* My Location FAB Overlay */}
+        <div className="absolute top-4 right-4 z-[400]">
+          <button 
+            onClick={useMyLocation}
+            disabled={gpsLoading}
+            className={`w-12 h-12 bg-white rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-charcoal-900 hover:bg-gray-50 transition-all ${gpsLoading ? 'animate-spin border-emerald-500' : 'hover:scale-105 active:scale-95'}`}
+            title="Recenter to my location"
+          >
+            <MapPin size={22} className={gpsLoading ? 'text-emerald-500' : 'text-charcoal-700'} />
+          </button>
+        </div>
         
         {/* Center Pin Overlay (for visual accuracy during drag) */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[400] pointer-events-none">
@@ -102,3 +128,4 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     </div>
   );
 }
+
