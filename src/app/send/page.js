@@ -308,7 +308,7 @@ export default function SendPackage() {
         {/* ─── STEP 1: ROUTE ─────────────────────────────────────────────────── */}
         {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl shadow-charcoal-900/5 border border-gray-100 relative overflow-hidden">
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl shadow-charcoal-900/5 border border-gray-100 relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[4rem] -mr-12 -mt-12 opacity-50"></div>
                     
                     {/* Pickup Field */}
@@ -320,7 +320,7 @@ export default function SendPackage() {
                                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100/50 group-hover:scale-105 transition-transform"><MapPin size={20} /></div>
                                     <div className="font-bold text-emerald-900 truncate max-w-[180px] text-sm">{pickup.name}</div>
                                 </div>
-                                <button onClick={() => setPickup(null)} className="text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg hover:bg-emerald-500 hover:text-white transition-all">Change</button>
+                                <button onMouseDown={() => setPickup(null)} className="text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg hover:bg-emerald-500 hover:text-white transition-all active:scale-95">Change</button>
                             </div>
                         ) : (
                             <div className="relative group">
@@ -336,7 +336,7 @@ export default function SendPackage() {
                                     {isResolvingLink.pickup ? (
                                         <Loader2 size={18} className="animate-spin text-emerald-600" />
                                     ) : (
-                                        <button onClick={() => useCurrentLocation('pickup')} className="text-charcoal-300 hover:text-emerald-600 transition-colors p-1" title="Use current location">
+                                        <button onMouseDown={() => useCurrentLocation('pickup')} className="text-charcoal-300 hover:text-emerald-600 transition-colors p-1 active:scale-90" title="Use current location">
                                             {gpsStatus.loading && gpsStatus.slot === 'pickup' ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={20} />}
                                         </button>
                                     )}
@@ -349,9 +349,9 @@ export default function SendPackage() {
                                 )}
                                 
                                 {suggestions.pickup.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-[70] animate-in slide-in-from-top-2">
                                         {suggestions.pickup.map((loc, i) => (
-                                            <button key={i} onClick={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors">
+                                            <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100">
                                                 <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:text-emerald-500"><Search size={14} /></div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="truncate font-bold text-charcoal-800 text-sm">{loc.name}</div>
@@ -372,8 +372,8 @@ export default function SendPackage() {
                                 {KANO_LOCATIONS.map((loc, i) => (
                                     <button 
                                         key={i} 
-                                        onClick={() => handleSelectSuggestion(loc, 'pickup')}
-                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm"
+                                        onMouseDown={() => handleSelectSuggestion(loc, 'pickup')}
+                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm active:bg-emerald-100 active:scale-95"
                                     >
                                         + {loc.name}
                                     </button>
@@ -391,7 +391,7 @@ export default function SendPackage() {
                                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-charcoal-800 shadow-sm border border-gray-100 group-hover:rotate-6 transition-transform"><MapPin size={20} /></div>
                                     <div className="font-bold text-charcoal-900 truncate max-w-[180px] text-sm">{dropoff.name}</div>
                                 </div>
-                                <button onClick={() => setDropoff(null)} className="text-charcoal-500 font-black text-[10px] uppercase tracking-widest bg-gray-200 px-3 py-1.5 rounded-lg hover:bg-charcoal-900 hover:text-white transition-all">Change</button>
+                                <button onMouseDown={() => setDropoff(null)} className="text-charcoal-500 font-black text-[10px] uppercase tracking-widest bg-gray-200 px-3 py-1.5 rounded-lg hover:bg-charcoal-900 hover:text-white transition-all active:scale-95">Change</button>
                             </div>
                         ) : (
                             <div className="relative group">
@@ -407,7 +407,7 @@ export default function SendPackage() {
                                     {isResolvingLink.dropoff ? (
                                         <Loader2 size={18} className="animate-spin text-emerald-600" />
                                     ) : (
-                                        <button onClick={() => useCurrentLocation('dropoff')} className="text-charcoal-300 hover:text-emerald-600 transition-colors p-1" title="Use current location">
+                                        <button onMouseDown={() => useCurrentLocation('dropoff')} className="text-charcoal-300 hover:text-emerald-600 transition-colors p-1 active:scale-90" title="Use current location">
                                             <MapIcon size={18} />
                                         </button>
                                     )}
@@ -418,9 +418,9 @@ export default function SendPackage() {
                                     </div>
                                 )}
                                 {suggestions.dropoff.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-[70] animate-in slide-in-from-top-2">
                                         {suggestions.dropoff.map((loc, i) => (
-                                            <button key={i} onClick={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors">
+                                            <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100">
                                                 <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400"><Search size={14} /></div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="truncate font-bold text-charcoal-800 text-sm">{loc.name}</div>
@@ -440,8 +440,8 @@ export default function SendPackage() {
                                 {KANO_LOCATIONS.map((loc, i) => (
                                     <button 
                                         key={i} 
-                                        onClick={() => handleSelectSuggestion(loc, 'dropoff')}
-                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm"
+                                        onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')}
+                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm active:bg-emerald-100 active:scale-95"
                                     >
                                         + {loc.name}
                                     </button>
