@@ -292,15 +292,15 @@ export default function SendPackage() {
             <div className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">Step {step} of 3</div>
         </div>
 
-        {/* Dynamic Title */}
-        <div className="mb-10 text-center relative">
-            <h1 className="text-4xl font-black text-charcoal-900 tracking-tight">
+        {/* Premium Header Design */}
+        <div className="mb-8 text-center relative px-2">
+            <h1 className="text-5xl font-black text-charcoal-900 tracking-tight leading-tight">
                 {step === 1 ? "Where to?" : step === 2 ? "What are we moving?" : "Final Details"}
             </h1>
             {step === 1 && (
-                <p className="text-xs font-bold text-gray-500 mt-2 uppercase tracking-wide flex items-center justify-center gap-1.5 pt-1.5">
-                    <Sparkles size={12} className="text-emerald-500" />
-                    Drop a pin, search, or paste a map link
+                <p className="text-sm font-bold text-emerald-600 mt-3 uppercase tracking-widest flex items-center justify-center gap-2">
+                    <Sparkles size={14} className="animate-pulse" />
+                    Drop a pin, search, or paste a link
                 </p>
             )}
         </div>
@@ -349,37 +349,26 @@ export default function SendPackage() {
                                 )}
                                 
                                 {suggestions.pickup.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-[70] animate-in slide-in-from-top-2">
-                                        {suggestions.pickup.map((loc, i) => (
-                                            <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100">
-                                                <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 group-hover:text-emerald-500"><Search size={14} /></div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="truncate font-bold text-charcoal-800 text-sm">{loc.name}</div>
-                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate">{loc.area || 'Kano Area'}</div>
-                                                </div>
-                                                {loc.isWeb && <div className="text-[8px] font-black bg-gray-100 text-charcoal-400 px-1.5 py-0.5 rounded tracking-widest">MAPS</div>}
-                                            </button>
-                                        ))}
+                                    <div className="absolute top-[105%] left-0 right-0 bg-white rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-emerald-100 overflow-hidden z-[100] animate-in slide-in-from-top-2 ring-4 ring-emerald-500/5">
+                                        <div className="p-3 bg-emerald-50/50 border-b border-emerald-100 text-[10px] font-black text-emerald-600 uppercase tracking-widest pl-5">Search Results</div>
+                                        <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                                            {suggestions.pickup.map((loc, i) => (
+                                                <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-5 py-4 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100 group">
+                                                    <div className="w-10 h-10 bg-white border border-emerald-100/50 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm group-hover:scale-110 transition-transform"><Search size={16} /></div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="truncate font-black text-charcoal-900 text-base">{loc.name}</div>
+                                                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight truncate opacity-70">{loc.area || 'Kano Area'}</div>
+                                                    </div>
+                                                    {loc.isWeb && <div className="text-[9px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg tracking-widest border border-emerald-200">MAPS</div>}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* QUICK SELECTION CHIPS - Pickup */}
-                        {!pickup && !searchInputs.pickup && (
-                            <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                                <p className="w-full text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1 pl-1">Quick Select Kano</p>
-                                {KANO_LOCATIONS.map((loc, i) => (
-                                    <button 
-                                        key={i} 
-                                        onMouseDown={() => handleSelectSuggestion(loc, 'pickup')}
-                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm active:bg-emerald-100 active:scale-95"
-                                    >
-                                        + {loc.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+
                     </div>
 
                     {/* Dropoff Field */}
@@ -418,36 +407,25 @@ export default function SendPackage() {
                                     </div>
                                 )}
                                 {suggestions.dropoff.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-[70] animate-in slide-in-from-top-2">
-                                        {suggestions.dropoff.map((loc, i) => (
-                                            <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-5 py-3.5 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100">
-                                                <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400"><Search size={14} /></div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="truncate font-bold text-charcoal-800 text-sm">{loc.name}</div>
-                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate">{loc.area || 'Kano Area'}</div>
-                                                </div>
-                                            </button>
-                                        ))}
+                                    <div className="absolute top-[105%] left-0 right-0 bg-white rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-emerald-100 overflow-hidden z-[100] animate-in slide-in-from-top-2 ring-4 ring-emerald-500/5">
+                                        <div className="p-3 bg-emerald-50/50 border-b border-emerald-100 text-[10px] font-black text-emerald-600 uppercase tracking-widest pl-5">Nearby Locations</div>
+                                        <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                                            {suggestions.dropoff.map((loc, i) => (
+                                                <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-5 py-4 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 transition-colors active:bg-emerald-100 group">
+                                                    <div className="w-10 h-10 bg-white border border-emerald-100/50 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm group-hover:scale-110 transition-transform"><Search size={16} /></div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="truncate font-black text-charcoal-900 text-base">{loc.name}</div>
+                                                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight truncate opacity-70">{loc.area || 'Kano Area'}</div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* QUICK SELECTION CHIPS - Dropoff */}
-                        {!dropoff && !searchInputs.dropoff && (
-                            <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                                <p className="w-full text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1 pl-1">Quick Select Kano</p>
-                                {KANO_LOCATIONS.map((loc, i) => (
-                                    <button 
-                                        key={i} 
-                                        onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')}
-                                        className="px-4 py-2 bg-white border border-gray-100 rounded-full text-xs font-bold text-charcoal-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm active:bg-emerald-100 active:scale-95"
-                                    >
-                                        + {loc.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+
                     </div>
                     
                     {/* Mini Route Map Preview */}

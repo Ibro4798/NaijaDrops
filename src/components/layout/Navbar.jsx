@@ -99,8 +99,13 @@ export default function Navbar() {
             />
           </Link>
           
-          {/* Nav Links */}
           <div className="flex items-center gap-2 sm:gap-4">
+            <Link 
+              href="/contact" 
+              className="text-xs sm:text-sm font-bold border border-gray-200 px-3 py-1.5 rounded-xl text-charcoal-600 hover:text-emerald-700 hover:border-emerald-200 transition-all bg-white/50 backdrop-blur-sm shadow-sm"
+            >
+              Contact
+            </Link>
             {profile?.role === 'admin' && (
               <Link 
                 href="/admin" 
