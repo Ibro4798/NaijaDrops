@@ -100,9 +100,20 @@ export default function SendPackage() {
         const data = await res.json();
         
         if (data.coords) {
+            // --- NEW: Use Mapbox Reverse Geocoding for readable name ---
+            let readableName = data.resolvedUrl.includes('google.com') ? 'Google Maps Location' : 'Map Location';
+            try {
+                const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+                const geoRes = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${data.coords.lng},${data.coords.lat}.json?access_token=${mapboxToken}&limit=1`);
+                const geoData = await geoRes.json();
+                if (geoData.features && geoData.features.length > 0) {
+                    readableName = geoData.features[0].place_name.split(',')[0]; // Get the first part of the address
+                }
+            } catch (e) { console.error("Geocoding failed", e); }
+            // ------------------------------------------------------------
+
             const locData = {
-                name: data.resolvedUrl.includes('google.com') ? 'Google Maps Location' : 
-                      data.resolvedUrl.includes('apple.com') ? 'Apple Maps Location' : 'Link Location',
+                name: readableName,
                 coords: data.coords
             };
             if (slot === 'pickup') setPickup(locData);

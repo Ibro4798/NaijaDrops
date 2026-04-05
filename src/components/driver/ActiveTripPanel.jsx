@@ -154,11 +154,14 @@ export default function ActiveTripPanel({ order, onUpdateStatus, driverProfile, 
             </div>
           )}
           <div className="flex gap-2">
-             <button onClick={() => window.open(getNavLinks().google, '_blank')} className="flex-1 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs flex items-center justify-center gap-2 transition-colors border border-blue-100">
-               <Navigation size={14} /> Google Maps
+             <button onClick={() => {
+                const mapElement = document.querySelector('.absolute.inset-0.transition-opacity');
+                if (mapElement) mapElement.scrollIntoView({ behavior: 'smooth' });
+             }} className="flex-1 py-3 rounded-xl bg-emerald-500 text-charcoal-900 hover:bg-emerald-400 font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+               <Navigation size={14} className="stroke-[3]" /> Mapbox Radar
              </button>
-             <button onClick={() => window.open(getNavLinks().waze, '_blank')} className="flex-1 py-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs flex items-center justify-center gap-2 transition-colors border border-blue-100">
-               <Navigation size={14} /> Waze
+             <button onClick={() => window.open(getNavLinks().google, '_blank')} className="w-12 h-12 rounded-xl bg-gray-100 text-charcoal-400 hover:text-charcoal-600 flex items-center justify-center border border-gray-200 transition-colors">
+               <MapPin size={18} />
              </button>
           </div>
         </div>
