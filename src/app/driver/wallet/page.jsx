@@ -12,6 +12,7 @@ export default function DriverWallet() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('daily'); // 'daily' | 'weekly'
   const [payoutStatus, setPayoutStatus] = useState(null); // null | 'requesting' | 'success'
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   const PLATFORM_FEE_PERCENT = 0.20; // 20% Commission
 
@@ -33,6 +34,19 @@ export default function DriverWallet() {
       if (!error && trips) {
         setCompletedTrips(trips);
       }
+
+      // 3. Check for existing pending payout requests
+      const { data: pending } = await supabase
+        .from('wallet_transactions')
+        .select('id')
+        .eq('profile_id', authData.user.id)
+        .eq('type', 'payout_request')
+        .limit(1);
+      
+      if (pending && pending.length > 0) {
+        setHasPendingRequest(true);
+      }
+
       setLoading(false);
     };
 
@@ -76,15 +90,16 @@ export default function DriverWallet() {
            type: 'payout_request',
            description: `Driver payout: ${new Date().toLocaleDateString()}`
        });
-       if (error) throw error;
-       setPayoutStatus('success');
-       setTimeout(() => setPayoutStatus(null), 3000);
-     } catch (err) {
-       console.error("Payout error", err);
-       alert(`Failed: ${err.message || "Database connection error"}`);
-       setPayoutStatus(null);
-     }
-   };
+        if (error) throw error;
+
+        setPayoutStatus('success');
+        setHasPendingRequest(true);
+      } catch (err) {
+        console.error("Payout error", err);
+        alert(`Failed: ${err.message || "Database connection error"}`);
+        setPayoutStatus(null);
+      }
+    };
 
 
   return (
@@ -131,18 +146,18 @@ export default function DriverWallet() {
            <div className="flex gap-3 relative z-10">
              <button 
                onClick={handleRequestPayout}
-               disabled={payoutStatus === 'requesting'}
-               className="flex-1 bg-charcoal-900/40 hover:bg-charcoal-900/60 backdrop-blur-md py-3 rounded-2xl text-white font-bold text-sm transition-all border border-white/10 shadow-inner flex items-center justify-center gap-2"
+               disabled={payoutStatus === 'requesting' || payoutStatus === 'success' || hasPendingRequest}
+               className="flex-1 bg-charcoal-900/40 hover:bg-charcoal-900/60 disabled:opacity-80 backdrop-blur-md py-3 rounded-2xl text-white font-bold text-sm transition-all border border-white/10 shadow-inner flex items-center justify-center gap-2"
              >
                {payoutStatus === 'requesting' ? (
                  <>
                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                    Processing...
                  </>
-               ) : payoutStatus === 'success' ? (
+               ) : (payoutStatus === 'success' || hasPendingRequest) ? (
                  <>
                    <CheckCircle2 size={16} className="text-emerald-400" />
-                   Request Sent!
+                   Payout Requested
                  </>
                ) : (
                  'Request Payout'
