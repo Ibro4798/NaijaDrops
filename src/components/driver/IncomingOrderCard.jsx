@@ -23,15 +23,21 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
       
       <div className="p-5 space-y-4">
         {/* Route */}
-        <div className="relative pl-4 h-[72px]">
-          <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200"></div>
-          <div className="relative flex items-center gap-3 h-8">
-            <div className="absolute -left-[14.5px] w-3 h-3 rounded-full border-[3px] border-charcoal-900 bg-white"></div>
-            <p className="text-sm font-bold text-charcoal-900 truncate">{order.pickup_name}</p>
+        <div className="relative pl-6 py-2 bg-charcoal-50 rounded-2xl border border-gray-100">
+          <div className="absolute left-3 top-6 bottom-6 w-0.5 bg-emerald-500/30"></div>
+          <div className="relative flex items-center gap-3 mb-4">
+            <div className="absolute -left-[14px] w-2.5 h-2.5 rounded-full border-2 border-emerald-500 bg-white shadow-sm"></div>
+            <div>
+               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Pickup</p>
+               <p className="text-[15px] font-black text-charcoal-900 leading-tight">{order.pickup_name}</p>
+            </div>
           </div>
-          <div className="relative flex items-center gap-3 h-8 mt-2">
-            <div className="absolute -left-[14.5px] w-3 h-3 bg-charcoal-900 shadow-[0_0_0_2px_#fff_inset]"></div>
-            <p className="text-sm font-bold text-charcoal-900 truncate">{order.dropoff_name}</p>
+          <div className="relative flex items-center gap-3">
+            <div className="absolute -left-[14px] w-2.5 h-2.5 rounded-lg border-2 border-charcoal-900 bg-white shadow-sm"></div>
+            <div>
+               <p className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest leading-none mb-1">Dropoff</p>
+               <p className="text-[15px] font-black text-charcoal-900 leading-tight">{order.dropoff_name}</p>
+            </div>
           </div>
         </div>
 
@@ -124,26 +130,38 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
           <p className="text-[10px] font-bold text-center text-charcoal-500 mb-2 uppercase tracking-widest">Your Counter Offer</p>
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setCustomOffer(prev => Math.max(0, prev - 50))} 
-              className="w-10 h-12 rounded-xl bg-gray-50 hover:bg-red-50 text-charcoal-600 border border-gray-200 hover:border-red-200 hover:text-red-600 flex items-center justify-center transition-colors"
+              onClick={() => setCustomOffer(prev => Math.max(0, prev - 100))} 
+              className="w-12 h-14 rounded-xl bg-gray-50 hover:bg-red-50 text-charcoal-600 border border-gray-200 hover:border-red-200 hover:text-red-600 flex items-center justify-center transition-colors shadow-sm"
             >
-              <Minus size={18} className="stroke-[3]" />
+              <Minus size={20} className="stroke-[3]" />
             </button>
             <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-400 font-bold">₦</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-400 font-black text-xl">₦</span>
               <input 
                 type="number" 
                 value={customOffer}
                 onChange={(e) => setCustomOffer(parseInt(e.target.value) || 0)}
-                className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 text-center font-black text-lg text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
+                className="w-full h-14 rounded-xl bg-gray-50 border border-gray-200 text-center font-black text-2xl text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
               />
             </div>
             <button 
-              onClick={() => setCustomOffer(prev => prev + 50)} 
-              className="w-10 h-12 rounded-xl bg-gray-50 hover:bg-emerald-50 text-charcoal-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700 flex items-center justify-center transition-colors"
+              onClick={() => setCustomOffer(prev => prev + 100)} 
+              className="w-12 h-14 rounded-xl bg-gray-50 hover:bg-emerald-50 text-charcoal-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700 flex items-center justify-center transition-colors shadow-sm"
             >
-              <Plus size={18} className="stroke-[3]" />
+              <Plus size={20} className="stroke-[3]" />
             </button>
+          </div>
+
+          <div className="flex gap-2 mt-3">
+             {[100, 200, 500].map(amt => (
+                <button 
+                  key={amt}
+                  onClick={() => setCustomOffer(prev => prev + amt)}
+                  className="flex-1 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-500 transition-all shadow-sm active:scale-95"
+                >
+                  +{amt}
+                </button>
+             ))}
           </div>
           <button 
              onClick={() => onCounterOffer(customOffer)}
