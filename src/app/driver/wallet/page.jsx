@@ -59,24 +59,29 @@ export default function DriverWallet() {
    const currentBalance = filter === 'daily' ? todayNet : weeklyNet;
  
    const handleRequestPayout = async () => {
-     if (currentBalance <= 0) {
-       alert("No balance available for payout.");
+     if (!user) {
+       alert("Session error. Please login again.");
+       return;
+     }
+     if (currentBalance < 100) {
+       alert("Minimum payout is ₦100.");
        return;
      }
      setPayoutStatus('requesting');
      try {
+       const finalAmount = Math.floor(currentBalance);
        const { error } = await supabase.from('wallet_transactions').insert({
            profile_id: user.id,
-           amount: currentBalance,
+           amount: finalAmount,
            type: 'payout_request',
-           description: `Requested payout of ₦${currentBalance.toLocaleString()}`
+           description: `Driver payout: ${new Date().toLocaleDateString()}`
        });
        if (error) throw error;
        setPayoutStatus('success');
        setTimeout(() => setPayoutStatus(null), 3000);
      } catch (err) {
-       console.error("Payout request error", err);
-       alert("Failed to request payout. Try again.");
+       console.error("Payout error", err);
+       alert(`Failed: ${err.message || "Database connection error"}`);
        setPayoutStatus(null);
      }
    };
