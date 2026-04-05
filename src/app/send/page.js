@@ -251,7 +251,6 @@ export default function SendPackage() {
         vehicle_type: vehicleType,
         receiver_name: receiver.name,
         receiver_phone: receiver.phone,
-        base_price: estimatedPrice,
         agreed_price: finalAgreedPrice,
         fare_type: fareType,
         status: 'looking_for_driver',
@@ -470,8 +469,6 @@ export default function SendPackage() {
                         <div className="space-y-4 flex-1">
                             {[
                                 { id: 'bike', icon: '🏍️', label: 'Bike', price: 'Standard' },
-                                { id: 'car', icon: '🚗', label: 'Car', price: 'Premium' },
-                                { id: 'van', icon: '🚚', label: 'Van', price: 'Bulk' },
                             ].map(v => (
                                 <button
                                     key={v.id}
@@ -638,23 +635,7 @@ export default function SendPackage() {
                         )}
                     </div>
 
-                    {/* Schedule */}
-                    <div className="mt-4 border-t border-gray-100 pt-6">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-charcoal-400 mb-4 block text-center">Pick-up Timing</label>
-                         <div className="flex bg-charcoal-50 p-1 rounded-2xl">
-                            <button onClick={() => setScheduledAt(null)} className={`flex-1 py-3 font-bold text-xs rounded-xl transition-all ${!scheduledAt ? 'bg-white shadow-sm text-charcoal-900' : 'text-charcoal-400 hover:text-charcoal-600'}`}>Standard (Immediate)</button>
-                            <button onClick={() => setScheduledAt(new Date().toISOString().slice(0, 16))} className={`flex-1 py-3 font-bold text-xs rounded-xl transition-all ${scheduledAt ? 'bg-white shadow-sm text-charcoal-900' : 'text-charcoal-400 hover:text-charcoal-600'}`}>Schedule (Pre-book)</button>
-                         </div>
-                         {scheduledAt && (
-                             <input 
-                                type="datetime-local"
-                                min={new Date().toISOString().slice(0, 16)}
-                                value={scheduledAt}
-                                onChange={e => setScheduledAt(e.target.value)}
-                                className="w-full mt-3 bg-white border-2 border-emerald-500 rounded-2xl px-5 py-3 font-bold text-emerald-900 outline-none"
-                             />
-                         )}
-                    </div>
+
                 </div>
 
                 <div className="mt-8 flex flex-col gap-4">
