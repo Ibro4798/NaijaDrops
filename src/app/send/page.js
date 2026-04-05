@@ -248,7 +248,6 @@ export default function SendPackage() {
         dropoff_lng: dropoff.coords.lng,
         item_category: category,
         item_size: size,
-        vehicle_type: vehicleType,
         receiver_name: receiver.name,
         receiver_phone: receiver.phone,
         agreed_price: finalAgreedPrice,
