@@ -40,6 +40,7 @@ export default function DriverDashboard() {
     const [profile, setProfile] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState(null);
     const [driverStats, setDriverStats] = useState(null);
+    const [cancellationNotice, setCancellationNotice] = useState(null); // { orderId: string, message: string }
 
     // ============================================================================
     // LOCATION BATCHING: Queue GPS updates and flush every 15 seconds
@@ -278,6 +279,20 @@ export default function DriverDashboard() {
                         setSuggestedBatch(null);
                         setIncomingOrder(null);
                         setAwaitingPayment(true);
+                        return;
+                    }
+
+                    if (order.status === 'cancelled') {
+                        // Check if this driver was involved
+                        if (incomingOrder?.id === order.id || activeTrip?.id === order.id || awaitingPayment) {
+                            setCancellationNotice({
+                                orderId: order.id,
+                                message: `Order to ${order.dropoff_name || 'Destination'} was cancelled by the customer.`
+                            });
+                            setIncomingOrder(null);
+                            setAvailableOrders(prev => prev.filter(o => o.id !== order.id));
+                            if (awaitingPayment) setAwaitingPayment(false);
+                        }
                         return;
                     }
 
@@ -596,6 +611,25 @@ export default function DriverDashboard() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Cancellation Notice Pop-up */}
+            {cancellationNotice && (
+                <div className="absolute inset-x-4 top-20 z-[100] animate-in bounce-in duration-700">
+                    <div className="bg-white rounded-[2.5rem] p-6 shadow-2xl border-4 border-red-500 relative">
+                        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                            <AlertCircle size={28} />
+                        </div>
+                        <h3 className="text-charcoal-900 font-black text-xl mb-1">Trip Cancelled</h3>
+                        <p className="text-charcoal-500 font-medium text-sm leading-relaxed mb-6">{cancellationNotice.message}</p>
+                        <button 
+                            onClick={() => setCancellationNotice(null)}
+                            className="w-full py-4 bg-charcoal-900 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest"
+                        >
+                            Understood
+                        </button>
+                    </div>
                 </div>
             )}
 

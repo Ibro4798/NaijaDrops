@@ -132,11 +132,10 @@ function PaymentContent() {
 
         setTimeout(async () => {
             try {
-                // Set order to ACCEPTED — this triggers the driver's Realtime subscription
                 const { error: updateErr } = await supabase
                     .from('orders')
                     .update({
-                        status: 'accepted',      // ← Activates the driver
+                        status: 'accepted',
                         delivery_pin: generatedPin
                     })
                     .eq('id', orderId);
@@ -161,6 +160,21 @@ function PaymentContent() {
                 setIsProcessing(false);
             }
         }, 1500);
+    };
+
+    const handleCancelOrder = async () => {
+        if (!window.confirm("Are you sure you want to cancel this delivery request? Your matched driver will be notified.")) return;
+        
+        try {
+            await supabase
+                .from('orders')
+                .update({ status: 'cancelled' })
+                .eq('id', orderId);
+            
+            router.push('/');
+        } catch (err) {
+            console.error("Cancellation failed", err);
+        }
     };
 
     if (loading) return <div className="p-10 text-center animate-pulse font-bold text-charcoal-900 min-h-screen flex items-center justify-center">Loading Checkout...</div>;
@@ -252,6 +266,16 @@ function PaymentContent() {
                             </div>
                         </label>
                     </div>
+                </div>
+
+                {/* Cancel Request Button */}
+                <div className="mt-8 text-center">
+                    <button 
+                        onClick={handleCancelOrder}
+                        className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 hover:text-red-600 transition-colors py-4 px-8 border border-red-500/10 rounded-full"
+                    >
+                        Cancel Delivery Request
+                    </button>
                 </div>
 
             </div>

@@ -132,6 +132,21 @@ function MatchingContent() {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!window.confirm("Are you sure you want to cancel this delivery request?")) return;
+    
+    try {
+      await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId);
+      
+      router.push('/');
+    } catch (err) {
+      console.error("Cancellation failed", err);
+    }
+  };
+
 
   if (!orderData) return <div className="min-h-screen bg-charcoal-900 text-white p-10 font-bold">Initializing...</div>;
 
@@ -209,6 +224,18 @@ function MatchingContent() {
            </div>
            <h2 className="text-2xl font-black text-white tracking-tight">Driver Confirmed</h2>
            <p className="text-gray-400 font-medium">Preparing your invoice...</p>
+        </div>
+      )}
+
+      {/* Global Cancel Button */}
+      {matchState !== 'accepted' && (
+        <div className="absolute bottom-10 left-0 right-0 px-8 z-30">
+            <button 
+                onClick={handleCancelOrder}
+                className="w-full py-4 text-sm font-black uppercase tracking-widest text-red-400 hover:text-red-500 transition-colors border border-red-500/30 rounded-2xl bg-charcoal-900/50 backdrop-blur-md"
+            >
+                Cancel My Request
+            </button>
         </div>
       )}
 
