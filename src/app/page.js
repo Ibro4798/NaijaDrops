@@ -88,7 +88,7 @@ export default function Home() {
                 Logistics simplified <br/><span className="text-emerald-700">for everyone.</span>
               </h1>
               <p className="text-charcoal-500 font-medium text-lg max-w-xl mx-auto">
-                The premier peer-to-peer delivery network mapping out Kano seamlessly.
+                Drop a Precise Pin anywhere in Kano — no street address needed. Track your load in real-time, pay securely.
               </p>
             </div>
           )}
@@ -149,6 +149,38 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* Fix 2: Low-Friction Feature Preview for Unauthenticated Users */}
+        {!profile && !isCheckingAuth && (
+          <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <p className="text-center text-charcoal-400 font-semibold text-sm uppercase tracking-widest mb-6">How it works</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
+                <div className="text-4xl mb-3">📍</div>
+                <h3 className="font-black text-charcoal-900 text-lg mb-1">Drop a Precise Pin</h3>
+                <p className="text-charcoal-400 text-sm">No address? No problem. Pin any gate, shop, or warehouse in Kano.</p>
+              </div>
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
+                <div className="text-4xl mb-3">🚚</div>
+                <h3 className="font-black text-charcoal-900 text-lg mb-1">Track in Real-Time</h3>
+                <p className="text-charcoal-400 text-sm">Watch your driver navigate directly to your pin. No more &ldquo;where are you?&rdquo; calls.</p>
+              </div>
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
+                <div className="text-4xl mb-3">💳</div>
+                <h3 className="font-black text-charcoal-900 text-lg mb-1">Pay on Delivery</h3>
+                <p className="text-charcoal-400 text-sm">Secure payment released only when your load arrives safely.</p>
+              </div>
+            </div>
+            <div className="text-center mt-6">
+              <a
+                href="/login?role=user"
+                className="inline-flex items-center gap-2 text-emerald-700 font-bold text-base hover:underline"
+              >
+                Try it free — takes 2 minutes →
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Active Orders Section (Only for Customers) */}
         {profile && activeOrders.length > 0 && (
