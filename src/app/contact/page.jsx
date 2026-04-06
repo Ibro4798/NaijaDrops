@@ -28,9 +28,17 @@ export default function Contact() {
       name: "Email Us",
       icon: <Mail className="w-8 h-8 text-blue-600" />,
       description: "Send us a detailed message",
-      link: "mailto:yahaya.usama@naiijadrops.tech",
-      label: "yahaya.usama@naiijadrops.tech",
+      link: "mailto:yahaya.usama@naijadrops.tech",
+      label: "yahaya.usama@naijadrops.tech",
       color: "bg-blue-50 text-blue-700"
+    },
+    {
+      name: "Call Support",
+      icon: <Phone className="w-8 h-8 text-charcoal-700" />,
+      description: "Call us for urgent delivery issues",
+      link: "tel:+2349077222227",
+      label: "+234 907 722 2227",
+      color: "bg-gray-100 text-charcoal-900"
     }
   ];
 

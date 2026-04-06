@@ -54,12 +54,14 @@ export default function Home() {
           }
         }
 
-        // 3. If no active trip, auto-redirect drivers but keep users on home dashboard
-        if (prof.role === 'driver') {
-          router.push('/driver');
+        // 3. If no active trip, auto-redirect based on role
+        if (prof.role === 'driver' || prof.role === 'admin') {
+          router.push(prof.role === 'admin' ? '/admin' : '/driver');
+          return;
+        } else {
+          router.push('/send');
           return;
         }
-        // Users stay here to see the home nexus/dashboard
       }
       setIsCheckingAuth(false);
     }
