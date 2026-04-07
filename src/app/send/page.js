@@ -321,7 +321,7 @@ export default function SendPackage() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[4rem] -mr-12 -mt-12 opacity-50"></div>
                     
                     {/* Pickup Field */}
-                    <div className="mb-8 relative z-10">
+                    <div className="mb-8 relative z-50">
                         <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-3 block">From (Pickup)</label>
                         {pickup ? (
                             <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between group">
