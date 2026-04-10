@@ -203,11 +203,13 @@ export default function DriverDashboard() {
             .eq('status', 'looking_for_driver');
             
         if (data && data.length > 0) {
-            const nearby = data.filter(o => {
-                if (!o.pickup_lat || !location.lat) return false;
-                const distKm = calculateDistance(location.lat, location.lng, o.pickup_lat, o.pickup_lng);
-                o.distanceKm = distKm.toFixed(1);
-                return true; // Send to ALL drivers for testing
+            const nearby = data.map(o => {
+                let distKm = null;
+                if (o.pickup_lat && location.lat) {
+                  distKm = calculateDistance(location.lat, location.lng, o.pickup_lat, o.pickup_lng);
+                  o.distanceKm = distKm.toFixed(1);
+                }
+                return o; // BROADCAST: Send ALL orders to ALL drivers for testing phase
             });
             setAvailableOrders(nearby);
         }
@@ -310,11 +312,12 @@ export default function DriverDashboard() {
                                 });
                             }
                             const filtered = prev.filter(o => o.id !== order.id);
-                            if (locRef.current) {
-                                const distKm = calculateDistance(locRef.current.lat, locRef.current.lng, order.pickup_lat, order.pickup_lng);
-                                return [...filtered, { ...order, distanceKm: distKm.toFixed(1) }]; // Allow all for testing
+                            let distKm = null;
+                            if (locRef.current && order.pickup_lat) {
+                                distKm = calculateDistance(locRef.current.lat, locRef.current.lng, order.pickup_lat, order.pickup_lng);
+                                distKm = distKm.toFixed(1);
                             }
-                            return filtered;
+                            return [...filtered, { ...order, distanceKm: distKm }]; // BROADCAST: Allow all for testing phase
                         });
                     } else {
                         setAvailableOrders(prev => prev.filter(o => o.id !== order.id));

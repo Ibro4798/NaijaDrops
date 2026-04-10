@@ -11,19 +11,10 @@ const DEMO_LOCATION = {
 };
 
 export async function getReliableLocation(onProgress) {
-    // Check if we are in demo mode (no map key)
     return new Promise(async (resolve) => {
         const hasMapbox = typeof process !== 'undefined' && !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
         
-        if (!hasMapbox) {
-            if (onProgress) onProgress("✨ Demo Localize: BUK Kano");
-            // Default to BUK Kano for demo if no mapbox token is present
-            setTimeout(() => resolve({ lat: 11.9746, lng: 8.4357, accuracy: 10, source: 'demo' }), 1000);
-            return;
-        }
-
         let locationFound = false;
-        // ... rest of the function
         let bestReading = null;
         let pingsReceived = 0;
 
@@ -31,17 +22,30 @@ export async function getReliableLocation(onProgress) {
             if (onProgress) onProgress(msg);
         };
 
-        const ipFallbackPromise = Promise.resolve({
-            lat: 12.0022,
-            lng: 8.5167, // Nassarawa GRA, Kano
-            accuracy: 5000,
-            source: 'test_fallback'
-        });
+        // Real IP-based Geolocation Fallback
+        const getIPLocation = async () => {
+            try {
+                updateStatus("🌍 Resolving city via IP...");
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data.latitude && data.longitude) {
+                    return {
+                        lat: data.latitude,
+                        lng: data.longitude,
+                        city: data.city,
+                        accuracy: 5000,
+                        source: 'ip-api'
+                    };
+                }
+            } catch (e) {
+                console.error("IP Geolocate failed:", e);
+            }
+            return null;
+        };
 
         if ("geolocation" in navigator) {
-            updateStatus("🛰️ Stabilizing GPS...");
+            updateStatus("🛰️ Synchronizing GPS...");
 
-            // Accuracy Buffering logic: Catch multiple pings and keep the most accurate one
             const watchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     pingsReceived++;
@@ -52,11 +56,11 @@ export async function getReliableLocation(onProgress) {
                             accuracy: pos.coords.accuracy,
                             source: 'gps'
                         };
-                        updateStatus(`🎯 Lock focus: ±${Math.round(pos.coords.accuracy)}m`);
+                        updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
-                    // If we get an extremely good lock (<30m), we can resolve faster
-                    if (pos.coords.accuracy < 30 && pingsReceived > 1) {
+                    // If we get an extremely good lock (<20m), resolve immediately
+                    if (pos.coords.accuracy < 20 && pingsReceived > 1) {
                         cleanup();
                         resolve(bestReading);
                     }
@@ -64,7 +68,7 @@ export async function getReliableLocation(onProgress) {
                 (err) => {
                     console.warn("GPS Watch failed:", err.message);
                 },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
             );
 
             const cleanup = () => {
@@ -72,22 +76,29 @@ export async function getReliableLocation(onProgress) {
                 navigator.geolocation.clearWatch(watchId);
             };
 
-            // Force resolve after 3 seconds of stabilization (FIX #9: reduced from 6 seconds for faster UX)
+            // Force resolve after 5 seconds of stabilization
             setTimeout(async () => {
                 if (locationFound) return;
                 cleanup();
 
-                if (bestReading) {
+                if (bestReading && bestReading.accuracy < 200) {
                     resolve(bestReading);
                 } else {
-                    updateStatus("🌍 Using regional estimate...");
-                    const ipLoc = await ipFallbackPromise;
-                    resolve(ipLoc || { lat: 12.0022, lng: 8.5920, accuracy: 5000, source: 'demo' });
+                    const ipLoc = await getIPLocation();
+                    if (ipLoc) {
+                        resolve(ipLoc);
+                    } else if (bestReading) {
+                        resolve(bestReading); // Use the poor GPS reading if IP fails too
+                    } else {
+                        // Ultimate fallback: Null or let user know
+                        updateStatus("❌ Location failed.");
+                        resolve(null);
+                    }
                 }
-            }, 3000);  // ← REDUCED FROM 6 SECONDS
+            }, 5000); 
 
         } else {
-            const ipLoc = await ipFallbackPromise;
+            const ipLoc = await getIPLocation();
             resolve(ipLoc);
         }
     });
