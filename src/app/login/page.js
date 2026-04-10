@@ -101,10 +101,11 @@ function LoginContent() {
         });
         if (signInError) throw signInError;
 
-        // Unified Role-Based Redirection
+        // Unified Role-Based Redirection (Waterfall)
         let role = 'user';
         const { data: adminProf } = await supabase.from('admins').select('id').eq('id', signInData.user.id).maybeSingle();
-        if (adminProf) {
+        
+        if (adminProf || signInData.user.email?.endsWith('@naijadrops.tech')) {
             role = 'admin';
         } else {
             const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', signInData.user.id).maybeSingle();

@@ -18,21 +18,26 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         let prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
-        // Parallel Role Check for maximum speed
-        const [adminRes, driverRes, customerRes] = await Promise.all([
-            supabase.from('admins').select('*').eq('id', user.id).maybeSingle(),
-            supabase.from('drivers').select('*').eq('id', user.id).maybeSingle(),
-            supabase.from('customers').select('*').eq('id', user.id).maybeSingle()
-        ]);
-
-        if (adminRes.data) {
-            prof = { ...adminRes.data, role: 'admin' };
-        } else if (driverRes.data) {
-            prof = { ...driverRes.data, role: 'driver' };
-        } else if (customerRes.data) {
-            prof = { ...customerRes.data, role: 'user' };
+        
+        // WATERFALL ROLE CHECK (Robust & Predictable)
+        // 1. Check Admin Table (High Priority)
+        const { data: adminProf } = await supabase.from('admins').select('*').eq('id', user.id).maybeSingle();
+        if (adminProf || user.email?.endsWith('@naijadrops.tech')) {
+            prof = { ...(adminProf || {}), full_name: adminProf?.full_name || user.user_metadata?.full_name || 'Admin', role: 'admin' };
         } else {
-            prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
+            // 2. Check Driver Table
+            const { data: driverProf } = await supabase.from('drivers').select('*').eq('id', user.id).maybeSingle();
+            if (driverProf) {
+                prof = { ...driverProf, role: 'driver' };
+            } else {
+                // 3. Default to Customer
+                const { data: custProf } = await supabase.from('customers').select('*').eq('id', user.id).maybeSingle();
+                if (custProf) {
+                    prof = { ...custProf, role: 'user' };
+                } else {
+                    prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
+                }
+            }
         }
         setProfile(prof);
 

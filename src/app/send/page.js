@@ -40,17 +40,14 @@ export default function SendPackage() {
     async function checkRole() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            // If they are an admin or driver, redirect them out of the customer dashboard
-            const { data: admin } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
-            if (admin) {
-                router.push('/admin');
-                return;
-            }
+            // Drivers should NEVER be on the customer dashboard
             const { data: driver } = await supabase.from('drivers').select('id').eq('id', user.id).maybeSingle();
             if (driver) {
                 router.push('/driver');
                 return;
             }
+            
+            // Note: Admins are allowed to view the customer dashboard for testing/support
         }
     }
     checkRole();
