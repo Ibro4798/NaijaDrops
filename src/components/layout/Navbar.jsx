@@ -22,12 +22,18 @@ export default function Navbar() {
       if (user) {
         let role = 'user';
         try {
-            let { data: adminData } = await supabase.from('admins').select('id').eq('id', user.id).limit(1).maybeSingle();
-            if (adminData) {
+            const [adminRes, driverRes, customerRes] = await Promise.all([
+                supabase.from('admins').select('id').eq('id', user.id).maybeSingle(),
+                supabase.from('drivers').select('id').eq('id', user.id).maybeSingle(),
+                supabase.from('customers').select('id').eq('id', user.id).maybeSingle()
+            ]);
+
+            if (adminRes.data) {
                 role = 'admin';
-            } else {
-                let { data: driverData } = await supabase.from('drivers').select('id').eq('id', user.id).limit(1).maybeSingle();
-                if (driverData) role = 'driver';
+            } else if (driverRes.data) {
+                role = 'driver';
+            } else if (customerRes.data) {
+                role = 'user';
             }
         } catch (err) {
             console.error("Navbar profile check error:", err);

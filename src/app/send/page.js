@@ -36,6 +36,26 @@ export default function SendPackage() {
   // Wizard State
   const [step, setStep] = useState(1); // 1: Route, 2: Shipment, 3: Details
 
+  useEffect(() => {
+    async function checkRole() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            // If they are an admin or driver, redirect them out of the customer dashboard
+            const { data: admin } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
+            if (admin) {
+                router.push('/admin');
+                return;
+            }
+            const { data: driver } = await supabase.from('drivers').select('id').eq('id', user.id).maybeSingle();
+            if (driver) {
+                router.push('/driver');
+                return;
+            }
+        }
+    }
+    checkRole();
+  }, [supabase, router]);
+
   // Form State
   const [pickup, setPickup] = useState(null); 
   const [dropoff, setDropoff] = useState(null);

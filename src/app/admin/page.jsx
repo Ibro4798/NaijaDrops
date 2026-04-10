@@ -27,6 +27,19 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login?role=admin');
+        return;
+      }
+
+      // Strict Admin Check
+      const { data: isAdmin } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
+      if (!isAdmin) {
+        router.push('/login?role=admin');
+        return;
+      }
+
       try {
         // Check API Keys Health
         const hasMapboxKey = !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;

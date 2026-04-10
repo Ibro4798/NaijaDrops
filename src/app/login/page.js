@@ -28,12 +28,17 @@ function LoginContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         let role = 'user';
-        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', user.id).limit(1).maybeSingle();
+        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
         if (adminProf) {
             role = 'admin';
         } else {
-            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', user.id).limit(1).maybeSingle();
-            if (driverProf) role = 'driver';
+            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', user.id).maybeSingle();
+            if (driverProf) {
+                role = 'driver';
+            } else {
+                const { data: custProf } = await supabase.from('customers').select('id').eq('id', user.id).maybeSingle();
+                if (custProf) role = 'user';
+            }
         }
 
         if (role === 'admin') router.push('/admin');
@@ -98,12 +103,17 @@ function LoginContent() {
 
         // Unified Role-Based Redirection
         let role = 'user';
-        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', signInData.user.id).limit(1).maybeSingle();
+        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', signInData.user.id).maybeSingle();
         if (adminProf) {
             role = 'admin';
         } else {
-            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', signInData.user.id).limit(1).maybeSingle();
-            if (driverProf) role = 'driver';
+            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', signInData.user.id).maybeSingle();
+            if (driverProf) {
+                role = 'driver';
+            } else {
+                const { data: custProf } = await supabase.from('customers').select('id').eq('id', signInData.user.id).maybeSingle();
+                if (custProf) role = 'user';
+            }
         }
 
         if (role === 'admin') {

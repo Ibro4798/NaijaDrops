@@ -18,17 +18,21 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         let prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
-        const { data: adminProf } = await supabase.from('admins').select('*').eq('id', user.id).maybeSingle();
-        if (adminProf) {
-            prof = { ...adminProf, role: 'admin' };
+        // Parallel Role Check for maximum speed
+        const [adminRes, driverRes, customerRes] = await Promise.all([
+            supabase.from('admins').select('*').eq('id', user.id).maybeSingle(),
+            supabase.from('drivers').select('*').eq('id', user.id).maybeSingle(),
+            supabase.from('customers').select('*').eq('id', user.id).maybeSingle()
+        ]);
+
+        if (adminRes.data) {
+            prof = { ...adminRes.data, role: 'admin' };
+        } else if (driverRes.data) {
+            prof = { ...driverRes.data, role: 'driver' };
+        } else if (customerRes.data) {
+            prof = { ...customerRes.data, role: 'user' };
         } else {
-            const { data: driverProf } = await supabase.from('drivers').select('*').eq('id', user.id).maybeSingle();
-            if (driverProf) {
-                prof = { ...driverProf, role: 'driver' };
-            } else {
-                const { data: custProf } = await supabase.from('customers').select('*').eq('id', user.id).maybeSingle();
-                if (custProf) prof = { ...custProf, role: 'user' };
-            }
+            prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
         }
         setProfile(prof);
 

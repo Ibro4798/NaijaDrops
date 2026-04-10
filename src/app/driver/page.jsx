@@ -136,6 +136,11 @@ export default function DriverDashboard() {
                     .eq('id', authData.user.id)
                     .maybeSingle();
                 
+                if (!profileData) {
+                    router.push('/');
+                    return;
+                }
+
                 if (profileData) {
                     setProfile(profileData);
                     
