@@ -27,17 +27,18 @@ function LoginContent() {
     async function checkUser() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile) {
-            if (profile.role === 'admin') router.push('/admin');
-            else if (profile.role === 'driver') router.push('/driver');
-            else router.push('/send'); // Always go to send page for customers
+        let role = 'user';
+        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', user.id).limit(1).maybeSingle();
+        if (adminProf) {
+            role = 'admin';
+        } else {
+            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', user.id).limit(1).maybeSingle();
+            if (driverProf) role = 'driver';
         }
+
+        if (role === 'admin') router.push('/admin');
+        else if (role === 'driver') router.push('/driver');
+        else router.push('/send');
       }
     }
     checkUser();
@@ -68,6 +69,11 @@ function LoginContent() {
         setLoading(false);
         return;
       }
+      if (requestedRole === 'admin' && !email.endsWith('@naijadrops.tech')) {
+        setErrorMsg("Only @naijadrops.tech email addresses can register or login as an admin.");
+        setLoading(false);
+        return;
+      }
       if (!isStrongPassword(password)) {
         setErrorMsg("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
         setLoading(false);
@@ -78,6 +84,12 @@ function LoginContent() {
     try {
       if (isLogin) {
         // Sign In
+        if (requestedRole === 'admin' && !email.endsWith('@naijadrops.tech')) {
+          setErrorMsg("Only @naijadrops.tech email addresses can login as an admin.");
+          setLoading(false);
+          return;
+        }
+
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -85,17 +97,18 @@ function LoginContent() {
         if (signInError) throw signInError;
 
         // Unified Role-Based Redirection
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', signInData.user.id)
-          .single();
+        let role = 'user';
+        const { data: adminProf } = await supabase.from('admins').select('id').eq('id', signInData.user.id).limit(1).maybeSingle();
+        if (adminProf) {
+            role = 'admin';
+        } else {
+            const { data: driverProf } = await supabase.from('drivers').select('id').eq('id', signInData.user.id).limit(1).maybeSingle();
+            if (driverProf) role = 'driver';
+        }
 
-        if (profileError) throw profileError;
-
-        if (profile.role === 'admin') {
+        if (role === 'admin') {
           router.push('/admin');
-        } else if (profile.role === 'driver') {
+        } else if (role === 'driver') {
           router.push('/driver');
         } else {
           router.push('/send');
@@ -103,15 +116,21 @@ function LoginContent() {
         router.refresh();
       } else {
         // Sign Up - Strict One-Email-One-Role Check
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('email', email)
-          .single();
+        let existingRole = null;
+        let { data: adminExists } = await supabase.from('admins').select('id').eq('email', email).limit(1).maybeSingle();
+        if (adminExists) existingRole = 'admin';
+        else {
+            let { data: driverExists } = await supabase.from('drivers').select('id').eq('email', email).limit(1).maybeSingle();
+            if (driverExists) existingRole = 'driver';
+            else {
+                let { data: custExists } = await supabase.from('customers').select('id').eq('email', email).limit(1).maybeSingle();
+                if (custExists) existingRole = 'user';
+            }
+        }
 
-        if (existingProfile) {
-          if (existingProfile.role !== requestedRole) {
-            setErrorMsg(`This email is already registered as a ${existingProfile.role === 'user' ? 'Customer' : existingProfile.role === 'driver' ? 'Driver' : 'Admin'}. Please use another email or log in with that account.`);
+        if (existingRole) {
+          if (existingRole !== requestedRole) {
+            setErrorMsg(`This email is already registered as a ${existingRole === 'user' ? 'Customer' : existingRole === 'driver' ? 'Driver' : 'Admin'}. Please use another email or log in with that account.`);
             setLoading(false);
             return;
           } else {

@@ -31,20 +31,12 @@ export async function getReliableLocation(onProgress) {
             if (onProgress) onProgress(msg);
         };
 
-        const ipFallbackPromise = fetch('https://ipapi.co/json/')
-            .then(res => res.json())
-            .then(data => {
-                if (data.latitude && data.longitude) {
-                    return {
-                        lat: data.latitude,
-                        lng: data.longitude,
-                        accuracy: 5000,
-                        source: 'ip'
-                    };
-                }
-                throw new Error("IP location failed");
-            })
-            .catch(() => null);
+        const ipFallbackPromise = Promise.resolve({
+            lat: 12.0022,
+            lng: 8.5167, // Nassarawa GRA, Kano
+            accuracy: 5000,
+            source: 'test_fallback'
+        });
 
         if ("geolocation" in navigator) {
             updateStatus("🛰️ Stabilizing GPS...");

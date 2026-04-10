@@ -20,27 +20,23 @@ export default function Navbar() {
     async function setupProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        setProfile(data);
-
-        // Real-time listener for role changes
-        profileChannel = supabase.channel(`public:profiles:id=eq.${user.id}`)
-          .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'profiles',
-            filter: `id=eq.${user.id}`
-          }, (payload) => {
-            setProfile(prev => ({ ...prev, role: payload.new.role }));
-          })
-          .subscribe();
+        let role = 'user';
+        try {
+            let { data: adminData } = await supabase.from('admins').select('id').eq('id', user.id).limit(1).maybeSingle();
+            if (adminData) {
+                role = 'admin';
+            } else {
+                let { data: driverData } = await supabase.from('drivers').select('id').eq('id', user.id).limit(1).maybeSingle();
+                if (driverData) role = 'driver';
+            }
+        } catch (err) {
+            console.error("Navbar profile check error:", err);
+        }
+        
+        setProfile({ role });
 
         // If they are a standard user, check for active orders and subscribe
-        if (data?.role === 'user') {
+        if (role === 'user') {
             const checkActiveOrder = async () => {
                 const { data: orders } = await supabase.from('orders')
                   .select('id, status')
@@ -139,7 +135,7 @@ export default function Navbar() {
             )}
 
             {/* Global Active Trip Shortcut for Customers */}
-            {profile?.role === 'user' && activeOrder && (
+            {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && (
                <Link 
                  href={
                    activeOrder.status === 'looking_for_driver' ? `/matching?orderId=${activeOrder.id}` :
@@ -168,7 +164,7 @@ export default function Navbar() {
       </div>
 
       {/* Aggressive Floating Notification Banner for Customers */}
-      {profile?.role === 'user' && activeOrder && (
+      {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && (
           <div className="absolute top-[100%] left-0 right-0 p-4 animate-in slide-in-from-top-4 fade-in duration-500 z-50">
             <Link 
               href={

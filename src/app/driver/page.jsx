@@ -131,10 +131,10 @@ export default function DriverDashboard() {
                 setUser(authData.user);
                 
                 const { data: profileData } = await supabase
-                    .from('profiles')
+                    .from('drivers')
                     .select('*')
                     .eq('id', authData.user.id)
-                    .single();
+                    .maybeSingle();
                 
                 if (profileData) {
                     setProfile(profileData);
@@ -202,7 +202,7 @@ export default function DriverDashboard() {
                 if (!o.pickup_lat || !location.lat) return false;
                 const distKm = calculateDistance(location.lat, location.lng, o.pickup_lat, o.pickup_lng);
                 o.distanceKm = distKm.toFixed(1);
-                return distKm <= 10;
+                return true; // Send to ALL drivers for testing
             });
             setAvailableOrders(nearby);
         }
@@ -307,7 +307,7 @@ export default function DriverDashboard() {
                             const filtered = prev.filter(o => o.id !== order.id);
                             if (locRef.current) {
                                 const distKm = calculateDistance(locRef.current.lat, locRef.current.lng, order.pickup_lat, order.pickup_lng);
-                                if (distKm <= 10) return [...filtered, { ...order, distanceKm: distKm.toFixed(1) }];
+                                return [...filtered, { ...order, distanceKm: distKm.toFixed(1) }]; // Allow all for testing
                             }
                             return filtered;
                         });
