@@ -36,7 +36,7 @@ function MatchingContent() {
         .from('bids')
         .select(`
           *,
-          profiles:driver_id (full_name)
+          drivers:driver_id (full_name)
         `)
         .eq('order_id', orderId)
         .eq('status', 'pending');
@@ -63,7 +63,7 @@ function MatchingContent() {
           .from('bids')
           .select(`
             *,
-            profiles:driver_id (full_name)
+            drivers:driver_id (full_name)
           `)
           .eq('id', payload.new.id)
           .single();
@@ -191,7 +191,7 @@ function MatchingContent() {
                         </div>
                         <div>
                             <div className="font-bold text-charcoal-900 flex items-center gap-1">
-                                {bid.profiles?.full_name || 'Driver'} 
+                                {bid.drivers?.full_name || 'Driver'} 
                                 <ShieldCheck size={14} className="text-blue-500" />
                             </div>
                             <div className="text-xs text-charcoal-500 font-medium">★ 4.9 • Verified</div>

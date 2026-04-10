@@ -53,7 +53,7 @@ export default function Tracking() {
     }
 
     async function fetchDriverProfile(driverId) {
-       const { data } = await supabase.from('profiles').select('*').eq('id', driverId).single();
+       const { data } = await supabase.from('drivers').select('*').eq('id', driverId).single();
        if (data) setDriverProfile(data);
     }
 

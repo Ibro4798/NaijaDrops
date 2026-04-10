@@ -39,7 +39,7 @@ export default function DriverWallet() {
       const { data: pending } = await supabase
         .from('wallet_transactions')
         .select('id')
-        .eq('profile_id', authData.user.id)
+        .eq('driver_id', authData.user.id)
         .eq('type', 'payout_request')
         .limit(1);
       
@@ -85,7 +85,7 @@ export default function DriverWallet() {
      try {
        const finalAmount = Math.floor(currentBalance);
        const { error } = await supabase.from('wallet_transactions').insert({
-           profile_id: user.id,
+           driver_id: user.id,
            amount: finalAmount,
            type: 'payout_request',
            description: `Driver payout: ${new Date().toLocaleDateString()}`

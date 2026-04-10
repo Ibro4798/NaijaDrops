@@ -34,13 +34,12 @@ export async function POST(request) {
 
         const userId = createData.user.id;
 
-        // Step 2: Upsert the profile row to ensure it exists with the correct role
-        await supabaseAdmin.from('profiles').upsert({
+        // Step 2: Upsert the driver row
+        await supabaseAdmin.from('drivers').upsert({
             id: userId,
             full_name: fullName,
             email,
             phone: phone || null,
-            role: 'driver',
             driver_status: 'pending',
         });
 

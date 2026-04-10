@@ -20,13 +20,12 @@ export default function AdminLayout({ children }) {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('id')
         .eq('id', user.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
+        .maybeSingle();
+      if (!adminData) {
         router.push('/'); // Redirect non-admins
       } else {
         setIsAdmin(true);

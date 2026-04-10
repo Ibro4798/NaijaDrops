@@ -391,7 +391,7 @@ export default function DriverDashboard() {
                 // Wait for order update then credit wallet
                 const driverEarning = activeTrip.agreed_price * 0.85; // Driver gets 85% (15% platform fee)
                 await supabase.from('wallet_transactions').insert({
-                    profile_id: user.id,
+                    driver_id: user.id,
                     amount: driverEarning,
                     type: 'earning',
                     order_id: activeTrip.id,

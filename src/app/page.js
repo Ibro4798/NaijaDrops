@@ -17,7 +17,19 @@ export default function Home() {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        let prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
+        const { data: adminProf } = await supabase.from('admins').select('*').eq('id', user.id).maybeSingle();
+        if (adminProf) {
+            prof = { ...adminProf, role: 'admin' };
+        } else {
+            const { data: driverProf } = await supabase.from('drivers').select('*').eq('id', user.id).maybeSingle();
+            if (driverProf) {
+                prof = { ...driverProf, role: 'driver' };
+            } else {
+                const { data: custProf } = await supabase.from('customers').select('*').eq('id', user.id).maybeSingle();
+                if (custProf) prof = { ...custProf, role: 'user' };
+            }
+        }
         setProfile(prof);
 
         // 1. Check if they are a driver on an active trip

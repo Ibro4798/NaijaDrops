@@ -185,16 +185,15 @@ export default function AdminDriversPage() {
 
   useEffect(() => {
     async function fetchDrivers() {
-      const { data: profilesData } = await supabase
-        .from('profiles')
+      const { data: driversData } = await supabase
+        .from('drivers')
         .select(`*, driver_documents (id)`)
-        .or('role.eq.driver,driver_status.neq.null')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
-        setDrivers((profilesData || []).filter(d => d.driver_status === statusFilter));
+        setDrivers((driversData || []).filter(d => d.driver_status === statusFilter));
       } else {
-        setDrivers(profilesData || []);
+        setDrivers(driversData || []);
       }
       setLoading(false);
     }
@@ -203,7 +202,7 @@ export default function AdminDriversPage() {
 
     const channel = supabase
       .channel('admin-driver-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDrivers)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, fetchDrivers)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_documents' }, fetchDrivers)
       .subscribe();
 

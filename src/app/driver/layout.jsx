@@ -44,17 +44,16 @@ export default async function DriverLayout({ children }) {
   }
 
   // Fetch role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
+  const { data: driverData } = await supabase
+    .from('drivers')
+    .select('id')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  // For Prototype/Demo: Allow any logged-in user to access the driver dashboard
-  // if (!profile || profile.role !== 'driver') {
-  //   // If not a driver, kick them out of the driver portal
-  //   redirect('/');
-  // }
+  if (!driverData) {
+    // If not a driver, kick them out of the driver portal
+    redirect('/');
+  }
 
   return (
     <div className="min-h-[100dvh] bg-charcoal-900 text-white font-sans selection:bg-emerald-500/30">

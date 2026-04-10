@@ -23,10 +23,10 @@ export default function DriverReviewPage() {
     async function fetchData() {
       // Fetch profile
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('drivers')
         .select('*')
         .eq('id', params.id)
-        .single();
+        .maybeSingle();
       
       if (profile) setDriver(profile);
 
@@ -57,7 +57,7 @@ export default function DriverReviewPage() {
       if (verifyBool !== null) updates.is_verified = verifyBool;
 
       const { error } = await supabase
-        .from('profiles')
+        .from('drivers')
         .update(updates)
         .eq('id', params.id);
 
@@ -127,7 +127,7 @@ export default function DriverReviewPage() {
   const handleSaveNotes = async () => {
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('drivers')
         .update({ admin_notes: driver.admin_notes })
         .eq('id', params.id);
       if (error) throw error;
@@ -168,7 +168,6 @@ export default function DriverReviewPage() {
               <span className="flex items-center gap-1.5"><Mail size={16} /> {driver.email || 'No email stored'}</span>
               <div className="flex items-center gap-4">
                   <span className="text-sm">📞 {driver.phone}</span>
-                  <span className="text-sm text-emerald-500">💬 {driver.whatsapp_number || 'No WhatsApp'}</span>
               </div>
             </div>
             <div className="mt-3 flex gap-2">

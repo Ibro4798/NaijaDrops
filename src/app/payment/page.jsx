@@ -44,7 +44,7 @@ function PaymentContent() {
 
                 if (order.driver_id) {
                     const { data: driver, error: driverErr } = await supabase
-                        .from('profiles')
+                        .from('drivers')
                         .select('*')
                         .eq('id', order.driver_id)
                         .single();

@@ -38,12 +38,12 @@ export default function AdminOrderDetails() {
             }
 
             if (o.user_id) {
-                const { data: c } = await supabase.from('profiles').select('*').eq('id', o.user_id).single();
+                const { data: c } = await supabase.from('customers').select('*').eq('id', o.user_id).maybeSingle();
                 setCustomer(c);
             }
 
             if (o.driver_id) {
-                const { data: d } = await supabase.from('profiles').select('*').eq('id', o.driver_id).single();
+                const { data: d } = await supabase.from('drivers').select('*').eq('id', o.driver_id).maybeSingle();
                 setDriver(d);
                 
                 const { data: loc } = await supabase.from('driver_locations').select('*').eq('driver_id', o.driver_id).single();

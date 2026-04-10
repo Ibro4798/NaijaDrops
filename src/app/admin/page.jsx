@@ -48,12 +48,12 @@ export default function AdminDashboard() {
           { data: activeDriversList },
           { data: payoutReqs }
         ] = await Promise.all([
-          supabase.from('profiles').select('is_verified, driver_status').eq('role', 'driver'),
+          supabase.from('drivers').select('is_verified, driver_status'),
           supabase.from('orders').select('*').in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving']).order('updated_at', { ascending: false }).limit(5),
           supabase.from('orders').select('agreed_price').eq('status', 'delivered'),
-          supabase.from('profiles').select('*').eq('role', 'driver').eq('driver_status', 'pending').order('created_at', { ascending: false }).limit(3),
-          supabase.from('driver_locations').select('driver_id, updated_at, lat, lng, profiles(full_name, phone)').order('updated_at', { ascending: false }).limit(5),
-          supabase.from('wallet_transactions').select('id, amount, created_at, profiles(full_name, phone)').eq('type', 'payout_request').order('created_at', { ascending: false }).limit(5)
+          supabase.from('drivers').select('*').eq('driver_status', 'pending').order('created_at', { ascending: false }).limit(3),
+          supabase.from('driver_locations').select('driver_id, updated_at, lat, lng, drivers(full_name, phone)').order('updated_at', { ascending: false }).limit(5),
+          supabase.from('wallet_transactions').select('id, amount, created_at, drivers(full_name, phone)').eq('type', 'payout_request').order('created_at', { ascending: false }).limit(5)
         ]);
 
         const revenue = completedOrders?.reduce((sum, o) => sum + parseFloat(o.agreed_price || 0), 0) || 0;
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
     fetchStats();
 
     const channel = supabase.channel('admin-live-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, fetchStats)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchStats)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_locations' }, fetchStats)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_transactions' }, fetchStats)
@@ -209,11 +209,11 @@ export default function AdminDashboard() {
                     <div key={driver.driver_id} className="bg-charcoal-800/40 border border-charcoal-700/50 p-4 rounded-2xl flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-white/10 text-white rounded-xl flex items-center justify-center font-black">
-                                {driver.profiles?.full_name?.[0] || 'D'}
+                                {driver.drivers?.full_name?.[0] || 'D'}
                             </div>
                             <div>
-                                <div className="font-bold text-white leading-tight">{driver.profiles?.full_name || 'Unknown Driver'}</div>
-                                <div className="text-[10px] text-gray-500 uppercase tracking-widest">{driver.profiles?.phone || 'No Phone'}</div>
+                                <div className="font-bold text-white leading-tight">{driver.drivers?.full_name || 'Unknown Driver'}</div>
+                                <div className="text-[10px] text-gray-500 uppercase tracking-widest">{driver.drivers?.phone || 'No Phone'}</div>
                             </div>
                         </div>
                         <div className="text-right">
@@ -315,8 +315,8 @@ export default function AdminDashboard() {
                 payoutRequests.map(req => (
                     <div key={req.id} className="bg-charcoal-800 border border-charcoal-700/50 p-5 rounded-3xl relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 rounded-bl-[3rem] pointer-events-none"></div>
-                        <div className="font-bold text-white mb-1">{req.profiles?.full_name || 'Driver'}</div>
-                        <div className="font-mono text-gray-400 text-xs mb-4">{req.profiles?.phone || 'No phone'}</div>
+                        <div className="font-bold text-white mb-1">{req.drivers?.full_name || 'Driver'}</div>
+                        <div className="font-mono text-gray-400 text-xs mb-4">{req.drivers?.phone || 'No phone'}</div>
                         <div className="flex items-end justify-between">
                             <div>
                                 <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Requested Amount</div>

@@ -23,7 +23,7 @@ export default function HistoryPage() {
 
                 const { data, error } = await supabase
                     .from('orders')
-                    .select('*, driver:profiles!driver_id(full_name, vehicle_type)')
+                    .select('*, driver:drivers!driver_id(full_name, vehicle_type)')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
 

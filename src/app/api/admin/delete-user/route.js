@@ -17,8 +17,7 @@ export async function POST(request) {
         }
 
         // 1. Delete the user from Auth. 
-        // This will automatically cascade to public.profiles and other related tables 
-        // IF you have set up the foreign key constraints with ON DELETE CASCADE.
+        // This will automatically cascade to public role tables if set up with ON DELETE CASCADE.
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
         if (deleteError) {
@@ -26,8 +25,10 @@ export async function POST(request) {
             return NextResponse.json({ error: deleteError.message }, { status: 500 });
         }
 
-        // 2. Explicitly cleanup Profile just in case cascade is not set up
-        await supabaseAdmin.from('profiles').delete().eq('id', userId);
+        // 2. Explicitly cleanup role tables just in case cascade is not set up
+        await supabaseAdmin.from('admins').delete().eq('id', userId);
+        await supabaseAdmin.from('drivers').delete().eq('id', userId);
+        await supabaseAdmin.from('customers').delete().eq('id', userId);
 
         return NextResponse.json({ success: true });
 

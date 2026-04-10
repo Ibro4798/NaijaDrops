@@ -59,14 +59,14 @@ export default function DriverOnboarding() {
 
       // Fetch profile
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_verified, role, whatsapp_number, vehicle_type, plate_number')
+        .from('drivers')
+        .select('is_verified, phone, vehicle_type, plate_number')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (profile) {
         setVehicleInfo({ type: profile.vehicle_type || '', plate: profile.plate_number || '' });
-        setContactInfo({ whatsapp: profile.whatsapp_number || '', email: user.email });
+        setContactInfo({ whatsapp: profile.phone || '', email: user.email });
       }
 
       if (profile?.is_verified) {
@@ -118,21 +118,13 @@ export default function DriverOnboarding() {
     setError('');
 
     try {
-      // 1. Update Profile (Preserving Admin role if exists)
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
       const { error: profileErr } = await supabase
-        .from('profiles')
+        .from('drivers')
         .update({
           vehicle_type: vehicleInfo.type,
           plate_number: vehicleInfo.plate,
-          whatsapp_number: contactInfo.whatsapp,
-          driver_status: 'pending', // Reset status to pending when resubmitting
-          role: currentProfile?.role === 'admin' ? 'admin' : 'driver'
+          phone: contactInfo.whatsapp,
+          driver_status: 'pending' // Reset status to pending when resubmitting
         })
         .eq('id', user.id);
       
