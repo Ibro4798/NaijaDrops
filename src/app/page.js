@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { MapPin, Package, ShoppingCart, ChevronRight, LayoutDashboard, Truck } from "lucide-react";
+import { MapPin, Package, ShoppingCart, ChevronRight, LayoutDashboard, Truck, ShieldCheck, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [profile, setProfile] = useState(null);
@@ -89,157 +90,153 @@ export default function Home() {
     loadData();
   }, [supabase, router]);
 
-  // Dual-Entry Landing View (Nexus)
+  // Design Tokens
+  const cardVariants = {
+    initial: { opacity: 0, scale: 0.95, y: 30 },
+    animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+    hover: { scale: 1.02, transition: { duration: 0.3, ease: "easeInOut" } }
+  };
+
   return (
-    <main className="min-h-[100dvh] bg-charcoal-50 pt-[calc(7rem+var(--safe-top))] px-4 pb-[calc(5rem+var(--safe-bottom))]">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-[100dvh] relative overflow-x-hidden aura-gradient">
+      
+      {/* Mesh Background Overlay */}
+      <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] blend-overlay"></div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-[calc(8rem+var(--safe-top))] pb-[calc(6rem+var(--safe-bottom))]">
         
-        {/* Branding & Welcome */}
-        <div className="text-center mb-12">
-          {profile ? (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-               <h1 className="text-4xl sm:text-5xl font-black text-charcoal-900 tracking-tight mb-2">
-                Welcome back, <span className="text-emerald-700">{profile.full_name?.split(' ')[0] || 'User'}</span>
-              </h1>
-              <p className="text-charcoal-500 font-medium text-lg">Choose your workspace for today.</p>
-            </div>
-          ) : (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-              <h1 className="text-4xl sm:text-5xl font-black text-charcoal-900 tracking-tight mb-4">
-                Logistics simplified <br/><span className="text-emerald-700">for everyone.</span>
-              </h1>
-              <p className="text-charcoal-500 font-medium text-lg max-w-xl mx-auto">
-                Drop a Precise Pin anywhere in Kano — no street address needed. Track your load in real-time, pay securely.
-              </p>
-            </div>
-          )}
+        {/* Hero Branding */}
+        <div className="text-center mb-16">
+          <AnimatePresence mode="wait">
+            {!profile ? (
+              <motion.div 
+                key="anon"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="space-y-6"
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-black uppercase tracking-[0.2em]">
+                  <Zap size={14} className="fill-current" /> Live in Kano
+                </div>
+                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight leading-[0.9]">
+                  Logistics <br/>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">Reimagined.</span>
+                </h1>
+                <p className="text-charcoal-400 font-medium text-xl max-w-2xl mx-auto leading-relaxed">
+                  Drop a Precise Pin anywhere in Kano — no street address needed. 
+                  Real-time mapping, verified drivers, instant delivery.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="user"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-4"
+              >
+                <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-700 rounded-3xl mx-auto flex items-center justify-center shadow-glow mb-6">
+                  <Package size={40} className="text-white" />
+                </div>
+                <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
+                  Welcome back, <br/>
+                  <span className="text-emerald-500">{profile.full_name?.split(' ')[0]}</span>
+                </h1>
+                <p className="text-charcoal-400 font-medium text-lg">Your logistics command center is ready.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Roles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-12">
+        {/* Roles Grid (The Nexus) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           
           {/* Customer Portal Card */}
-          <div 
-            className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-2xl shadow-gray-200/50 hover:shadow-emerald-500/10 transition-all group flex flex-col h-full relative overflow-hidden"
+          <motion.div
+            variants={cardVariants}
+            initial="initial"
+            animate="animate"
+            whileHover="hover"
+            className="group relative"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[5rem] -mr-8 -mt-8 group-hover:bg-emerald-100 transition-colors"></div>
-            
-            <div className="w-20 h-20 bg-emerald-700 text-white rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-emerald-700/30 group-hover:scale-110 group-hover:rotate-3 transition-transform relative z-10">
-              <Package size={40} />
-            </div>
-            
-            <h2 className="text-4xl font-black text-charcoal-900 mb-4 tracking-tight relative z-10">Customer</h2>
-            <p className="text-charcoal-500 font-medium text-lg mb-10 flex-1 relative z-10">
-              Send packages across Kano with ease. Track in real-time and pay securely.
-            </p>
+            <Link href={profile ? "/send" : "/login?role=user"} className="block h-full">
+              <div className="h-full glass rounded-[3.5rem] p-10 flex flex-col relative overflow-hidden transition-all border-white/20 shadow-premium">
+                {/* Visual Accent */}
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl transition-all group-hover:bg-emerald-500/40"></div>
+                
+                <div className="w-16 h-16 bg-white text-emerald-700 rounded-2xl flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                  <Package size={32} />
+                </div>
+                
+                <h2 className="text-4xl font-black text-charcoal-900 mb-4 tracking-tight">Customer</h2>
+                <p className="text-charcoal-600 font-medium text-lg mb-10 flex-1 leading-relaxed">
+                  Send anything, anywhere in Kano. Precise Pin technology ensures your driver finds you without a phone call.
+                </p>
 
-            {profile ? (
-              <Link href="/send" className="flex items-center justify-between w-full py-5 px-8 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl font-bold text-xl transition-all shadow-lg hover:shadow-emerald-700/40">
-                Go to Dashboard <ChevronRight size={24} />
-              </Link>
-            ) : (
-              <Link href="/login?role=user" className="flex items-center justify-between w-full py-5 px-8 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl font-bold text-xl transition-all shadow-lg hover:shadow-emerald-700/40">
-                Login / Signup <ChevronRight size={24} />
-              </Link>
-            )}
-          </div>
+                <div className="flex items-center justify-between w-full py-5 px-8 bg-charcoal-900 text-white rounded-2xl font-black text-xl transition-all group-hover:bg-black group-hover:shadow-glow/20">
+                  {profile ? "Ship Now" : "Get Started"} <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Driver Portal Card */}
-          <div 
-            className="bg-charcoal-900 rounded-[3rem] p-10 shadow-2xl shadow-black/20 hover:shadow-charcoal-900/30 transition-all group flex flex-col h-full border border-charcoal-800 relative overflow-hidden"
+          <motion.div
+            variants={cardVariants}
+            initial="initial"
+            animate="animate"
+            whileHover="hover"
+            className="group relative"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[5rem] -mr-8 -mt-8 group-hover:bg-white/10 transition-colors"></div>
+            <Link href={profile ? "/driver" : "/login?role=driver"} className="block h-full">
+              <div className="h-full glass-dark rounded-[3.5rem] p-10 flex flex-col relative overflow-hidden transition-all border-white/5 shadow-2xl">
+                {/* Visual Accent */}
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl transition-all group-hover:bg-emerald-500/20"></div>
 
-            <div className="w-20 h-20 bg-white/10 text-white rounded-3xl flex items-center justify-center mb-8 backdrop-blur-md group-hover:scale-110 group-hover:-rotate-3 transition-transform border border-white/20 relative z-10 shadow-xl">
-              <Truck size={40} />
-            </div>
-            
-            <h2 className="text-4xl font-black text-white mb-4 tracking-tight relative z-10">Driver</h2>
-            <p className="text-charcoal-300 font-medium text-lg mb-10 flex-1 relative z-10">
-              Receive delivery requests, navigate smoothly, and build your earnings today.
-            </p>
+                <div className="w-16 h-16 bg-white/10 text-white rounded-2xl border border-white/20 flex items-center justify-center mb-8 backdrop-blur-md group-hover:scale-110 transition-transform">
+                  <Truck size={32} />
+                </div>
+                
+                <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Driver</h2>
+                <p className="text-charcoal-400 font-medium text-lg mb-10 flex-1 leading-relaxed">
+                  Build your career moving the city. High-accuracy navigation and instant payouts for Kano fleet of experts.
+                </p>
 
-            {profile?.role === 'driver' || profile?.role === 'admin' ? (
-              <Link href="/driver" className="flex items-center justify-between w-full py-5 px-8 bg-white text-charcoal-900 hover:bg-gray-100 rounded-2xl font-bold text-xl transition-all shadow-lg">
-                Driver Console <LayoutDashboard size={24} />
-              </Link>
-            ) : (
-              <Link href="/login?role=driver" className="flex items-center justify-between w-full py-5 px-8 bg-white text-charcoal-900 hover:bg-gray-100 rounded-2xl font-bold text-xl transition-all shadow-lg">
-                Join our Fleet <ChevronRight size={24} />
-              </Link>
-            )}
-          </div>
+                <div className="flex items-center justify-between w-full py-5 px-8 bg-emerald-500 text-white rounded-2xl font-black text-xl transition-all group-hover:bg-emerald-400 group-hover:shadow-glow">
+                  {profile?.role === 'driver' ? "Dashboard" : "Apply as Driver"} <LayoutDashboard size={24} className="group-hover:rotate-12 transition-transform" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         </div>
 
-        {/* Fix 2: Low-Friction Feature Preview for Unauthenticated Users */}
-        {!profile && !isCheckingAuth && (
-          <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <p className="text-center text-charcoal-400 font-semibold text-sm uppercase tracking-widest mb-6">How it works</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
-                <div className="text-4xl mb-3">📍</div>
-                <h3 className="font-black text-charcoal-900 text-lg mb-1">Drop a Precise Pin</h3>
-                <p className="text-charcoal-400 text-sm">No address? No problem. Pin any gate, shop, or warehouse in Kano.</p>
-              </div>
-              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
-                <div className="text-4xl mb-3">🚚</div>
-                <h3 className="font-black text-charcoal-900 text-lg mb-1">Track in Real-Time</h3>
-                <p className="text-charcoal-400 text-sm">Watch your driver navigate directly to your pin. No more &ldquo;where are you?&rdquo; calls.</p>
-              </div>
-              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center">
-                <div className="text-4xl mb-3">💳</div>
-                <h3 className="font-black text-charcoal-900 text-lg mb-1">Pay on Delivery</h3>
-                <p className="text-charcoal-400 text-sm">Secure payment released only when your load arrives safely.</p>
-              </div>
-            </div>
-            <div className="text-center mt-6">
-              <a
-                href="/login?role=user"
-                className="inline-flex items-center gap-2 text-emerald-700 font-bold text-base hover:underline"
-              >
-                Try it free — takes 2 minutes →
-              </a>
-            </div>
+        {/* Global Stats / Trust Indicators */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-24 pt-16 border-t border-white/5 flex flex-wrap justify-center gap-10 md:gap-20"
+        >
+          <div className="text-center">
+            <div className="text-4xl font-black text-white mb-1">99.8%</div>
+            <div className="text-xs font-black text-charcoal-500 uppercase tracking-widest">Pin Accuracy</div>
           </div>
-        )}
-
-        {/* Active Orders Section (Only for Customers) */}
-        {profile && activeOrders.length > 0 && (
-          <div className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-black text-charcoal-900 tracking-tight">Your Active Deliveries</h3>
-              <Link href="/history" className="text-emerald-700 font-bold hover:underline">View History</Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {activeOrders.map(order => (
-                <Link 
-                  href={`/tracking/${order.id}`} 
-                  key={order.id} 
-                  className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm flex items-center justify-between group cursor-pointer transition-all hover:shadow-md hover:-translate-y-1"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
-                       {order.status === 'looking_for_driver' ? '🔎' : '🚚'}
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">{order.status.split('_').join(' ')}</div>
-                      <div className="font-bold text-charcoal-900 text-lg line-clamp-1">{order.dropoff_name}</div>
-                    </div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-emerald-700 group-hover:text-white transition-colors">
-                    <ChevronRight size={20} />
-                  </div>
-                </Link>
-              ))}
-            </div>
+          <div className="text-center">
+            <div className="text-4xl font-black text-emerald-500 mb-1">15m</div>
+            <div className="text-xs font-black text-charcoal-500 uppercase tracking-widest">Avg. Pickup</div>
           </div>
-        )}
+          <div className="text-center">
+            <div className="text-4xl font-black text-white mb-1">5k+</div>
+            <div className="text-xs font-black text-charcoal-500 uppercase tracking-widest">Verified Drivers</div>
+          </div>
+        </motion.div>
 
-        {/* Trust Indicators */}
-        <div className="mt-16 pt-12 border-t border-gray-200 flex flex-wrap justify-center gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-           <div className="flex items-center gap-3 font-bold text-charcoal-500"><span className="text-3xl">🛡️</span> Secure Payments</div>
-           <div className="flex items-center gap-3 font-bold text-charcoal-500"><span className="text-3xl">📍</span> Real-time Tracking</div>
-           <div className="flex items-center gap-3 font-bold text-charcoal-500"><span className="text-3xl">✅</span> Verified Drivers</div>
+        {/* Platform Verification Section */}
+        <div className="mt-24 text-center">
+          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
+             <ShieldCheck size={20} className="text-emerald-500" />
+             <span className="text-charcoal-300 font-bold text-sm tracking-wide">Enterprise-grade logistics infrastructure for Kano state.</span>
+          </div>
         </div>
 
       </div>
