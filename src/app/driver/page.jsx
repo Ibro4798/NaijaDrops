@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star } from 'lucide-react';
+import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star, Zap, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import IncomingOrderCard from '@/components/driver/IncomingOrderCard';
 import ActiveTripPanel from '@/components/driver/ActiveTripPanel';
@@ -446,9 +447,9 @@ export default function DriverDashboard() {
     };
 
     return (
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-charcoal-900 border-x border-charcoal-800">
+        <div className="flex-1 flex flex-col relative overflow-hidden bg-charcoal-950">
             {/* Map Area */}
-            <div className={`absolute inset-0 transition-opacity duration-1000 ${isOnline ? 'opacity-100' : 'opacity-20 grayscale'}`}>
+            <div className={`absolute inset-0 transition-opacity duration-1000 ${isOnline ? 'opacity-100' : 'opacity-20 grayscale scale-[1.05]'}`}>
                 {currentLocation ? (
                     <TrackingMap 
                         driverLocation={currentLocation} 
@@ -456,230 +457,204 @@ export default function DriverDashboard() {
                         demandData={availableOrders}
                     />
                 ) : (
-                    <div className="h-full w-full flex items-center justify-center">
+                    <div className="h-full w-full flex items-center justify-center bg-charcoal-900 shadow-inner">
                         <div className="relative">
-                           <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping"></div>
-                           <MapPin size={48} className="text-emerald-500 relative z-10" />
+                           <div className="absolute inset-0 bg-emerald-500/10 rounded-full animate-ping"></div>
+                           <MapPin size={64} className="text-emerald-500 relative z-10 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Online Status Bar (Radar Pulse) */}
-            {isOnline && !activeTrip && (
-               <div className="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
-                  <div className="px-6 py-2.5 bg-charcoal-900/80 backdrop-blur-md rounded-full border border-emerald-500/30 flex items-center gap-3 shadow-2xl pointer-events-auto">
-                     <div className="relative w-2.5 h-2.5">
-                        <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping"></div>
-                        <div className="absolute inset-0 bg-emerald-500 rounded-full"></div>
-                     </div>
-                     <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Radar Active: Scanning Kano</span>
-                  </div>
+            {/* Aura Overlay for Depth */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-charcoal-950/40 via-transparent to-charcoal-950/80"></div>
 
-                  <Link href="/driver/wallet" className="w-12 h-12 bg-charcoal-900/80 backdrop-blur-md rounded-2xl border border-charcoal-700 flex items-center justify-center text-emerald-500 shadow-2xl pointer-events-auto hover:bg-emerald-500 hover:text-white transition-all group">
-                     <Wallet size={20} className="group-active:scale-90 transition-transform" />
-                  </Link>
-               </div>
+            {/* Online Status Bar (Aura Glass) */}
+            <AnimatePresence>
+                {isOnline && !activeTrip && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key="online-status"
+                    className="absolute top-6 left-6 right-6 z-40 flex items-center justify-between pointer-events-none"
+                >
+                    <div className="glass-dark px-6 py-3 rounded-full border-emerald-500/20 flex items-center gap-3 shadow-premium pointer-events-auto">
+                        <div className="relative w-2.5 h-2.5">
+                            <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping shadow-glow"></div>
+                            <div className="absolute inset-0 bg-emerald-500 rounded-full"></div>
+                        </div>
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.25em] font-outfit">Fleet Radar: Active</span>
+                        <div className="h-4 w-px bg-white/10 mx-1"></div>
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{profile?.city || 'Kano'} Cluster</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Link href="/driver/wallet" className="w-12 h-12 glass flex items-center justify-center text-emerald-500 shadow-premium pointer-events-auto hover:bg-emerald-500 hover:text-white transition-all group rounded-2xl">
+                            <Wallet size={20} />
+                        </Link>
+                    </div>
+                </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Offline Wallet Shortcut */}
+            {!isOnline && !activeTrip && (
+                <div className="absolute top-6 right-6 z-40">
+                    <Link href="/driver/wallet" className="w-12 h-12 glass flex items-center justify-center text-emerald-500 shadow-premium hover:bg-emerald-500 hover:text-white transition-all rounded-2xl">
+                        <Wallet size={20} />
+                    </Link>
+                </div>
             )}
 
-            {!isOnline && !activeTrip && (
-               <div className="absolute top-4 right-4 z-40">
-                  <Link href="/driver/wallet" className="w-12 h-12 bg-charcoal-900/80 backdrop-blur-md rounded-2xl border border-charcoal-700 flex items-center justify-center text-emerald-500 shadow-2xl hover:bg-emerald-500 hover:text-white transition-all group">
-                     <Wallet size={20} className="group-active:scale-90 transition-transform" />
-                  </Link>
-               </div>
+            {/* Hardened Location Status Indicator */}
+            {isOnline && (
+                <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+                    <div className={`glass px-4 py-2 rounded-full border-white/5 flex items-center gap-3 shadow-premium transition-all duration-500 ${locationStatus === 'syncing' ? 'opacity-100 scale-100' : 'opacity-60 scale-95'}`}>
+                        {locationStatus === 'syncing' ? (
+                            <div className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <div className={`w-2 h-2 rounded-full ${locationStatus === 'ready' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`}></div>
+                        )}
+                        <span className="text-[9px] font-black text-charcoal-100 uppercase tracking-[0.1em]">
+                            {locationStatus === 'syncing' ? 'Synchronizing GPS' : locationStatus === 'ready' ? 'Cloud Synced' : 'Sync Error'}
+                        </span>
+                    </div>
+                </div>
             )}
 
             {/* Error Toast */}
             {geoError && (
-                <div className="absolute top-4 left-4 right-4 z-50 bg-red-500/90 text-white px-4 py-3 rounded-2xl text-sm font-bold shadow-lg backdrop-blur-md flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <AlertCircle size={18} /> GPS Error: {geoError}
-                    </div>
-                    <button onClick={() => { setCurrentLocation({ lat: 11.980, lng: 8.540 }); setGeoError(null); }} className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-colors">
-                        Use Mock Location
-                    </button>
-                </div>
-            )}
-
-            {/* Skeleton Loading for Incoming Order */}
-            {isOnline && !incomingOrder && !activeTrip && (
-               <div className="absolute inset-x-4 bottom-24 z-30 p-6 bg-charcoal-800/40 backdrop-blur-md rounded-3xl border border-charcoal-700/50 flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <div className="space-y-1.5">
-                           <Skeleton className="w-20 h-3" />
-                           <Skeleton className="w-24 h-4" />
-                        </div>
-                     </div>
-                     <Skeleton className="w-16 h-6 rounded-lg" />
-                  </div>
-                  <div className="space-y-2">
-                     <Skeleton className="w-full h-12 rounded-2xl" />
-                     <div className="flex gap-2">
-                        <Skeleton className="flex-1 h-10 rounded-xl" />
-                        <Skeleton className="flex-1 h-10 rounded-xl" />
-                     </div>
-                  </div>
-               </div>
-            )}
-
-            {suggestedBatch && !activeTrip && (
-                <div className="absolute inset-x-4 bottom-24 z-[60] animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="bg-charcoal-900 border-2 border-emerald-500 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(16,185,129,0.3)] overflow-hidden relative">
-                        <div className="absolute top-0 right-0 bg-emerald-500 text-charcoal-900 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl flex items-center gap-1.5 ring-1 ring-emerald-400">
-                            <span className="w-1.5 h-1.5 bg-charcoal-900 rounded-full animate-pulse"></span>
-                            Maestro AI: Optimize
-                        </div>
-                        
-                        <div className="mb-4">
-                            <h3 className="text-white font-black text-xl leading-tight">Batch Suggested</h3>
-                            <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mt-0.5">{suggestedBatch.orders.length} Deliveries • ₦{suggestedBatch.totalFare.toLocaleString()}</p>
-                        </div>
-
-                        <div className="space-y-3 mb-6">
-                            {suggestedBatch.orders.map((o, i) => (
-                                <div key={o.id} className="flex items-center gap-3">
-                                    <div className="w-6 h-6 rounded-full bg-charcoal-800 border border-charcoal-700 flex items-center justify-center text-[10px] font-black text-emerald-500">
-                                        {i + 1}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-white text-xs font-bold truncate">{o.dropoff_name}</div>
-                                        <div className="text-charcoal-500 text-[10px]">{o.item_category} • {o.item_size}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button onClick={() => setAvailableOrders([])} className="flex-1 py-3.5 bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-400 font-black rounded-2xl transition-all text-xs uppercase tracking-widest">Skip</button>
-                            <button className="flex-[2] py-3.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-900 font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-                                Accept Batch
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {incomingOrder && !activeTrip && !suggestedBatch && (
-                <IncomingOrderCard 
-                    order={incomingOrder} 
-                    onReject={() => setAvailableOrders(prev => prev.filter(o => o.id !== incomingOrder.id))}
-                    onAcceptBase={() => handleAcceptBase(incomingOrder)}
-                    onCounterOffer={(amount) => handleCounterOffer(incomingOrder, amount)}
-                />
-            )}
-
-            {/* Awaiting Payment from Customer */}
-            {awaitingPayment && !activeTrip && (
-                <div className="absolute inset-x-4 bottom-28 z-50 bg-white rounded-3xl shadow-2xl overflow-hidden ring-4 ring-orange-400/50 p-6">
-                    <div className="flex flex-col items-center text-center gap-3">
-                        <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
-                            <svg className="w-7 h-7 text-orange-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
+                <div className="absolute top-24 left-6 right-6 z-50 glass-dark text-white px-6 py-4 rounded-[2rem] shadow-premium border-red-500/20 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center text-red-500">
+                           <AlertCircle size={20} />
                         </div>
                         <div>
-                            <h3 className="font-black text-charcoal-900 text-lg">Bid Accepted!</h3>
-                            <p className="text-charcoal-500 text-sm font-medium mt-1">Waiting for the customer to complete payment...</p>
-                        </div>
-                        <div className="w-full mt-2 py-3 bg-orange-50 rounded-2xl border border-orange-100">
-                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Your trip will start automatically once payment is confirmed</p>
+                            <div className="text-xs font-black uppercase tracking-widest text-red-500">Location Access Denied</div>
+                            <div className="text-sm font-medium text-charcoal-400">{geoError}</div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {activeTrip && (
-                <ActiveTripPanel order={activeTrip} driverProfile={profile} currentLocation={currentLocation} onUpdateStatus={handleUpdateStatus} />
-            )}
-
-            {/* Offline Shield */}
-            {!isOnline && !activeTrip && !incomingOrder && (
-                <div className="absolute inset-0 z-10 bg-charcoal-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-24 h-24 bg-charcoal-800 rounded-full flex items-center justify-center mb-6 shadow-2xl ring-4 ring-charcoal-700/50">
-                        <Power size={40} className="text-gray-500" />
-                    </div>
-                    <h2 className="text-2xl font-black text-white mb-2">You are Offline</h2>
-                    <p className="text-gray-400 font-medium text-sm max-w-[250px] mb-8">Go online to start receiving delivery requests.</p>
-                    
-                    {driverStats && (
-                        <div className="flex gap-4 animate-slide-up">
-                            <div className="bg-charcoal-800/80 px-5 py-3 rounded-2xl border border-charcoal-700 backdrop-blur-md">
-                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Rating</div>
-                                <div className="text-xl font-black text-emerald-400 flex items-center gap-1">
-                                    <Star size={16} className="fill-emerald-400" /> {driverStats.avg_rating}
-                                </div>
-                            </div>
-                            <div className="bg-charcoal-800/80 px-5 py-3 rounded-2xl border border-charcoal-700 backdrop-blur-md">
-                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Trips</div>
-                                <div className="text-xl font-black text-white">{driverStats.total_trips}</div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Cancellation Notice Pop-up */}
-            {cancellationNotice && (
-                <div className="absolute inset-x-4 top-20 z-[100] animate-in bounce-in duration-700">
-                    <div className="bg-white rounded-[2.5rem] p-6 shadow-2xl border-4 border-red-500 relative">
-                        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
-                            <AlertCircle size={28} />
-                        </div>
-                        <h3 className="text-charcoal-900 font-black text-xl mb-1">Trip Cancelled</h3>
-                        <p className="text-charcoal-500 font-medium text-sm leading-relaxed mb-6">{cancellationNotice.message}</p>
-                        <button 
-                            onClick={() => setCancellationNotice(null)}
-                            className="w-full py-4 bg-charcoal-900 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest"
-                        >
-                            Understood
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {!activeTrip && (
-                <div className="absolute bottom-0 left-0 right-0 z-40 p-4 pb-6 bg-gradient-to-t from-charcoal-900 via-charcoal-900/95 to-transparent">
-                    {/* FIX #7: Location sync status indicator */}
-                    {isOnline && (
-                        <div className="mb-3 p-2.5 bg-charcoal-800/80 rounded-lg flex items-center gap-2 text-xs font-bold z-50 border border-charcoal-700">
-                            {locationStatus === 'syncing' && (
-                                <>
-                                    <div className="animate-spin text-yellow-500">🔄</div>
-                                    <span className="text-charcoal-300">Updating location...</span>
-                                </>
-                            )}
-                            {locationStatus === 'ready' && (
-                                <>
-                                    <span className="text-emerald-500">✓</span>
-                                    <span className="text-charcoal-300">Location synced</span>
-                                </>
-                            )}
-                            {locationStatus === 'error' && (
-                                <>
-                                    <span className="text-red-500">⚠️</span>
-                                    <span className="text-charcoal-300">Sync failed</span>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    <button
-                        onClick={toggleStatus}
-                        disabled={['pending', 'paused', 'rejected'].includes(verificationStatus)}
-                        className={`w-full py-3.5 rounded-2xl font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 ${
-                            verificationStatus === 'verified'
-                            ? (isOnline ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-charcoal-900')
-                            : 'bg-blue-500 hover:bg-blue-600 text-white'
-                        }`}
-                    >
-                        {verificationStatus === 'verified' ? (isOnline ? 'GO OFFLINE' : 'GO ONLINE') : 'VERIFY ACCOUNT'}
+                    <button onClick={() => { setCurrentLocation({ lat: 11.980, lng: 8.540 }); setGeoError(null); }} className="w-full bg-red-500 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-red-600">
+                        Bypass with Fallback
                     </button>
                 </div>
             )}
+
+            {/* Main Interactive Panel */}
+            <div className="absolute bottom-0 left-0 right-0 z-50 p-6">
+                <AnimatePresence mode="wait">
+                    {/* Active Trip Content */}
+                    {activeTrip ? (
+                        <motion.div key="active-trip" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}>
+                            <ActiveTripPanel order={activeTrip} driverProfile={profile} currentLocation={currentLocation} onUpdateStatus={handleUpdateStatus} />
+                        </motion.div>
+                    ) : isOnline ? (
+                        /* Online State */
+                        <motion.div key="online" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="space-y-4">
+                            {suggestedBatch ? (
+                                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                    <div className="glass-dark border-2 border-emerald-500/50 rounded-[3rem] p-8 shadow-glow relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-emerald-500 text-charcoal-950 text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-bl-3xl flex items-center gap-2">
+                                            <Zap size={14} /> Batch Alert
+                                        </div>
+                                        <h3 className="text-white font-black text-2xl leading-none mb-2 font-outfit">Maestro AI Optimization</h3>
+                                        <p className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] mb-8">{suggestedBatch.orders.length} Deliveries • ₦{suggestedBatch.totalFare.toLocaleString()}</p>
+                                        
+                                        <div className="flex gap-4">
+                                            <button onClick={() => setAvailableOrders([])} className="flex-1 py-5 glass border-white/5 text-white font-black rounded-[2rem] text-[11px] uppercase tracking-widest">Ignore</button>
+                                            <button className="flex-[2] py-5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-[2rem] shadow-glow text-[11px] uppercase tracking-widest">Accept Batch</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : incomingOrder ? (
+                                <IncomingOrderCard 
+                                    order={incomingOrder} 
+                                    onReject={() => setAvailableOrders(prev => prev.filter(o => o.id !== incomingOrder.id))}
+                                    onAcceptBase={() => handleAcceptBase(incomingOrder)}
+                                    onCounterOffer={(amount) => handleCounterOffer(incomingOrder, amount)}
+                                />
+                            ) : (
+                                /* Scanning State */
+                                <div className="glass-dark p-10 rounded-[3rem] border-white/5 text-center flex flex-col items-center shadow-premium">
+                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 relative">
+                                        <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping"></div>
+                                        <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-glow"></div>
+                                    </div>
+                                    <h2 className="text-white font-black text-2xl font-outfit tracking-tight mb-2 uppercase italic tracking-widest">Scanning Grid</h2>
+                                    <p className="text-charcoal-400 text-xs font-bold uppercase tracking-widest max-w-[200px]">Waiting for delivery requests in your radius</p>
+                                </div>
+                            )}
+
+                            {/* Heavy Offline Button */}
+                            <button onClick={toggleStatus} className="w-full py-5 bg-charcoal-900 border border-white/10 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-premium hover:bg-black transition-all">
+                                Go Offline
+                            </button>
+                        </motion.div>
+                    ) : (
+                        /* Offline State */
+                        <motion.div key="offline" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass-dark p-10 rounded-[3rem] border-white/5 text-center shadow-premium relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-emerald-500/5 rounded-full blur-[80px] -mr-24 -mt-24"></div>
+                            
+                            <div className="w-24 h-24 bg-charcoal-800 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner ring-1 ring-white/5">
+                                <Power size={48} className="text-charcoal-600" />
+                            </div>
+                            <h2 className="text-3xl font-black text-white mb-3 font-outfit leading-none tracking-tight">Systems Halted</h2>
+                            <p className="text-charcoal-500 font-bold text-[11px] uppercase tracking-widest mb-10">You are currently hidden from the network.</p>
+                            
+                            {driverStats && (
+                                <div className="flex justify-center gap-6 mb-10">
+                                    <div className="text-center">
+                                        <div className="text-[10px] text-charcoal-600 font-black uppercase tracking-widest mb-2">Platform Rank</div>
+                                        <div className="text-xl font-black text-emerald-500 flex items-center gap-1">
+                                            <Star size={16} fill="currentColor" /> {driverStats.avg_rating}
+                                        </div>
+                                    </div>
+                                    <div className="w-px h-10 bg-white/10"></div>
+                                    <div className="text-center">
+                                        <div className="text-[10px] text-charcoal-600 font-black uppercase tracking-widest mb-2">Total Payload</div>
+                                        <div className="text-xl font-black text-white">{driverStats.total_trips}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button onClick={toggleStatus} className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2.5rem] font-black text-lg uppercase tracking-[0.2em] shadow-glow transition-all active:scale-95">
+                                Initialize Fleet Mode
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Global Overlays (Glassmorphism) */}
+            <AnimatePresence>
+                {awaitingPayment && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="awaiting-payment" className="absolute inset-0 z-[60] bg-charcoal-950/80 backdrop-blur-md flex items-center justify-center p-8">
+                        <div className="glass p-10 rounded-[4rem] text-center border-emerald-500/20 shadow-premium">
+                             <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Activity className="w-10 h-10 text-emerald-500 animate-pulse" />
+                             </div>
+                             <h3 className="text-3xl font-black text-charcoal-900 font-outfit mb-2">Bid Locked</h3>
+                             <p className="text-charcoal-400 font-bold text-xs uppercase tracking-widest mb-8">Synchronizing payment metadata...</p>
+                             <div className="px-6 py-4 bg-charcoal-900 rounded-2xl text-[10px] text-emerald-500 font-black uppercase tracking-[0.15em] border border-emerald-500/20">
+                                Payload will activate upon confirmation
+                             </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {cancellationNotice && (
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key="cancellation" className="absolute inset-0 z-[100] bg-red-500/20 backdrop-blur-xl flex items-center justify-center p-8">
+                        <div className="glass p-10 rounded-[4rem] text-center border-red-500/20 shadow-premium">
+                             <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                                <AlertCircle size={40} />
+                             </div>
+                             <h3 className="text-3xl font-black text-charcoal-900 font-outfit mb-2">Trip Terminated</h3>
+                             <p className="text-charcoal-500 font-medium text-sm leading-relaxed mb-10 max-w-[280px] mx-auto">{cancellationNotice.message}</p>
+                             <button onClick={() => setCancellationNotice(null)} className="w-full py-5 bg-charcoal-900 text-white font-black rounded-[2rem] text-xs uppercase tracking-widest shadow-premium">Acknowledged</button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

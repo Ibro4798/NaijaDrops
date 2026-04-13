@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
 import { Phone, MessageSquare, ShieldCheck, Star, X } from 'lucide-react';
@@ -18,16 +18,19 @@ const TrackingMap = dynamic(() => import('@/components/TrackingMap'), {
 export default function Tracking() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params?.orderId;
   const supabase = createClient();
 
   const [orderData, setOrderData] = useState(null);
-  const [driverLoc, setDriverLoc] = useState(null);  // FIX #1: Start with null instead of BUK default
-  const [driverLocUpdatedAt, setDriverLocUpdatedAt] = useState(null);  // FIX #5: Track location timestamp
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);  // FIX #1: Track loading state
+  const [driverLoc, setDriverLoc] = useState(null);
+  const [driverLocUpdatedAt, setDriverLocUpdatedAt] = useState(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [driverProfile, setDriverProfile] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [displayedPrice, setDisplayedPrice] = useState(null);
 
 
   useEffect(() => {
@@ -103,6 +106,36 @@ export default function Tracking() {
     };
   }, [orderId, supabase]);
 
+  // Auto-open chat if navigated with ?openChat=1
+  useEffect(() => {
+    if (searchParams?.get('openChat') === '1') {
+      setShowChat(true);
+    }
+  }, [searchParams]);
+
+  // Track unread messages (reset on chat open)
+  useEffect(() => {
+    if (!orderId || showChat) {
+      setUnreadCount(0);
+      return;
+    }
+    const msgSub = supabase
+      .channel(`unread-track-${orderId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `order_id=eq.${orderId}`
+      }, (payload) => {
+        // Only count messages from the other party
+        if (payload.new.sender_id !== orderData?.user_id) {
+          setUnreadCount(prev => prev + 1);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(msgSub);
+  }, [orderId, showChat, orderData?.user_id, supabase]);
+
   if (!orderData) return <div className="p-10 text-center text-white min-h-screen bg-charcoal-900 flex flex-col items-center justify-center">Loading Live Order...</div>;
 
   // FIX #1: Show loading state if location hasn't loaded yet
@@ -175,12 +208,16 @@ export default function Tracking() {
         {/* Floating Chat Button on Map */}
         {orderData.status !== 'delivered' && driverProfile && (
             <button 
-                onClick={() => setShowChat(true)}
-                className="absolute bottom-6 right-4 z-40 w-14 h-14 bg-charcoal-900 hover:bg-black text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform active:scale-95 border-2 border-charcoal-800"
+                onClick={() => { setShowChat(true); setUnreadCount(0); }}
+                className="absolute bottom-6 right-4 z-40 w-16 h-16 bg-charcoal-900 hover:bg-black text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.4)] flex items-center justify-center transition-transform active:scale-95 border-2 border-emerald-500/40 group"
             >
                 <div className="relative">
-                    <MessageSquare size={24} />
-                    {/* Optional indicator dot could go here */}
+                    <MessageSquare size={24} className="group-hover:scale-110 transition-transform" />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-charcoal-950 rounded-full text-[9px] font-black flex items-center justify-center animate-bounce shadow-glow">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
                 </div>
             </button>
         )}
@@ -233,17 +270,22 @@ export default function Tracking() {
                     </div>
                 </div>
                 
-                {/* Contact Actions */}
+                {/* Driver Contact Buttons */}
                 <div className={`flex gap-2 h-14 transition-opacity ${driverProfile ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    <a href={`tel:${driverProfile?.phone}`} className="w-10 h-10 bg-gray-100 hover:bg-emerald-50 text-charcoal-700 hover:text-emerald-600 rounded-full flex items-center justify-center transition-colors">
+                    <a href={`tel:${driverProfile?.phone}`} className="w-12 h-12 bg-gray-100 hover:bg-emerald-50 text-charcoal-700 hover:text-emerald-600 rounded-full flex items-center justify-center transition-colors">
                         <Phone size={18} />
                     </a>
                     {orderData.status !== 'delivered' && (
                         <button 
-                            onClick={() => setShowChat(true)}
-                            className="flex-1 bg-white border-2 border-charcoal-800 rounded-2xl flex items-center justify-center gap-2 font-black text-charcoal-800 hover:bg-gray-50 transition-colors"
+                            onClick={() => { setShowChat(true); setUnreadCount(0); }}
+                            className="flex-1 bg-white border-2 border-charcoal-800 rounded-2xl flex items-center justify-center gap-2 font-black text-charcoal-800 hover:bg-gray-50 transition-colors relative"
                         >
                             <MessageSquare size={18} /> Chat
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white rounded-full text-[9px] font-black flex items-center justify-center shadow-glow animate-pulse">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
                         </button>
                     )}
                 </div>
@@ -254,11 +296,17 @@ export default function Tracking() {
                 <div>
                     <div className="text-xs font-bold text-charcoal-500 uppercase tracking-widest mb-1">Verify Delivery</div>
                     <div className="text-sm font-medium text-charcoal-900">Show this PIN to the driver</div>
+                    {displayedPrice && (
+                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">
+                            ✓ Agreed Price: ₦{displayedPrice.toLocaleString()}
+                        </div>
+                    )}
                 </div>
                 <div className="text-xl font-black text-emerald-600 tracking-widest bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
                     {orderData.delivery_pin || '----'}
                 </div>
             </div>
+
 
 
             {/* Delivery Progress Timeline */}
@@ -324,8 +372,9 @@ export default function Tracking() {
                 <OrderChat 
                     orderId={orderId} 
                     currentUserId={orderData.user_id} 
-                    onClose={() => setShowChat(false)} 
+                    onClose={() => { setShowChat(false); setUnreadCount(0); }}
                     isReadOnly={orderData.status === 'delivered'}
+                    onPriceUpdated={(newPrice) => setDisplayedPrice(newPrice)}
                 />
             )}
         </div>

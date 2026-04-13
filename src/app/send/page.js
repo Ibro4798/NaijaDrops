@@ -86,6 +86,8 @@ export default function SendPackage() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
+  const audioPlaybackRef = useRef(null);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
 
   const searchTimeoutRef = useRef(null);
 
@@ -222,9 +224,14 @@ export default function SendPackage() {
   const toggleRecording = async () => {
     if (isRecording) {
       mediaRecorderRef.current?.stop();
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
       setIsRecording(false);
       return;
+    }
+    // STOP PLAYBACK IF RECORDING
+    if (audioPlaybackRef.current) {
+        audioPlaybackRef.current.pause();
+        setIsPlayingVoice(false);
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -243,10 +250,29 @@ export default function SendPackage() {
     } catch (e) { alert("Access denied"); }
   };
 
+  const handleTogglePlayback = () => {
+    if (isPlayingVoice) {
+        audioPlaybackRef.current.pause();
+        setIsPlayingVoice(false);
+    } else {
+        if (!audioPlaybackRef.current) {
+            audioPlaybackRef.current = new Audio(voiceNoteUrl);
+            audioPlaybackRef.current.onended = () => setIsPlayingVoice(false);
+        }
+        audioPlaybackRef.current.play();
+        setIsPlayingVoice(true);
+    }
+  };
+
   const deleteRecording = () => {
+    if (audioPlaybackRef.current) {
+        audioPlaybackRef.current.pause();
+        audioPlaybackRef.current = null;
+    }
     setVoiceNoteBlob(null);
     setVoiceNoteUrl(null);
     setShowVoiceRecorder(false);
+    setIsPlayingVoice(false);
   };
 
   // ─── Execution ─────────────────────────────────────────────────────────────
@@ -654,10 +680,24 @@ export default function SendPackage() {
                                 <span className="font-black text-sm uppercase tracking-widest">{isRecording ? `Recording... ${recordingTime}s` : 'Tap to Add Voice Memo'}</span>
                             </button>
                         ) : (
-                            <div className="bg-emerald-50 rounded-[2rem] p-4 flex items-center gap-4">
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-emerald-600 shadow-sm"><Play size={18} fill="currentColor" /></div>
-                                <div className="flex-1 text-emerald-900 font-bold text-xs uppercase tracking-widest">Instruction Saved</div>
-                                <div className="px-3 py-1 bg-white rounded-full text-[10px] font-black text-emerald-600">PREVIEW</div>
+                            <div className="bg-emerald-50 rounded-[2rem] p-4 flex items-center gap-4 border border-emerald-100 shadow-sm">
+                                <button 
+                                    onClick={handleTogglePlayback}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${isPlayingVoice ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-600'}`}
+                                >
+                                    {isPlayingVoice ? <Square size={16} className="fill-current" /> : <Play size={20} className="ml-1" fill="currentColor" />}
+                                </button>
+                                <div className="flex-1">
+                                    <div className="text-emerald-900 font-extrabold text-sm uppercase tracking-tight">{isPlayingVoice ? 'Playing instruction...' : 'Instruction Saved'}</div>
+                                    <div className="flex gap-1 mt-1">
+                                        {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                                            <div key={i} className={`h-1 flex-1 rounded-full ${isPlayingVoice ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-200'}`} style={{ animationDelay: `${i * 0.1}s` }} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="px-3 py-1 bg-white rounded-full text-[9px] font-black text-emerald-600 uppercase tracking-widest border border-emerald-100">
+                                    {isPlayingVoice ? 'PAUSE' : 'PLAY'}
+                                </div>
                             </div>
                         )}
                     </div>

@@ -5,8 +5,9 @@ import { createClient } from '@/utils/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, ShieldCheck, ShieldAlert, FileText, 
-  CheckCircle2, XCircle, Mail, MapPin, Truck, MessageCircle, Send
+  CheckCircle2, XCircle, Mail, MapPin, Truck, MessageCircle, Send, Zap, ChevronRight, Clock, User
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DriverReviewPage() {
   const params = useParams();
@@ -21,7 +22,6 @@ export default function DriverReviewPage() {
     if (!params.id) return;
 
     async function fetchData() {
-      // Fetch profile
       const { data: profile } = await supabase
         .from('drivers')
         .select('*')
@@ -30,7 +30,6 @@ export default function DriverReviewPage() {
       
       if (profile) setDriver(profile);
 
-      // Fetch documents
       const { data: driverDocs } = await supabase
         .from('driver_documents')
         .select('*')
@@ -65,18 +64,16 @@ export default function DriverReviewPage() {
       
       setDriver(prev => ({ ...prev, ...updates }));
       
-      // Notify driver
       let msg = `Your application status has been updated to: ${newStatus.toUpperCase()}.`;
       if (newStatus === 'active') msg = "Congratulations! Your driver application has been approved. You can now go online and start accepting orders.";
       if (newStatus === 'paused') msg = "Your account has been temporarily paused by an administrator. Please contact support for more details.";
       if (newStatus === 'rejected') msg = "We regret to inform you that your driver application has been rejected at this time.";
       
       await sendNotification("Application Update", msg);
-      
-      alert(`Driver status updated to ${newStatus}`);
+      alert(`Unit authorization set to: ${newStatus.toUpperCase()}`);
     } catch (err) {
       console.error(err);
-      alert('Action failed: ' + (err.message || 'Unknown error'));
+      alert('Transmission Error: ' + (err.message || 'Check connection'));
     } finally {
       setActionLoading(false);
     }
@@ -101,10 +98,10 @@ export default function DriverReviewPage() {
         await sendNotification("Document Approved", `Your ${docs.find(d => d.id === docId).doc_type.replace('_', ' ')} has been approved.`);
       }
       
-      alert(`Document ${newStatus}`);
+      alert(`Asset status: ${newStatus.toUpperCase()}`);
     } catch (err) {
       console.error(err);
-      alert('Action failed.');
+      alert('Update failed.');
     } finally {
       setActionLoading(false);
     }
@@ -115,10 +112,10 @@ export default function DriverReviewPage() {
     try {
       const msg = `Your vehicle inspection has been scheduled. An administrator will contact you at ${driver.phone} or via email shortly to confirm the time and location.`;
       await sendNotification("Inspection Scheduled", msg);
-      alert("Inspection invitation sent via app notification and logged for email dispatch.");
+      alert("Inspection invitation broadcasted via system notification.");
     } catch (err) {
       console.error(err);
-      alert("Failed to schedule inspection.");
+      alert("Dispatch failed.");
     } finally {
       setActionLoading(false);
     }
@@ -131,188 +128,253 @@ export default function DriverReviewPage() {
         .update({ admin_notes: driver.admin_notes })
         .eq('id', params.id);
       if (error) throw error;
-      alert('Notes saved successfully!');
+      alert('Internal logs updated.');
     } catch (err) {
       console.error(err);
-      alert('Failed to save notes.');
+      alert('Log write failed.');
     }
   };
 
-  if (loading) return <div className="p-10 text-center animate-pulse">Loading credentials...</div>;
-  if (!driver) return <div className="p-10 text-center">Driver not found.</div>;
+  if (loading) return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+        <p className="text-white font-black text-xs uppercase tracking-[0.3em] font-outfit animate-pulse">Syncing Unit Metadata...</p>
+    </div>
+  );
+  
+  if (!driver) return <div className="p-20 text-center text-red-500 font-black uppercase tracking-widest">Target Unit Null / Missing from grid</div>;
 
   const statusColors = {
-    active: 'bg-emerald-500/10 text-emerald-500',
-    pending: 'bg-amber-500/10 text-amber-500',
-    paused: 'bg-blue-500/10 text-blue-500',
-    rejected: 'bg-red-500/10 text-red-500'
+    active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-glow shadow-emerald-500/10',
+    pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    paused: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    rejected: 'bg-red-500/10 text-red-500 border-red-500/20'
   };
 
   return (
-    <div className="max-w-4xl pb-20">
-      <button 
-        onClick={() => router.push('/admin/drivers')}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 font-bold text-sm"
-      >
-        <ArrowLeft size={18} /> Back to Drivers
-      </button>
-
-      <div className="flex justify-between items-start mb-10 overflow-x-auto gap-4">
-        <div className="flex items-center gap-6 min-w-fit">
-          <div className="w-24 h-24 bg-charcoal-800 rounded-3xl flex items-center justify-center text-4xl font-black text-emerald-500 border border-charcoal-700">
-            {driver.full_name?.[0]}
+    <div className="max-w-6xl mx-auto pb-32 px-4">
+      {/* Navigation & Breadcrumbs */}
+      <div className="mb-12 flex items-center justify-between">
+          <button 
+            onClick={() => router.push('/admin/drivers')}
+            className="w-12 h-12 glass-dark rounded-2xl flex items-center justify-center text-charcoal-400 hover:text-white transition-all border border-white/5 group shadow-premium"
+          >
+            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div className="glass-dark px-4 py-2 rounded-full border border-white/5 flex items-center gap-2">
+              <Zap size={14} className="text-emerald-500" />
+              <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] font-outfit">Unit Authorization Terminal</span>
           </div>
-          <div>
-            <h1 className="text-4xl font-black mb-2">{driver.full_name}</h1>
-            <div className="flex flex-col gap-1 text-gray-400 font-medium">
-              <span className="flex items-center gap-1.5"><Mail size={16} /> {driver.email || 'No email stored'}</span>
-              <div className="flex items-center gap-4">
-                  <span className="text-sm">📞 {driver.phone}</span>
+      </div>
+
+      {/* Profile Header Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-dark border border-white/5 rounded-[3.5rem] p-10 mb-12 relative overflow-hidden shadow-premium"
+      >
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
+        
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-10">
+          <div className="flex flex-col lg:flex-row items-center gap-8 text-center lg:text-left">
+            <div className="w-32 h-32 glass-dark rounded-[2.5rem] flex items-center justify-center text-5xl font-black text-emerald-500 border border-white/10 shadow-inner group transition-transform hover:scale-105 duration-700">
+              {driver.full_name?.[0]}
+            </div>
+            <div>
+              <h1 className="text-5xl font-black mb-3 text-white font-outfit uppercase tracking-tighter italic leading-none">{driver.full_name}</h1>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${statusColors[driver.driver_status || 'pending']}`}>
+                    {driver.driver_status || 'pending'}
+                </span>
+                <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                    <Clock size={12} className="text-emerald-500" /> 
+                    Joined {new Date(driver.created_at).toLocaleDateString([], { month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="mt-6 flex flex-wrap justify-center lg:justify-start gap-6">
+                <span className="flex items-center gap-2 text-white/60 text-xs font-bold font-mono">
+                    <Mail size={16} className="text-emerald-500" /> {driver.email}
+                </span>
+                <span className="flex items-center gap-2 text-white/60 text-xs font-bold font-mono">
+                    <Phone size={16} className="text-emerald-500" /> {driver.phone}
+                </span>
               </div>
             </div>
-            <div className="mt-3 flex gap-2">
-                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${statusColors[driver.driver_status || 'pending']}`}>
-                    {driver.driver_status || 'pending'}
-                 </span>
-                 <span className="px-3 py-1 bg-charcoal-800 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID: {driver.id.slice(0,8)}</span>
-            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-3 min-w-fit">
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:w-auto">
             <button 
               onClick={() => handleUpdateStatus('active', true)}
               disabled={actionLoading || driver.driver_status === 'active'}
-              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-charcoal-900 font-black rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-2xl flex items-center justify-center gap-3 transition-all shadow-glow disabled:opacity-30 uppercase tracking-[0.2em] text-[11px] font-outfit"
             >
-              <ShieldCheck size={20} /> Approve
+              <ShieldCheck size={20} /> Authorize Unit
             </button>
             <button 
               onClick={() => handleUpdateStatus('paused', false)}
               disabled={actionLoading || driver.driver_status === 'paused'}
-              className="px-6 py-3 bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20 font-black rounded-2xl flex items-center gap-2 transition-all disabled:opacity-50"
+              className="px-8 py-4 glass-dark text-white border border-white/10 hover:bg-white/5 font-black rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-30 uppercase tracking-[0.2em] text-[11px] font-outfit shadow-premium"
             >
-              <ShieldAlert size={20} /> Pause
+              <ShieldAlert size={20} /> Suspend Operations
             </button>
             <button 
               onClick={() => handleUpdateStatus('rejected', false)}
               disabled={actionLoading || driver.driver_status === 'rejected'}
-              className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 font-black rounded-2xl flex items-center gap-2 transition-all disabled:opacity-50"
+              className="sm:col-span-2 px-8 py-4 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 font-black rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-30 uppercase tracking-[0.2em] text-[11px] font-outfit"
             >
-              <XCircle size={20} /> Reject
+              <XCircle size={20} /> Terminate Recruitment
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-charcoal-800/20 border border-charcoal-800 rounded-[2rem] p-6 mb-8">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Admin Internal Notes</h3>
-          <textarea 
-            value={driver.admin_notes || ''}
-            onChange={(e) => setDriver(prev => ({ ...prev, admin_notes: e.target.value }))}
-            placeholder="Add internal notes about this driver (e.g. background check details, inspection results)..."
-            className="w-full bg-charcoal-800 border border-charcoal-700 rounded-xl p-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[100px] mb-4"
-          />
-          <button 
-            onClick={handleSaveNotes}
-            className="px-6 py-2 bg-charcoal-700 text-white text-xs font-black rounded-lg hover:bg-charcoal-600 transition-all uppercase tracking-widest"
-          >
-            Save Internal Notes
-          </button>
-      </div>
+      {/* Sections Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        
+        {/* Left Column: Logs & Vehicle */}
+        <div className="lg:col-span-1 space-y-8">
+            {/* Admin Logs / Notes */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="glass-dark border border-white/5 rounded-[2.5rem] p-8 shadow-premium"
+            >
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] font-outfit italic">Internal Logs</h3>
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-glow"></div>
+                </div>
+                <textarea 
+                  value={driver.admin_notes || ''}
+                  onChange={(e) => setDriver(prev => ({ ...prev, admin_notes: e.target.value }))}
+                  placeholder="Record tactical assessment notes..."
+                  className="w-full bg-charcoal-950/80 border border-white/5 rounded-[2rem] p-6 text-sm text-white focus:outline-none focus:border-emerald-500 focus:bg-black transition-all min-h-[160px] mb-6 font-bold placeholder:text-charcoal-800 shadow-inner"
+                />
+                <button 
+                  onClick={handleSaveNotes}
+                  className="w-full py-4 bg-white/10 hover:bg-emerald-500 hover:text-charcoal-950 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-[0.4em] border border-white/5 shadow-premium"
+                >
+                  Commit Log Entry
+                </button>
+            </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Documents Section */}
-        <div className="bg-charcoal-800/20 border border-charcoal-800 rounded-[2.5rem] p-8">
-            <h2 className="text-xl font-black mb-6 flex items-center gap-2">
-                <FileText className="text-emerald-500" /> Uploaded Documents
-            </h2>
-            
-            {docs.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 italic font-medium">No documents uploaded yet.</div>
-            ) : (
-                <div className="space-y-4">
-                    {docs.map(doc => (
-                        <div key={doc.id} className="bg-charcoal-800 p-4 rounded-2xl border border-charcoal-700">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="font-bold text-sm uppercase tracking-wider">{doc.doc_type.replace('_', ' ')}</div>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${doc.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' : doc.status === 'rejected' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                    {doc.status}
-                                </span>
-                            </div>
-                            <img src={doc.file_url} alt={doc.doc_type} className="w-full h-48 object-cover rounded-xl mb-4 bg-black" />
-                            
-                            {doc.rejection_reason && (
-                                <div className="mb-4 p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-[10px] text-red-400 font-medium">
-                                    <span className="font-black">REJECTION REASON:</span> {doc.rejection_reason}
+            {/* Vehicle Data */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass-dark border border-white/5 rounded-[2.5rem] p-8 shadow-premium relative overflow-hidden"
+            >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-12 -mt-12"></div>
+                
+                <h2 className="text-xl font-black mb-8 flex items-center gap-3 font-outfit uppercase tracking-tighter italic">
+                    <Truck className="text-emerald-500" /> Vehicle <span className="text-emerald-500">Specs</span>
+                </h2>
+                
+                <div className="space-y-6">
+                    <div className="flex justify-between border-b border-white/5 pb-4">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Model / Class</span>
+                        <span className="font-black text-xs text-white uppercase tracking-widest">{driver.vehicle_type || 'NONE'}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/5 pb-4">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Plate ID</span>
+                        <span className="font-black text-xs text-emerald-500 uppercase tracking-widest italic">{driver.plate_number || 'UNKNOWN'}</span>
+                    </div>
+                    <div className="flex justify-between pb-2">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Insurance Node</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
+                            <span className="text-amber-500 font-black text-[9px] uppercase tracking-widest">Pending Review</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-white/5">
+                    <button 
+                        onClick={handleScheduleInspection}
+                        disabled={actionLoading}
+                        className="w-full py-5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-charcoal-950 font-black rounded-[2rem] transition-all flex items-center justify-center gap-3 disabled:opacity-30 uppercase tracking-[0.25em] text-[11px] font-outfit border border-emerald-500/20 active:scale-95 shadow-premium"
+                    >
+                        <Send size={18} /> Schedule Inspection
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+
+        {/* Right Column: Assets / Documents */}
+        <div className="lg:col-span-2 space-y-8">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="glass-dark border border-white/5 rounded-[3rem] p-10 shadow-premium"
+            >
+                <div className="flex items-center justify-between mb-10">
+                    <h2 className="text-2xl font-black flex items-center gap-3 font-outfit uppercase tracking-tighter italic">
+                        <FileText className="text-emerald-500" /> Digital <span className="text-emerald-500">Credentials</span>
+                    </h2>
+                    <div className="h-px bg-white/5 flex-1 mx-8 hidden sm:block"></div>
+                    <span className="text-[10px] font-black text-charcoal-600 uppercase tracking-widest">{docs.length} Registered Assets</span>
+                </div>
+                
+                {docs.length === 0 ? (
+                    <div className="text-center py-20 px-8 glass-dark rounded-[2rem] border-dashed border-2 border-white/5">
+                        <div className="w-20 h-20 bg-charcoal-950 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner ring-1 ring-white/5 text-charcoal-700">
+                             <FileText size={40} />
+                        </div>
+                        <p className="text-white/40 font-black text-sm uppercase tracking-[0.4em] italic leading-relaxed">No credential metadata currently broadcasted to the grid.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {docs.map((doc, idx) => (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: idx * 0.1 }}
+                              key={doc.id} 
+                              className="glass-dark p-6 rounded-[2.5rem] border border-white/5 group hover:border-emerald-500/30 transition-all shadow-premium"
+                            >
+                                <div className="flex justify-between items-center mb-6">
+                                    <div className="font-black text-[10px] uppercase tracking-[0.2em] text-white/50 group-hover:text-emerald-400 transition-colors font-outfit italic">{doc.doc_type.replace('_', ' ')}</div>
+                                    <span className={`px-3 py-1 rounded-[1rem] text-[8px] font-black uppercase tracking-widest border ${doc.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-glow shadow-emerald-500/10' : doc.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                                        {doc.status}
+                                    </span>
                                 </div>
-                            )}
+                                <div className="relative h-48 rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 shadow-inner mb-6 ring-1 ring-white/10 group-hover:ring-emerald-500/30 transition-all duration-700">
+                                    <img src={doc.file_url} alt={doc.doc_type} className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                         <button onClick={() => window.open(doc.file_url, '_blank')} className="w-full py-2 bg-white/20 backdrop-blur-md rounded-xl text-[9px] font-black uppercase tracking-widest text-white hover:bg-white/40 transition-all">Inspect Full Resolution</button>
+                                    </div>
+                                </div>
+                                
+                                {doc.rejection_reason && (
+                                    <div className="mb-6 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl text-[9px] text-red-400 font-bold uppercase tracking-widest leading-relaxed">
+                                        <span className="text-red-500 opacity-50 block mb-1">REJECTION CAUSE:</span> {doc.rejection_reason}
+                                    </div>
+                                )}
 
-                            <div className="flex flex-col gap-3">
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                     <button 
                                         onClick={() => handleUpdateDocStatus(doc.id, 'approved')}
                                         disabled={actionLoading || doc.status === 'approved'}
-                                        className="flex-1 py-2 bg-emerald-500/10 text-emerald-500 text-xs font-bold rounded-lg hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                                        className="py-3 bg-emerald-500/10 text-emerald-500 font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-emerald-500 hover:text-charcoal-950 transition-all disabled:opacity-20 border border-emerald-500/20 shadow-premium active:scale-95"
                                     >
-                                        Approve
+                                        Verify
                                     </button>
                                     <button 
                                         onClick={() => {
-                                            const reason = prompt("Reason for rejection:");
+                                            const reason = prompt("Specify deviation reason:");
                                             if (reason) handleUpdateDocStatus(doc.id, 'rejected', reason);
                                         }}
                                         disabled={actionLoading}
-                                        className="flex-1 py-2 bg-red-500/10 text-red-500 text-xs font-bold rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                                        className="py-3 bg-red-500/5 text-red-400 font-black text-[9px] uppercase tracking-widest rounded-xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-20 border border-red-500/10 shadow-premium active:scale-95"
                                     >
-                                        Reject
+                                        Invalidate
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-
-        {/* Vehicle & Inspection Section */}
-        <div className="space-y-8">
-            <div className="bg-charcoal-800/20 border border-charcoal-800 rounded-[2.5rem] p-8">
-                <h2 className="text-xl font-black mb-6 flex items-center gap-2">
-                    <Truck className="text-emerald-500" /> Vehicle Information
-                </h2>
-                <div className="space-y-4">
-                    <div className="flex justify-between border-b border-charcoal-800 pb-3">
-                        <span className="text-gray-400 font-medium">Vehicle Type</span>
-                        <span className="font-bold">{driver.vehicle_type || '---'}</span>
+                            </motion.div>
+                        ))}
                     </div>
-                    <div className="flex justify-between border-b border-charcoal-800 pb-3">
-                        <span className="text-gray-400 font-medium">Plate Number</span>
-                        <span className="font-bold uppercase">{driver.plate_number || '---'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-400 font-medium">Insurance Status</span>
-                        <span className="text-amber-500 font-bold">Pending Review</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-[2.5rem] p-8">
-                <h2 className="text-xl font-black mb-4 flex items-center gap-2">
-                    <CheckCircle2 className="text-emerald-500" /> Vehicle Inspection
-                </h2>
-                <p className="text-sm text-gray-400 mb-6 font-medium leading-relaxed">
-                    Once documents are preliminarily approved, schedule a physical inspection to verify the vehicle condition.
-                </p>
-                <button 
-                    onClick={handleScheduleInspection}
-                    disabled={actionLoading}
-                    className="w-full py-4 bg-emerald-500 text-charcoal-900 font-black rounded-2xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                    <Send size={18} /> Schedule Inspection
-                </button>
-            </div>
+                )}
+            </motion.div>
         </div>
       </div>
     </div>

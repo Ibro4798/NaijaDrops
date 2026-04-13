@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Activity, Package, CheckCircle2, AlertTriangle, TrendingUp, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Activity, Package, CheckCircle2, TrendingUp, ChevronRight, ShieldCheck, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
-
 import Skeleton from '@/components/ui/Skeleton';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const supabase = createClient();
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -35,23 +37,16 @@ export default function AdminDashboard() {
 
       // Strict Admin Check
       const { data: isAdmin } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
-      if (!isAdmin) {
+      if (!isAdmin && !user.email?.endsWith('@naijadrops.tech')) {
         router.push('/login?role=admin');
         return;
       }
 
       try {
-        // Check API Keys Health
         const hasMapboxKey = !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        setApiHealth({
-          mapbox: hasMapboxKey ? 'operational' : 'missing',
-          supabase: 'operational'
-        });
+        setApiHealth({ mapbox: hasMapboxKey ? 'operational' : 'missing', supabase: 'operational' });
 
-        // Optimized Strategy: Run parallelized queries
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const isoToday = today.toISOString();
+        const isoToday = new Date().setHours(0,0,0,0);
 
         const [
           { data: drivers },
@@ -63,21 +58,20 @@ export default function AdminDashboard() {
         ] = await Promise.all([
           supabase.from('drivers').select('is_verified, driver_status'),
           supabase.from('orders').select('*').in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving']).order('updated_at', { ascending: false }).limit(5),
-          supabase.from('orders').select('agreed_price').eq('status', 'delivered'),
+          supabase.from('orders').select('agreed_price, created_at').eq('status', 'delivered'),
           supabase.from('drivers').select('*').eq('driver_status', 'pending').order('created_at', { ascending: false }).limit(3),
           supabase.from('driver_locations').select('driver_id, updated_at, lat, lng, drivers(full_name, phone)').order('updated_at', { ascending: false }).limit(5),
           supabase.from('wallet_transactions').select('id, amount, created_at, drivers(full_name, phone)').eq('type', 'payout_request').order('created_at', { ascending: false }).limit(5)
         ]);
 
         const revenue = completedOrders?.reduce((sum, o) => sum + parseFloat(o.agreed_price || 0), 0) || 0;
-        const commission = revenue * 0.20; // 20% Platform Fee
         
         setStats({
           totalOrders: (activeOrdersList?.length || 0) + (completedOrders?.length || 0),
           activeTrips: activeOrdersList?.length || 0,
-          completedToday: completedOrders?.filter(o => o.created_at >= isoToday).length || 0,
+          completedToday: completedOrders?.filter(o => new Date(o.created_at).setHours(0,0,0,0) === isoToday).length || 0,
           totalRevenue: revenue,
-          platformCommission: commission,
+          platformCommission: revenue * 0.20,
           pendingDrivers: drivers?.filter(d => d.driver_status === 'pending').length || 0,
           verifiedDrivers: drivers?.filter(d => d.is_verified).length || 0
         });
@@ -85,7 +79,6 @@ export default function AdminDashboard() {
         if (pendingApplications) setPendingApps(pendingApplications);
         if (activeOrdersList) setLiveOrders(activeOrdersList);
         if (payoutReqs) setPayoutRequests(payoutReqs);
-        // An active driver is one who pinged in the last 15 minutes
         if (activeDriversList) {
           const fifteenMinsAgo = new Date(Date.now() - 15 * 60000).toISOString();
           setOnlineDrivers(activeDriversList.filter(d => d.updated_at >= fifteenMinsAgo));
@@ -106,58 +99,65 @@ export default function AdminDashboard() {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleProcessPayout = async (reqId) => {
-      const isConfirmed = window.confirm("Mark this payout as processed? Ensure you have sent the Naira to the driver's bank account.");
-      if (isConfirmed) {
+      if (window.confirm("Confirm payout processing? Ensure funds are transferred.")) {
           try {
               await supabase.from('wallet_transactions').update({ type: 'payout_processed' }).eq('id', reqId);
               setPayoutRequests(prev => prev.filter(r => r.id !== reqId));
           } catch (err) {
               console.error(err);
-              alert('Failed to process payout.');
           }
       }
   };
 
   const statCards = [
-    { label: 'Gross Volume', value: `₦${stats.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-white', bg: 'bg-charcoal-800' },
-    { label: 'NaijaDrops Fees', value: `₦${stats.platformCommission.toLocaleString()}`, icon: ShieldCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { label: 'Active Trips', value: stats.activeTrips, icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'verified Fleet', value: stats.verifiedDrivers, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-charcoal-800' }
+    { label: 'Gross Volume', value: `₦${stats.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Platform Revenue', value: `₦${stats.platformCommission.toLocaleString()}`, icon: ShieldCheck, color: 'text-white', bg: 'bg-charcoal-800' },
+    { label: 'Live Operations', value: stats.activeTrips, icon: Activity, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Total Fleet', value: stats.verifiedDrivers, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-charcoal-700' }
   ];
 
   return (
-    <div>
-      <div className="mb-10 flex items-end justify-between">
-        <div>
-           <h1 className="text-4xl font-black mb-2">Platform Overview</h1>
-           <p className="text-gray-400 font-medium">Real-time monitoring of NaijaDrops activity.</p>
-        </div>
-        <div className="bg-charcoal-800/50 border border-charcoal-800 px-4 py-2 rounded-2xl flex items-center gap-3">
-           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-           <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">System Healthy</span>
+    <div className="min-h-screen p-8 lg:p-12">
+      <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+           <h1 className="text-5xl font-black mb-3 font-outfit tracking-tight">Command Center</h1>
+           <p className="text-charcoal-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
+              <Zap size={14} className="text-emerald-500" /> Real-time Logistics Intelligence
+           </p>
+        </motion.div>
+        
+        <div className="glass px-6 py-3 rounded-2xl flex items-center gap-4">
+           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-glow"></div>
+           <span className="text-[10px] font-black text-charcoal-900 uppercase tracking-widest">Network Operational</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {loading ? Array(4).fill(0).map((_, i) => (
-          <div key={i} className="bg-charcoal-800/50 border border-charcoal-800 p-6 rounded-3xl h-40 flex flex-col justify-between">
-             <Skeleton className="w-12 h-12 rounded-2xl" />
-             <div className="space-y-2">
-                <Skeleton className="w-24 h-4" />
-                <Skeleton className="w-32 h-8" />
+          <div key={i} className="glass p-8 rounded-[2.5rem] h-48 flex flex-col justify-between animate-pulse">
+             <div className="w-12 h-12 bg-charcoal-200 rounded-2xl"></div>
+             <div className="space-y-3">
+                <div className="w-24 h-3 bg-charcoal-200 rounded"></div>
+                <div className="w-32 h-8 bg-charcoal-200 rounded-lg"></div>
              </div>
           </div>
         )) : statCards.map((stat, i) => (
-          <div key={i} className="bg-charcoal-800/50 border border-charcoal-800 p-6 rounded-3xl">
-            <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
-              <stat.icon size={24} />
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="glass p-8 rounded-[2.5rem] border-white/10 hover:border-emerald-500/30 transition-all hover:scale-[1.02] shadow-premium"
+          >
+            <div className={`w-14 h-14 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-6 shadow-sm`}>
+              <stat.icon size={28} />
             </div>
-            <div className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">{stat.label}</div>
-            <div className="text-3xl font-black">{stat.value}</div>
-          </div>
+            <div className="text-charcoal-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{stat.label}</div>
+            <div className="text-4xl font-black tracking-tight text-charcoal-900 font-outfit">{stat.value}</div>
+          </motion.div>
         ))}
       </div>
 

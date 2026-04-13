@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, Zap, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer, onReject }) {
   const [customOffer, setCustomOffer] = useState(order?.agreed_price ? parseInt(order.agreed_price) : 0);
@@ -8,179 +9,132 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
   if (!order) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-[calc(7rem+var(--safe-bottom))] z-50 bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-slide-up ring-4 ring-emerald-500/10">
+    <motion.div 
+      initial={{ y: 100, opacity: 0, scale: 0.9 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      exit={{ y: 100, opacity: 0, scale: 0.9 }}
+      className="fixed inset-x-6 bottom-[calc(8rem+var(--safe-bottom))] z-50 glass-dark rounded-[3rem] shadow-premium overflow-hidden ring-1 ring-white/10 backdrop-blur-3xl"
+    >
+      {/* Background Pulse */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
       {/* Header */}
-      <div className="bg-charcoal-900 p-4 text-white flex justify-between items-center">
+      <div className="bg-charcoal-900/40 p-6 border-b border-white/5 flex justify-between items-center relative z-10">
         <div>
-          <h3 className="font-extrabold text-lg leading-tight">New Request</h3>
-          <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{order.item_category} • {order.item_size}</p>
+          <div className="flex items-center gap-2 mb-1">
+             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+             <h3 className="font-black text-white text-xl uppercase tracking-tighter italic font-outfit">Priority Task</h3>
+          </div>
+          <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.3em] opacity-80">{order.item_category} • {order.item_size}</p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-black text-emerald-500 leading-none">₦{order.agreed_price}</div>
-          <div className="text-[10px] text-gray-400 font-bold tracking-widest">CUSTOMER OFFER</div>
+          <div className="text-3xl font-black text-white leading-none font-outfit italic">₦{order.agreed_price}</div>
+          <div className="text-[9px] text-charcoal-500 font-bold tracking-[0.2em] uppercase mt-1">Base Yield</div>
         </div>
       </div>
       
-      <div className="p-5 space-y-4">
-        {/* Route */}
-        <div className="relative pl-6 py-2 bg-charcoal-50 rounded-2xl border border-gray-100">
-          <div className="absolute left-3 top-6 bottom-6 w-0.5 bg-emerald-500/30"></div>
-          <div className="relative flex items-center gap-3 mb-4">
-            <div className="absolute -left-[14px] w-2.5 h-2.5 rounded-full border-2 border-emerald-500 bg-white shadow-sm"></div>
+      <div className="p-6 space-y-5 relative z-10">
+        {/* Route Visualization */}
+        <div className="relative pl-8 py-4 bg-charcoal-950/40 rounded-[2rem] border border-white/5 shadow-inner">
+          <div className="absolute left-4 top-8 bottom-8 w-px bg-gradient-to-b from-emerald-500 via-emerald-500/20 to-charcoal-500/20"></div>
+          
+          <div className="relative mb-6">
+            <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-full border border-emerald-500 bg-charcoal-950 shadow-glow"></div>
             <div>
-               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Pickup</p>
-               <p className="text-[15px] font-black text-charcoal-900 leading-tight">{order.pickup_name}</p>
+               <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none mb-1 opacity-60">Source Node</p>
+               <p className="text-[14px] font-black text-white leading-tight font-outfit">{order.pickup_name}</p>
             </div>
           </div>
-          <div className="relative flex items-center gap-3">
-            <div className="absolute -left-[14px] w-2.5 h-2.5 rounded-lg border-2 border-charcoal-900 bg-white shadow-sm"></div>
+          
+          <div className="relative">
+            <div className="absolute -left-[20px] top-1.5 w-3 h-3 rounded-md border border-white/40 bg-charcoal-950"></div>
             <div>
-               <p className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest leading-none mb-1">Dropoff</p>
-               <p className="text-[15px] font-black text-charcoal-900 leading-tight">{order.dropoff_name}</p>
+               <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest leading-none mb-1">Destination</p>
+               <p className="text-[14px] font-black text-white leading-tight font-outfit opacity-80">{order.dropoff_name}</p>
             </div>
           </div>
         </div>
 
-        {/* Distance & Category Quick View */}
-        <div className="flex gap-2">
+        {/* Dynamic Metadata */}
+        <div className="flex flex-wrap gap-2">
           {order.distanceKm && (
-            <span className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100">
-              <Navigation size={12} /> {order.distanceKm} km away
-            </span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 glass-dark text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10">
+              <Navigation size={12} className="text-emerald-500" /> {order.distanceKm}KM
+            </div>
           )}
-          {order.item_size && (
-            <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-charcoal-600 rounded-xl text-xs font-bold">
-              <Package size={12} /> {order.item_size}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 glass-dark text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10">
+            <Package size={12} className="text-emerald-500" /> {order.item_size}
+          </div>
           {order.scheduled_at && (
-            <span className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-xl text-xs font-bold border border-orange-100">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
               <Clock size={12} /> Scheduled
-            </span>
+            </div>
           )}
         </div>
 
-        {/* Show More Details Toggle */}
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="w-full flex items-center justify-between py-2 text-xs font-bold text-charcoal-500 uppercase tracking-widest border-t border-gray-100"
-        >
-          Order Details
-          {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-
-        {showDetails && (
-          <div className="space-y-3 bg-gray-50 rounded-2xl p-4 border border-gray-100">
-            {/* Receiver */}
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-charcoal-900/10 flex items-center justify-center shrink-0">
-                <User size={14} className="text-charcoal-700" />
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Receiver</div>
-                <div className="text-sm font-bold text-charcoal-900">{order.receiver_name || 'Not specified'}</div>
-                {order.receiver_phone && <div className="text-xs text-charcoal-500">{order.receiver_phone}</div>}
-              </div>
-            </div>
-
-            {/* Package Details */}
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-charcoal-900/10 flex items-center justify-center shrink-0">
-                <Package size={14} className="text-charcoal-700" />
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Package</div>
-                <div className="text-sm font-bold text-charcoal-900">{order.item_category} — {order.parcel_size}</div>
-                {order.pickup_details && <div className="text-xs text-charcoal-500 mt-0.5">Note: {order.pickup_details}</div>}
-              </div>
-            </div>
-
-            {/* Voice Note */}
-            {order.voice_note_url && (
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <Volume2 size={14} className="text-emerald-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Customer Voice Note</div>
-                  <audio controls src={order.voice_note_url} className="w-full h-10 rounded-lg" style={{ accentColor: '#10b981' }} />
-                </div>
-              </div>
-            )}
-
-            {/* Scheduled time */}
-            {order.scheduled_at && (
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
-                  <Clock size={14} className="text-orange-600" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Scheduled For</div>
-                  <div className="text-sm font-bold text-charcoal-900">
-                    {new Date(order.scheduled_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* Counter Offer Engine (High Contrast) */}
+        <div className="pt-4 border-t border-white/5 space-y-4">
+          <div className="flex items-center justify-between px-2">
+             <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-[0.3em]">Negotiate Bid</p>
+             <Zap size={12} className="text-emerald-500 animate-pulse" />
           </div>
-        )}
 
-        {/* Counter Offer Engine */}
-        <div className="pt-3 border-t border-gray-100">
-          <p className="text-[10px] font-bold text-center text-charcoal-500 mb-2 uppercase tracking-widest">Your Counter Offer</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setCustomOffer(prev => Math.max(0, prev - 100))} 
-              className="w-12 h-14 rounded-xl bg-gray-50 hover:bg-red-50 text-charcoal-600 border border-gray-200 hover:border-red-200 hover:text-red-600 flex items-center justify-center transition-colors shadow-sm"
+              className="w-14 h-16 rounded-2xl glass-dark hover:bg-emerald-500/10 text-white border border-white/5 hover:border-emerald-500 transition-all flex items-center justify-center active:scale-95"
             >
               <Minus size={20} className="stroke-[3]" />
             </button>
-            <div className="flex-1 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-400 font-black text-xl">₦</span>
+            <div className="flex-1 relative group">
+              <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500/40 font-black text-xl italic font-outfit">₦</span>
               <input 
                 type="number" 
                 value={customOffer}
                 onChange={(e) => setCustomOffer(parseInt(e.target.value) || 0)}
-                className="w-full h-14 rounded-xl bg-gray-50 border border-gray-200 text-center font-black text-2xl text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
+                className="w-full h-16 rounded-2xl bg-charcoal-950/80 border border-white/5 text-center font-black text-3xl text-emerald-500 focus:outline-none focus:border-emerald-500 focus:bg-black transition-all font-outfit italic shadow-inner"
               />
             </div>
             <button 
               onClick={() => setCustomOffer(prev => prev + 100)} 
-              className="w-12 h-14 rounded-xl bg-gray-50 hover:bg-emerald-50 text-charcoal-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700 flex items-center justify-center transition-colors shadow-sm"
+              className="w-14 h-16 rounded-2xl glass-dark hover:bg-emerald-500/10 text-white border border-white/5 hover:border-emerald-500 transition-all flex items-center justify-center active:scale-95"
             >
               <Plus size={20} className="stroke-[3]" />
             </button>
           </div>
 
-          <div className="flex gap-2 mt-3">
-             {[100, 200, 500].map(amt => (
+          <div className="flex gap-2">
+             {[100, 500, 1000].map(amt => (
                 <button 
                   key={amt}
                   onClick={() => setCustomOffer(prev => prev + amt)}
-                  className="flex-1 py-2 rounded-lg bg-white border border-gray-200 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-500 transition-all shadow-sm active:scale-95"
+                  className="flex-1 py-2.5 rounded-xl glass-dark border border-white/5 text-white/40 font-black text-[9px] uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-500 transition-all active:scale-95"
                 >
                   +{amt}
                 </button>
              ))}
           </div>
+
           <button 
              onClick={() => onCounterOffer(customOffer)}
-             className="w-full mt-2 py-3 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-sm transition-colors border border-emerald-200"
+             className="w-full py-4 rounded-2xl bg-white text-charcoal-950 font-black text-[11px] uppercase tracking-[0.25em] transition-all hover:bg-emerald-400 active:scale-95 shadow-premium"
           >
-            Submit ₦{customOffer} Bid
+            Submit Custom Yield (₦{customOffer})
           </button>
         </div>
 
-        {/* Primary Actions */}
-        <div className="flex gap-2 pt-2">
-          <button onClick={onReject} className="w-[60px] rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center transition-colors">
-             <span className="font-extrabold text-xl flex items-center justify-center mb-0.5">✕</span>
+        {/* Primary Rapid Access */}
+        <div className="flex gap-3 pt-2">
+          <button onClick={onReject} className="w-16 h-16 rounded-[1.5rem] glass-dark border border-white/5 text-charcoal-600 hover:text-red-500 hover:border-red-500/30 flex items-center justify-center transition-all active:scale-95">
+             <X size={24} />
           </button>
-          <button onClick={onAcceptBase} className="flex-1 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/30 text-white font-black text-lg flex items-center justify-center gap-2 transition-transform active:scale-[0.98]">
-             <Check size={22} className="stroke-[3]" /> Accept ₦{order.agreed_price}
+          <button onClick={onAcceptBase} className="flex-1 h-16 rounded-[1.5rem] bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-glow">
+             Initialize <Check size={20} className="stroke-[3]" />
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
