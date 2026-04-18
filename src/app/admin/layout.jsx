@@ -16,22 +16,34 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => {
     async function checkAdmin() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        setLoading(false);
         router.push('/login');
         return;
       }
 
-      const { data: adminData } = await supabase
+      // PRIMARY CHECK: Is their email an @naijadrops.tech domain? (Fast path)
+      if (user.email?.endsWith('@naijadrops.tech')) {
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+
+      // SECONDARY CHECK: Is their ID in the admins table?
+      const { data: adminData, error: adminError } = await supabase
         .from('admins')
         .select('id')
         .eq('id', user.id)
         .maybeSingle();
       
-      if (!adminData) {
-        router.push('/'); 
-      } else {
+      if (adminData) {
         setIsAdmin(true);
+      } else {
+        // Not an admin — redirect to login, not '/', to avoid redirect loops
+        console.warn('[AdminGuard] Access denied for user:', user.email, adminError?.message);
+        router.push('/login?error=access_denied');
       }
       setLoading(false);
     }

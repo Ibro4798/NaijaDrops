@@ -21,6 +21,7 @@ function LoginContent() {
   const [fullName, setFullName] = useState("");
 
   const supabase = createClient();
+  const accessDenied = searchParams.get('error') === 'access_denied';
 
   useEffect(() => {
     async function checkUser() {
@@ -147,9 +148,10 @@ function LoginContent() {
             </button>
           </div>
 
-          {errorMsg && (
+          {(errorMsg || accessDenied) && (
             <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-2">
-              <AlertCircle size={18} /> {errorMsg}
+              <AlertCircle size={18} /> 
+              {accessDenied ? 'Access denied. Your account does not have admin privileges.' : errorMsg}
             </div>
           )}
 

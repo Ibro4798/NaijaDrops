@@ -42,19 +42,29 @@ export default function Home() {
         }
         setProfile(prof);
 
-        // 1. Check if they are a driver on an active trip
-        const { data: driverOrders } = await supabase.from('orders')
-          .select('*')
-          .eq('driver_id', user.id)
-          .in('status', ['accepted', 'arriving_pickup', 'picked_up', 'arriving'])
-          .order('created_at', { ascending: false });
+        // ── Admins: go straight to command hub, skip order checks ──
+        if (prof.role === 'admin') {
+          router.push('/admin');
+          return;
+        }
 
-        if (driverOrders && driverOrders.length > 0) {
+        // ── Drivers: check if on an active trip ──
+        if (prof.role === 'driver') {
+          const { data: driverOrders } = await supabase.from('orders')
+            .select('*')
+            .eq('driver_id', user.id)
+            .in('status', ['accepted', 'arriving_pickup', 'picked_up', 'arriving'])
+            .order('created_at', { ascending: false });
+
+          if (driverOrders && driverOrders.length > 0) {
+            router.push('/driver');
+            return;
+          }
           router.push('/driver');
           return;
         }
 
-        // 2. Check if they are a customer with an active trip
+        // ── Customers: check if on an active order ──
         const { data: orders } = await supabase.from('orders')
           .select('*')
           .eq('user_id', user.id)
@@ -63,7 +73,6 @@ export default function Home() {
         
         if (orders && orders.length > 0) {
           const active = orders[0];
-          // Determine where to redirect based on status
           if (active.status === 'looking_for_driver') {
             router.push(`/matching?orderId=${active.id}`);
             return;
@@ -76,14 +85,8 @@ export default function Home() {
           }
         }
 
-        // 3. If no active trip, auto-redirect based on role
-        if (prof.role === 'driver' || prof.role === 'admin') {
-          router.push(prof.role === 'admin' ? '/admin' : '/driver');
-          return;
-        } else {
-          router.push('/send');
-          return;
-        }
+        // No active order — send to send page
+        router.push('/send');
       }
       setIsCheckingAuth(false);
     }
