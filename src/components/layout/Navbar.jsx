@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Package, LogOut, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { getUserRole } from "@/utils/auth";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
@@ -23,27 +24,10 @@ export default function Navbar() {
 
   useEffect(() => {
     async function setupProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        let role = 'user';
-        try {
-            const { data: adminData } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
-            if (adminData || user.email?.endsWith('@naijadrops.tech')) {
-                role = 'admin';
-            } else {
-                const { data: driverData } = await supabase.from('drivers').select('id').eq('id', user.id).maybeSingle();
-                if (driverData) {
-                    role = 'driver';
-                } else {
-                    const { data: custData } = await supabase.from('customers').select('id').eq('id', user.id).maybeSingle();
-                    if (custData) role = 'user';
-                }
-            }
-        } catch (err) {
-            console.error("Navbar profile check error:", err);
-        }
-        
-        setProfile({ role, email: user.email });
+      const { user, role, profile: prof } = await getUserRole(supabase);
+      
+      if (user && role) {
+        setProfile({ role, email: user.email, ...prof });
 
         if (role === 'user') {
             const checkActiveOrder = async () => {

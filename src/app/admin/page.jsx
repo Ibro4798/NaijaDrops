@@ -35,13 +35,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Strict Admin Check
-      const { data: isAdmin } = await supabase.from('admins').select('id').eq('id', user.id).maybeSingle();
-      if (!isAdmin && !user.email?.endsWith('@naijadrops.tech')) {
-        router.push('/login?role=admin');
-        return;
-      }
-
       try {
         const hasMapboxKey = !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
         setApiHealth({ mapbox: hasMapboxKey ? 'operational' : 'missing', supabase: 'operational' });

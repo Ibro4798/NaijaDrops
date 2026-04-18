@@ -1,69 +1,50 @@
-"use client";
-
-import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { useRouter, usePathname } from 'next/navigation';
-import { ShieldAlert, BarChart3, Users, Package, Power, ChevronRight, Zap } from 'lucide-react';
+import { redirect } from 'next/navigation';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldAlert, BarChart3, Users, Package, Power, Zap } from 'lucide-react';
 
-export default function AdminLayout({ children }) {
-  const supabase = createClient();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+export const metadata = {
+  title: 'Command Hub | NaijaDrops Admin',
+  description: 'NaijaDrops Operations Management',
+};
 
-  useEffect(() => {
-    async function checkAdmin() {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        setLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // PRIMARY CHECK: Is their email an @naijadrops.tech domain? (Fast path)
-      if (user.email?.endsWith('@naijadrops.tech')) {
-        setIsAdmin(true);
-        setLoading(false);
-        return;
-      }
-
-      // SECONDARY CHECK: Is their ID in the admins table?
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (adminData) {
-        setIsAdmin(true);
-      } else {
-        // Not an admin — redirect to login, not '/', to avoid redirect loops
-        console.warn('[AdminGuard] Access denied for user:', user.email, adminError?.message);
-        router.push('/login?error=access_denied');
-      }
-      setLoading(false);
+export default async function AdminLayout({ children }) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value; },
+        set() {},   // no-op in server layout
+        remove() {},
+      },
     }
-    checkAdmin();
-  }, [supabase, router]);
+  );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Aura Loader Background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px]"></div>
-        <div className="relative z-10 flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6"></div>
-            <p className="text-white font-black text-sm uppercase tracking-[0.3em] font-outfit animate-pulse">Authenticating Command Hub</p>
-        </div>
-      </div>
-    );
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
   }
 
-  if (!isAdmin) return null;
+  // Fast path: email domain check (no extra DB query)
+  const isAdminEmail = user.email?.endsWith('@naijadrops.tech');
+
+  if (!isAdminEmail) {
+    // Fallback: check admins table for manually-added admins
+    const { data: adminRow } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!adminRow) {
+      // Not an admin — redirect cleanly to login, never to '/'
+      redirect('/login?error=access_denied');
+    }
+  }
 
   const navItems = [
     { name: 'Dashboard', icon: BarChart3, path: '/admin' },
@@ -72,101 +53,89 @@ export default function AdminLayout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen bg-charcoal-950 text-white flex overflow-hidden font-inter selection:bg-emerald-500/30">
-      {/* Sidebar - Desktop Only for now */}
-      <aside className="w-80 glass-dark border-r border-white/5 flex flex-col p-8 relative z-20 hidden md:flex">
-        <div className="flex items-center gap-4 mb-20 group cursor-pointer" onClick={() => router.push('/admin')}>
-          <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform">
-            <ShieldAlert size={24} className="text-charcoal-950" />
+    <div className="min-h-screen bg-charcoal-950 text-white flex overflow-hidden font-inter">
+      {/* ── Sidebar ─────────────────────────────────────────────── */}
+      <aside className="w-72 bg-charcoal-900/80 border-r border-white/5 flex-col p-8 relative z-20 hidden md:flex">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-16">
+          <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-glow shrink-0">
+            <ShieldAlert size={20} className="text-charcoal-950" />
           </div>
           <div>
-            <span className="font-black tracking-tighter text-2xl font-outfit block leading-none">NAIJA<span className="text-emerald-500 italic">DROPS</span></span>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1 block">Command Hub</span>
+            <span className="font-black tracking-tighter text-lg font-outfit block leading-none text-white">
+              NAIJA<span className="text-emerald-500">DROPS</span>
+            </span>
+            <span className="text-[9px] font-bold text-charcoal-500 uppercase tracking-[0.3em] mt-0.5 block">
+              Command Hub
+            </span>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-3">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path || (item.path !== '/admin' && pathname.startsWith(item.path));
-            return (
-              <Link 
-                key={item.name}
-                href={item.path} 
-                className={`flex items-center justify-between p-4 rounded-2xl transition-all group ${isActive ? 'bg-emerald-500 text-charcoal-950 shadow-glow' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-              >
-                <div className="flex items-center gap-4">
-                  <item.icon size={22} className={isActive ? 'text-charcoal-950' : 'group-hover:text-emerald-400 transition-colors'} />
-                  <span className="font-black text-xs uppercase tracking-[0.2em]">{item.name}</span>
-                </div>
-                {isActive && <motion.div layoutId="nav-pill" className="w-1.5 h-1.5 bg-charcoal-950 rounded-full" />}
-                {!isActive && <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />}
-              </Link>
-            );
-          })}
+        {/* Nav */}
+        <nav className="flex-1 space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.path}
+              className="flex items-center gap-3 p-3.5 rounded-xl transition-all text-charcoal-400 hover:text-white hover:bg-white/5 group"
+            >
+              <item.icon size={18} className="shrink-0 group-hover:text-emerald-400 transition-colors" />
+              <span className="font-bold text-xs uppercase tracking-widest">{item.name}</span>
+            </Link>
+          ))}
         </nav>
 
-        <div className="mt-auto pt-10 border-t border-white/5">
-            <div className="glass-dark p-4 rounded-3xl border-emerald-500/10 mb-6 flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full bg-charcoal-900 border border-white/10 flex items-center justify-center">
-                    <Zap size={18} className="text-emerald-500" />
-                 </div>
-                 <div>
-                    <div className="text-[10px] font-black text-white/40 uppercase tracking-widest">System Status</div>
-                    <div className="text-[11px] font-bold text-emerald-500">OPTIMIZED</div>
-                 </div>
-            </div>
-            <button 
-                onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all font-black text-[11px] uppercase tracking-[0.25em] border border-transparent hover:border-red-500/20"
+        {/* Footer */}
+        <div className="mt-auto pt-8 border-t border-white/5 space-y-3">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-glow" />
+            <span className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">
+              {user.email}
+            </span>
+          </div>
+
+          {/* Sign out is a form POST to avoid client-side state issues */}
+          <form action="/api/auth/signout" method="POST">
+            <button
+              type="submit"
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl text-charcoal-500 hover:text-red-400 hover:bg-red-500/5 transition-all font-bold text-xs uppercase tracking-widest border border-transparent hover:border-red-500/10"
             >
-                <Power size={20} /> Sign Out
+              <Power size={16} />
+              Sign Out
             </button>
+          </form>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative overflow-hidden h-screen">
-        {/* Background Aura Elements */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[150px] -mr-64 -mt-64"></div>
-          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] -ml-64 -mb-64"></div>
-        </div>
-
-        {/* Global Header (Optional, if needed for mobile) */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-10 relative z-10 md:hidden">
-             <div className="flex items-center gap-3">
-                 <ShieldAlert size={20} className="text-emerald-500" />
-                 <span className="font-black text-sm uppercase tracking-widest">Admin Hub</span>
-             </div>
-             <button className="w-10 h-10 glass-dark rounded-xl flex items-center justify-center">
-                 <Users size={20} />
-             </button>
+      {/* ── Mobile Header ────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 bg-charcoal-900/80 border-b border-white/5 flex items-center justify-between px-6 md:hidden shrink-0">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={18} className="text-emerald-500" />
+            <span className="font-black text-sm uppercase tracking-widest text-white">Admin Hub</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.path}
+                className="w-9 h-9 rounded-xl bg-charcoal-800 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 transition-colors"
+              >
+                <item.icon size={16} />
+              </Link>
+            ))}
+          </div>
         </header>
 
-        {/* Dynamic Content Container */}
-        <main className="flex-1 overflow-y-auto p-8 md:p-12 relative z-10 scroll-smooth hide-scrollbar">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+        {/* ── Page Content ─────────────────────────────────────── */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-charcoal-950 hide-scrollbar">
+          {children}
         </main>
       </div>
 
-      <style jsx global>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
-        }
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { getUserRole } from "@/utils/auth";
 import { MapPin, Package, ShoppingCart, ChevronRight, LayoutDashboard, Truck, ShieldCheck, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,40 +17,19 @@ export default function Home() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        let prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
-        
-        // WATERFALL ROLE CHECK (Robust & Predictable)
-        // 1. Check Admin Table (High Priority)
-        const { data: adminProf } = await supabase.from('admins').select('*').eq('id', user.id).maybeSingle();
-        if (adminProf || user.email?.endsWith('@naijadrops.tech')) {
-            prof = { ...(adminProf || {}), full_name: adminProf?.full_name || user.user_metadata?.full_name || 'Admin', role: 'admin' };
-        } else {
-            // 2. Check Driver Table
-            const { data: driverProf } = await supabase.from('drivers').select('*').eq('id', user.id).maybeSingle();
-            if (driverProf) {
-                prof = { ...driverProf, role: 'driver' };
-            } else {
-                // 3. Default to Customer
-                const { data: custProf } = await supabase.from('customers').select('*').eq('id', user.id).maybeSingle();
-                if (custProf) {
-                    prof = { ...custProf, role: 'user' };
-                } else {
-                    prof = { full_name: user.user_metadata?.full_name || 'User', role: 'user' };
-                }
-            }
-        }
+      const { user, role, profile: prof } = await getUserRole(supabase);
+
+      if (user && role) {
         setProfile(prof);
 
         // ── Admins: go straight to command hub, skip order checks ──
-        if (prof.role === 'admin') {
+        if (role === 'admin') {
           router.push('/admin');
           return;
         }
 
-        // ── Drivers: check if on an active trip ──
-        if (prof.role === 'driver') {
+        // ── Drivers: check if on an active trip (though normally just to /driver) ──
+        if (role === 'driver') {
           const { data: driverOrders } = await supabase.from('orders')
             .select('*')
             .eq('driver_id', user.id)

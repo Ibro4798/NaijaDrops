@@ -156,7 +156,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
   const canNegotiatePrice = order && order.status !== 'delivered' && order.status !== 'cancelled';
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-charcoal-950 sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 sm:rounded-t-[2.5rem] sm:max-h-[85vh] shadow-premium border-t border-white/5">
+    <div className="fixed inset-0 z-[70] flex flex-col glass-dark sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 sm:rounded-t-[2.5rem] sm:max-h-[85vh] shadow-premium sm:border-t sm:border-white/10">
       {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-white/5 shrink-0">
         <div className="flex items-center gap-4">
@@ -194,7 +194,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-b border-white/5 bg-charcoal-900/80 shrink-0"
+            className="overflow-hidden border-b border-white/10 bg-charcoal-900/90 shrink-0"
           >
             <div className="p-5">
               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Propose New Agreed Price</p>
@@ -231,7 +231,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
       </AnimatePresence>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-charcoal-950/60">
+      <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-charcoal-900/40">
         {loading ? (
           <div className="h-full flex items-center justify-center text-gray-500 font-black text-xs uppercase tracking-widest animate-pulse">
             Synchronizing transmission...
@@ -294,7 +294,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
 
       {/* Input Area */}
       {!isReadOnly ? (
-        <div className="p-4 bg-charcoal-900 border-t border-white/5 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="p-4 bg-charcoal-900/90 backdrop-blur-md border-t border-white/10 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <form onSubmit={handleSendMessage} className="flex items-center gap-3">
             <input
               ref={inputRef}
