@@ -52,11 +52,7 @@ export default function Navbar() {
     setupProfile();
   }, [supabase]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
+  // Navbar component logic
 
   if (pathname?.startsWith('/admin')) return null;
 
@@ -131,13 +127,15 @@ export default function Navbar() {
             </AnimatePresence>
 
             {profile && (
-              <button 
-                onClick={handleLogout}
-                className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100"
-                title="Logout"
-              >
-                <LogOut size={20} />
-              </button>
+              <form action="/api/auth/signout" method="POST" className="m-0 p-0">
+                <button 
+                  type="submit"
+                  className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </button>
+              </form>
             )}
 
             {!profile && (
