@@ -54,7 +54,7 @@ export default function Navbar() {
 
   // Navbar component logic
 
-  if (pathname?.startsWith('/admin')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/driver')) return null;
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-3' : 'py-5'}`}>

@@ -120,13 +120,13 @@ export default function DriverOnboarding() {
     try {
       const { error: profileErr } = await supabase
         .from('drivers')
-        .update({
+        .upsert({
+          id: user.id,
           vehicle_type: vehicleInfo.type,
           plate_number: vehicleInfo.plate,
           phone: contactInfo.whatsapp,
           driver_status: 'pending' // Reset status to pending when resubmitting
-        })
-        .eq('id', user.id);
+        }, { onConflict: 'id' });
       
       if (profileErr) throw profileErr;
 
@@ -187,23 +187,23 @@ export default function DriverOnboarding() {
   };
 
   return (
-    <main className="bg-charcoal-50 min-h-screen pt-20 pb-12">
+    <div className="min-h-full pt-6 pb-12">
       <div className="max-w-xl mx-auto px-4">
         
         {/* Progress Bar */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-8 mt-2">
             {[1, 2, 3].map((s) => (
                 <div 
                     key={s} 
-                    className={`h-2 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                    className={`h-2 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-charcoal-800'}`}
                 />
             ))}
         </div>
 
         {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h1 className="text-3xl font-black text-charcoal-900 mb-2 tracking-tight">Vehicle Details</h1>
-                <p className="text-charcoal-500 font-medium mb-8">Tell us about the vehicle you'll be using for deliveries.</p>
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Vehicle Details</h1>
+                <p className="text-charcoal-400 font-medium mb-8">Tell us about the vehicle you'll be using for deliveries.</p>
 
                 <div className="space-y-6">
                     <div>
@@ -218,14 +218,14 @@ export default function DriverOnboarding() {
                                     onClick={() => setVehicleInfo(prev => ({ ...prev, type: v.id }))}
                                     className={`p-4 rounded-2xl border-2 transition-all flex flex-col gap-3 text-left ${
                                         vehicleInfo.type === v.id 
-                                        ? 'border-emerald-500 bg-emerald-50' 
-                                        : 'border-white bg-white hover:border-gray-200 shadow-sm'
+                                        ? 'border-emerald-500 bg-emerald-500/10' 
+                                        : 'border-charcoal-800 bg-charcoal-800 hover:border-charcoal-700 shadow-sm'
                                     }`}
                                 >
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${vehicleInfo.type === v.id ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-charcoal-500'}`}>
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${vehicleInfo.type === v.id ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-charcoal-700 text-charcoal-300'}`}>
                                         {v.id === 'bike' ? <Navigation size={20} /> : <Car size={20} />}
                                     </div>
-                                    <span className="font-bold text-charcoal-900">{v.label}</span>
+                                    <span className={`font-bold ${vehicleInfo.type === v.id ? 'text-white' : 'text-charcoal-300'}`}>{v.label}</span>
                                 </button>
                             ))}
                         </div>
@@ -238,7 +238,7 @@ export default function DriverOnboarding() {
                             placeholder="e.g. KMC-123-AB"
                             value={vehicleInfo.plate}
                             onChange={(e) => setVehicleInfo(prev => ({ ...prev, plate: e.target.value.toUpperCase() }))}
-                            className="w-full bg-white border-2 border-transparent focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-charcoal-900 shadow-sm transition-all outline-none mb-6"
+                            className="w-full bg-charcoal-800 border-2 border-charcoal-800 focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-white shadow-sm transition-all outline-none mb-6 placeholder:text-charcoal-600"
                         />
 
                         <label className="block text-xs font-bold text-charcoal-400 uppercase tracking-widest mb-2 mt-6">Identity Number (NIN)</label>
@@ -249,7 +249,7 @@ export default function DriverOnboarding() {
                                 placeholder="Enter your 11-digit NIN"
                                 value={vehicleInfo.nin}
                                 onChange={(e) => setVehicleInfo(prev => ({ ...prev, nin: e.target.value.replace(/\D/g, '') }))}
-                                className="w-full bg-white border-2 border-transparent focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-charcoal-900 shadow-sm transition-all outline-none"
+                                className="w-full bg-charcoal-800 border-2 border-charcoal-800 focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-white shadow-sm transition-all outline-none placeholder:text-charcoal-600"
                             />
                         </div>
 
@@ -259,11 +259,11 @@ export default function DriverOnboarding() {
                             placeholder="e.g. +234 800 000 0000"
                             value={contactInfo.whatsapp}
                             onChange={(e) => setContactInfo(prev => ({ ...prev, whatsapp: e.target.value }))}
-                            className="w-full bg-white border-2 border-transparent focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-charcoal-900 shadow-sm transition-all outline-none mb-6"
+                            className="w-full bg-charcoal-800 border-2 border-charcoal-800 focus:border-emerald-500 px-6 py-4 rounded-2xl font-bold text-white shadow-sm transition-all outline-none mb-6 placeholder:text-charcoal-600"
                         />
 
                         <label className="block text-xs font-bold text-charcoal-400 uppercase tracking-widest mb-2">Login Email (Permanent)</label>
-                        <div className="w-full bg-gray-100 border-2 border-gray-100 px-6 py-4 rounded-2xl font-bold text-charcoal-500 shadow-sm transition-all mb-4 flex items-center gap-3">
+                        <div className="w-full bg-charcoal-800/50 border-2 border-charcoal-800 px-6 py-4 rounded-2xl font-bold text-charcoal-400 shadow-sm transition-all mb-4 flex items-center gap-3">
                             <Mail size={18} />
                             {contactInfo.email}
                         </div>
@@ -275,7 +275,7 @@ export default function DriverOnboarding() {
                     <button 
                         onClick={() => setStep(2)}
                         disabled={!vehicleInfo.type || !vehicleInfo.plate || !contactInfo.whatsapp}
-                        className="w-full py-5 bg-charcoal-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-black/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         Next Step <ChevronRight size={20} />
                     </button>
@@ -285,23 +285,23 @@ export default function DriverOnboarding() {
 
         {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <button onClick={() => setStep(1)} className="flex items-center gap-2 text-charcoal-500 font-bold text-sm mb-4 hover:text-charcoal-900">
+                <button onClick={() => setStep(1)} className="flex items-center gap-2 text-charcoal-400 font-bold text-sm mb-4 hover:text-white transition-colors">
                     <ArrowLeft size={16} /> Back
                 </button>
-                <h1 className="text-3xl font-black text-charcoal-900 mb-2 tracking-tight">Identity Verification</h1>
-                <p className="text-charcoal-500 font-medium mb-8">Upload **either** your Driver's License or National ID.</p>
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Identity Verification</h1>
+                <p className="text-charcoal-400 font-medium mb-8">Upload **either** your Driver's License or National ID.</p>
 
                 <div className="space-y-6">
                     {/* ID Card */}
-                    <div className={`bg-white p-6 rounded-[2rem] shadow-sm border ${existingDocs.idCard?.status === 'rejected' ? 'border-red-200 bg-red-50/10' : (docs.idCard ? 'border-emerald-500 bg-emerald-50/20' : 'border-gray-100')}`}>
+                    <div className={`bg-charcoal-800 p-6 rounded-[2rem] shadow-sm border ${existingDocs.idCard?.status === 'rejected' ? 'border-red-500/50 bg-red-500/10' : (docs.idCard ? 'border-emerald-500 bg-emerald-500/10' : 'border-charcoal-700')}`}>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 ${existingDocs.idCard?.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'} rounded-2xl flex items-center justify-center`}>
+                                <div className={`w-12 h-12 ${existingDocs.idCard?.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'} rounded-2xl flex items-center justify-center`}>
                                     <CreditCard size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-charcoal-900">National ID Card (NIN)</h3>
-                                    <p className="text-xs text-charcoal-500 font-medium">Clear photo of your NIN card or slip</p>
+                                    <h3 className="font-bold text-white">National ID Card (NIN)</h3>
+                                    <p className="text-xs text-charcoal-400 font-medium">Clear photo of your NIN card or slip</p>
                                 </div>
                             </div>
                             {existingDocs.idCard && (
@@ -321,7 +321,7 @@ export default function DriverOnboarding() {
                             </div>
                         )}
                         
-                        <label className="relative block w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="relative block w-full aspect-video bg-charcoal-900 border-2 border-dashed border-charcoal-700 rounded-2xl overflow-hidden cursor-pointer hover:border-emerald-500/50 hover:bg-charcoal-900/80 transition-all">
                             <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'idCard')} className="hidden" />
                             {preview.idCard ? (
                                 <img src={preview.idCard} alt="Preview" className="w-full h-full object-cover" />
@@ -337,21 +337,21 @@ export default function DriverOnboarding() {
                     </div>
 
                     <div className="flex items-center gap-4 px-4 overflow-hidden">
-                        <div className="h-px bg-gray-200 flex-1"></div>
-                        <span className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest">OR</span>
-                        <div className="h-px bg-gray-200 flex-1"></div>
+                        <div className="h-px bg-charcoal-700 flex-1"></div>
+                        <span className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">OR</span>
+                        <div className="h-px bg-charcoal-700 flex-1"></div>
                     </div>
 
                     {/* License */}
-                    <div className={`bg-white p-6 rounded-[2rem] shadow-sm border ${existingDocs.license?.status === 'rejected' ? 'border-red-200 bg-red-50/10' : 'border-gray-100'}`}>
+                    <div className={`bg-charcoal-800 p-6 rounded-[2rem] shadow-sm border ${existingDocs.license?.status === 'rejected' ? 'border-red-500/50 bg-red-500/10' : (docs.license ? 'border-emerald-500 bg-emerald-500/10' : 'border-charcoal-700')}`}>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 ${existingDocs.license?.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-purple-50 text-purple-600'} rounded-2xl flex items-center justify-center`}>
+                                <div className={`w-12 h-12 ${existingDocs.license?.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'} rounded-2xl flex items-center justify-center`}>
                                     <FileText size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-charcoal-900">Driver's License</h3>
-                                    <p className="text-xs text-charcoal-500 font-medium">Valid Nigerian Driver's License</p>
+                                    <h3 className="font-bold text-white">Driver's License</h3>
+                                    <p className="text-xs text-charcoal-400 font-medium">Valid Nigerian Driver's License</p>
                                 </div>
                             </div>
                             {existingDocs.license && (
@@ -371,7 +371,7 @@ export default function DriverOnboarding() {
                             </div>
                         )}
                         
-                        <label className="relative block w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="relative block w-full aspect-video bg-charcoal-900 border-2 border-dashed border-charcoal-700 rounded-2xl overflow-hidden cursor-pointer hover:border-emerald-500/50 hover:bg-charcoal-900/80 transition-all">
                             <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'license')} className="hidden" />
                             {preview.license ? (
                                 <img src={preview.license} alt="Preview" className="w-full h-full object-cover" />
@@ -409,19 +409,19 @@ export default function DriverOnboarding() {
                 <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl mx-auto mb-8">
                     <CheckCircle2 size={48} className="stroke-[3]" />
                 </div>
-                <h1 className="text-4xl font-black text-charcoal-900 mb-4 tracking-tight">Application Sent!</h1>
-                <p className="text-charcoal-500 font-medium text-lg mb-10">We're reviewing your documents. You'll be notified via **Email** once you're cleared to drive.</p>
+                <h1 className="text-4xl font-black text-white mb-4 tracking-tight">Application Sent!</h1>
+                <p className="text-charcoal-400 font-medium text-lg mb-10">We're reviewing your documents. You'll be notified via **Email** once you're cleared to drive.</p>
                 
                 <button 
                     onClick={() => router.push('/driver')}
-                    className="w-full py-5 bg-charcoal-900 hover:bg-black text-white font-black rounded-2xl shadow-xl shadow-black/20 transition-all"
+                    className="w-full py-5 bg-charcoal-800 hover:bg-charcoal-700 text-white font-black rounded-2xl shadow-xl shadow-black/20 transition-all"
                 >
                     Back to Dashboard
                 </button>
             </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 
