@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, ShieldCheck, ShieldAlert, FileText, 
-  CheckCircle2, XCircle, Mail, MapPin, Truck, MessageCircle, Send, Zap, ChevronRight, Clock, User
+  CheckCircle2, XCircle, Mail, Phone, MapPin, Truck, MessageCircle, Send, Zap, ChevronRight, Clock, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,7 +23,7 @@ export default function DriverReviewPage() {
 
     async function fetchData() {
       const { data: profile } = await supabase
-        .from('drivers')
+        .from('profiles')
         .select('*')
         .eq('id', params.id)
         .maybeSingle();
@@ -56,7 +56,7 @@ export default function DriverReviewPage() {
       if (verifyBool !== null) updates.is_verified = verifyBool;
 
       const { error } = await supabase
-        .from('drivers')
+        .from('profiles')
         .update(updates)
         .eq('id', params.id);
 
@@ -124,7 +124,7 @@ export default function DriverReviewPage() {
   const handleSaveNotes = async () => {
     try {
       const { error } = await supabase
-        .from('drivers')
+        .from('profiles')
         .update({ admin_notes: driver.admin_notes })
         .eq('id', params.id);
       if (error) throw error;

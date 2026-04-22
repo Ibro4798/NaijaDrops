@@ -41,8 +41,8 @@ export default function SendPackage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             // Drivers should NEVER be on the customer dashboard
-            const { data: driver } = await supabase.from('drivers').select('id').eq('id', user.id).maybeSingle();
-            if (driver) {
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+            if (profile?.role === 'driver') {
                 router.push('/driver');
                 return;
             }
@@ -281,6 +281,25 @@ export default function SendPackage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
+
+      // Ensure profile exists — prevents orders_user_id_fkey FK violation
+      // This handles accounts where the signup trigger failed to create a profile row
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email,
+          role: 'user',
+          is_verified: false,
+        });
+        if (profileError) throw new Error('Failed to set up your account. Please contact support.');
+      }
 
       let finalVoiceUrl = null;
       if (voiceNoteBlob) {

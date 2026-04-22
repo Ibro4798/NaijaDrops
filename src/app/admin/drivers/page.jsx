@@ -191,8 +191,9 @@ export default function AdminDriversPage() {
   useEffect(() => {
     async function fetchDrivers() {
       const { data: driversData } = await supabase
-        .from('drivers')
+        .from('profiles')
         .select(`*, driver_documents (id)`)
+        .eq('role', 'driver')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
@@ -207,7 +208,7 @@ export default function AdminDriversPage() {
 
     const channel = supabase
       .channel('admin-driver-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, fetchDrivers)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDrivers)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_documents' }, fetchDrivers)
       .subscribe();
 
