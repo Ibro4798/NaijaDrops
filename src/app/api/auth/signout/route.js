@@ -20,9 +20,28 @@ export async function POST() {
     }
   );
 
+  // Sign out via Supabase
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'), {
+  // Aggressively clear ALL Supabase cookies to prevent ghost sessions.
+  // Supabase SSR stores tokens in cookies prefixed with 'sb-'.
+  const allCookies = cookieStore.getAll();
+  for (const cookie of allCookies) {
+    if (cookie.name.startsWith('sb-')) {
+      try {
+        cookieStore.set({
+          name: cookie.name,
+          value: '',
+          maxAge: 0,
+          path: '/',
+        });
+      } catch {}
+    }
+  }
+
+  // Redirect to the portal chooser — NOT directly to login
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  return NextResponse.redirect(new URL('/welcome', baseUrl), {
     status: 302,
   });
 }

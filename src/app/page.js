@@ -67,8 +67,10 @@ export default function Home() {
 
         // No active order — send to send page
         router.push('/send');
+      } else {
+        // Not logged in — send to portal chooser
+        router.push('/welcome');
       }
-      setIsCheckingAuth(false);
     }
     loadData();
   }, [supabase, router]);
@@ -86,46 +88,46 @@ export default function Home() {
       {/* Mesh Background Overlay */}
       <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] blend-overlay"></div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-[calc(8rem+var(--safe-top))] pb-[calc(6rem+var(--safe-bottom))]">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-[calc(10rem+var(--safe-top))] pb-[calc(8rem+var(--safe-bottom))]">
         
         {/* Hero Branding */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-24">
           <AnimatePresence mode="wait">
             {!profile ? (
               <motion.div 
                 key="anon"
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="space-y-6"
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8"
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-black uppercase tracking-[0.2em]">
-                  <Zap size={14} className="fill-current" /> Live in Kano
+                <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-[0.25em]">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  Kano State Preferred
                 </div>
-                <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight leading-[0.9]">
-                  Logistics <br/>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">Reimagined.</span>
+                <h1 className="text-7xl sm:text-8xl lg:text-9xl font-black text-white tracking-tighter leading-[0.85] italic">
+                  Move <span className="text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-emerald-600 not-italic">City.</span>
                 </h1>
-                <p className="text-charcoal-400 font-medium text-xl max-w-2xl mx-auto leading-relaxed">
-                  Drop a Precise Pin anywhere in Kano — no street address needed. 
-                  Real-time mapping, verified drivers, instant delivery.
+                <p className="text-charcoal-400 font-medium text-xl sm:text-2xl max-w-2xl mx-auto leading-relaxed tracking-tight">
+                  A high-accuracy logistics layer for Kano. <br className="hidden sm:block"/>
+                  Drop a pin, we'll do the rest.
                 </p>
               </motion.div>
             ) : (
               <motion.div 
                 key="user"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-700 rounded-3xl mx-auto flex items-center justify-center shadow-glow mb-6">
-                  <Package size={40} className="text-white" />
+                <div className="w-24 h-24 bg-gradient-to-br from-emerald-400/20 to-emerald-700/20 rounded-[2.5rem] mx-auto flex items-center justify-center border-2 border-emerald-500/30 shadow-glow mb-8">
+                  <Package size={48} className="text-emerald-400" />
                 </div>
-                <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
-                  Welcome back, <br/>
-                  <span className="text-emerald-500">{profile.full_name?.split(' ')[0]}</span>
+                <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter leading-tight">
+                  Hello, <br/>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">{profile.full_name?.split(' ')[0] || 'User'}</span>
                 </h1>
-                <p className="text-charcoal-400 font-medium text-lg">Your logistics command center is ready.</p>
+                <p className="text-charcoal-500 font-bold text-xl uppercase tracking-widest">Select your terminal below</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -143,21 +145,21 @@ export default function Home() {
             className="group relative"
           >
             <Link href={profile ? "/send" : "/login?role=user"} className="block h-full">
-              <div className="h-full glass rounded-[3.5rem] p-10 flex flex-col relative overflow-hidden transition-all border-white/20 shadow-premium">
+              <div className="h-full glass rounded-[4rem] p-12 flex flex-col relative overflow-hidden transition-all border-white/20 shadow-premium group-hover:bg-white">
                 {/* Visual Accent */}
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl transition-all group-hover:bg-emerald-500/40"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] transition-all group-hover:bg-emerald-500/20 translate-x-1/2 -translate-y-1/2"></div>
                 
-                <div className="w-16 h-16 bg-white text-emerald-700 rounded-2xl flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                  <Package size={32} />
+                <div className="w-20 h-20 bg-charcoal-900 text-emerald-400 rounded-3xl flex items-center justify-center mb-10 shadow-2xl group-hover:scale-110 transition-transform group-hover:bg-emerald-600 group-hover:text-white">
+                  <Package size={40} />
                 </div>
                 
-                <h2 className="text-4xl font-black text-charcoal-900 mb-4 tracking-tight">Customer</h2>
-                <p className="text-charcoal-600 font-medium text-lg mb-10 flex-1 leading-relaxed">
-                  Send anything, anywhere in Kano. Precise Pin technology ensures your driver finds you without a phone call.
+                <h2 className="text-5xl font-black text-charcoal-900 mb-6 tracking-tighter">Customer</h2>
+                <p className="text-charcoal-600 font-bold text-xl mb-12 flex-1 leading-snug tracking-tight">
+                  Instant pickup, zero phone calls. Your reliable city-wide delivery partner.
                 </p>
 
-                <div className="flex items-center justify-between w-full py-5 px-8 bg-charcoal-900 text-white rounded-2xl font-black text-xl transition-all group-hover:bg-black group-hover:shadow-glow/20">
-                  {profile ? "Ship Now" : "Get Started"} <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between w-full py-6 px-10 bg-charcoal-900 text-white rounded-[2rem] font-black text-2xl transition-all group-hover:bg-emerald-600 group-hover:shadow-glow/40">
+                  {profile ? "Ship Now" : "Register"} <ChevronRight size={28} className="group-hover:translate-x-2 transition-transform" />
                 </div>
               </div>
             </Link>

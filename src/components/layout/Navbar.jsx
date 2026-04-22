@@ -150,14 +150,14 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Persistent Status Bar for Active Orders */}
+      {/* Redesigned Floating Status Bar (Stitched at Bottom) */}
       <AnimatePresence>
-        {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && scrolled && (
+        {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && (
             <motion.div 
-                initial={{ opacity: 0, y: -50 }}
+                initial={{ opacity: 0, y: 100 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -50 }}
-                className="absolute top-full left-0 right-0 px-4 pt-2"
+                exit={{ opacity: 0, y: 100 }}
+                className="fixed bottom-6 left-6 right-6 z-[150] pointer-events-none"
             >
                 <Link 
                 href={
@@ -165,17 +165,29 @@ export default function Navbar() {
                     activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
                     `/tracking/${activeOrder.id}`
                 }
-                className="max-w-xl mx-auto glass rounded-2xl p-3 flex items-center justify-between shadow-premium border-emerald-500/20"
+                className={`max-w-md mx-auto glass rounded-[2.5rem] p-5 flex items-center justify-between shadow-premium border-2 pointer-events-auto transition-transform hover:scale-[1.02] active:scale-95 ${
+                    activeOrder.status === 'awaiting_payment' ? 'border-amber-500/30' : 'border-emerald-500/20'
+                }`}
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">
-                            <CreditCard size={16} />
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                            activeOrder.status === 'awaiting_payment' ? 'bg-amber-500' : 'bg-emerald-600'
+                        }`}>
+                            {activeOrder.status === 'awaiting_payment' ? <CreditCard size={22} className="animate-pulse" /> : <Package size={22} />}
                         </div>
-                        <span className="text-[11px] font-black uppercase text-charcoal-900 tracking-tight">
-                            {activeOrder.status === 'awaiting_payment' ? 'Action Required: Pay' : 'Trip in Progress'}
-                        </span>
+                        <div>
+                            <div className="text-[10px] font-black uppercase text-charcoal-500 tracking-widest mb-0.5">
+                                {activeOrder.status === 'awaiting_payment' ? 'Action Required' : 'Live Order'}
+                            </div>
+                            <div className="text-sm font-black text-charcoal-900 tracking-tight">
+                                {activeOrder.status === 'awaiting_payment' ? 'Complete Payment' : 
+                                 activeOrder.status === 'looking_for_driver' ? 'Searching Drivers...' : 'Trip in Progress'}
+                            </div>
+                        </div>
                     </div>
-                    <ArrowRight size={14} className="text-emerald-500" />
+                    <div className="bg-charcoal-900 text-base text-white w-10 h-10 rounded-xl flex items-center justify-center">
+                        <ArrowRight size={18} />
+                    </div>
                 </Link>
             </motion.div>
         )}

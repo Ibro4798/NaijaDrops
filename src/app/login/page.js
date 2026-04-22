@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getUserRole, getRoleRedirectPath } from "@/utils/auth";
-import { Package, Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Zap } from "lucide-react";
+import { Package, Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Zap, Truck, ArrowLeftRight } from "lucide-react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 function LoginContent() {
@@ -15,23 +16,38 @@ function LoginContent() {
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true); // checking existing session
+  const [checking, setChecking] = useState(true);
   const [errorMsg, setErrorMsg] = useState(accessDenied ? "Access denied. Your account does not have permission for that area." : "");
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  // When a role mismatch is detected, store the correct portal link
+  const [mismatchPortal, setMismatchPortal] = useState(null);
 
   const supabase = createClient();
 
-  // If already logged in, redirect immediately
+  const isDriverPortal = requestedRole === 'driver';
+  const isAdminPortal = requestedRole === 'admin';
+
+  // If already logged in, redirect to matching portal (but enforce role)
   useEffect(() => {
     async function checkExistingSession() {
       const { user, role } = await getUserRole(supabase);
       if (user && role) {
-        router.replace(getRoleRedirectPath(role));
-        return;
+        // If they're on the right portal, redirect
+        if (role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
+        if ((requestedRole === 'driver' && role === 'driver') ||
+            (requestedRole === 'user' && role === 'user')) {
+          router.replace(getRoleRedirectPath(role));
+          return;
+        }
+        // Wrong portal — sign them out silently and let them re-auth on the right one
+        await supabase.auth.signOut();
       }
       setChecking(false);
     }
@@ -46,33 +62,58 @@ function LoginContent() {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
+    setMismatchPortal(null);
 
     try {
       if (isLogin) {
         // Sign in
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
 
-        // Use the single utility — no copy-paste waterfall
+        // Detect role
         const { role } = await getUserRole(supabase);
+
+        // Admins always get through
+        if (role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
+
+        // ── ROLE ENFORCEMENT ──────────────────────────────────────────
+        // If user is on the Driver portal but their account is a Customer
+        if (requestedRole === 'driver' && role === 'user') {
+          await supabase.auth.signOut();
+          setErrorMsg("This email is registered as a Customer account. Please use the Customer portal to sign in.");
+          setMismatchPortal({ label: "Go to Customer Portal", href: "/login?role=user" });
+          return;
+        }
+
+        // If user is on the Customer portal but their account is a Driver
+        if (requestedRole === 'user' && role === 'driver') {
+          await supabase.auth.signOut();
+          setErrorMsg("This email is registered as a Driver account. Please use the Driver portal to sign in.");
+          setMismatchPortal({ label: "Go to Driver Portal", href: "/login?role=driver" });
+          return;
+        }
+
+        // Roles match — proceed
         router.replace(getRoleRedirectPath(role || 'user'));
 
       } else {
-        // Sign up — always pass the role so the trigger creates the right row
+        // Sign up — pass the role so the trigger creates the right row
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
-              role: requestedRole, // 'user' | 'driver'
+              role: requestedRole,
             },
           },
         });
         if (signUpError) throw signUpError;
 
-        // Belt-and-suspenders: also upsert the profile row directly
-        // in case the trigger is slow or missed.
+        // Belt-and-suspenders: upsert profile row directly
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const table = requestedRole === 'driver' ? 'drivers' : 'customers';
@@ -94,7 +135,6 @@ function LoginContent() {
     }
   };
 
-  // Show a minimal loading state while checking session
   if (checking) {
     return (
       <div className="min-h-[100dvh] aura-gradient flex items-center justify-center">
@@ -116,15 +156,15 @@ function LoginContent() {
       >
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center shadow-glow">
-            <Package className="h-8 w-8 text-white" />
+          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-glow ${isDriverPortal ? 'bg-charcoal-800' : 'bg-emerald-500'}`}>
+            {isDriverPortal ? <Truck className="h-8 w-8 text-emerald-400" /> : <Package className="h-8 w-8 text-white" />}
           </div>
         </div>
         <h1 className="text-center text-4xl font-black text-white tracking-tight leading-tight mb-2 font-outfit">
           NaijaDrops
         </h1>
         <p className="text-center text-charcoal-500 font-bold text-[11px] uppercase tracking-[0.25em] mb-10">
-          {requestedRole === 'driver' ? '🚚 Driver Portal' : requestedRole === 'admin' ? '🛡️ Admin Access' : '📦 Customer Portal'}
+          {isDriverPortal ? '🚚 Driver Portal' : isAdminPortal ? '🛡️ Admin Access' : '📦 Customer Portal'}
         </p>
       </motion.div>
 
@@ -141,7 +181,7 @@ function LoginContent() {
               {isLogin ? "Sign In" : "Create Account"}
             </h2>
             <button
-              onClick={() => { setIsLogin(!isLogin); setErrorMsg(""); }}
+              onClick={() => { setIsLogin(!isLogin); setErrorMsg(""); setMismatchPortal(null); }}
               className="text-[11px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-700 transition-colors"
             >
               {isLogin ? "New account?" : "Sign in instead"}
@@ -150,9 +190,21 @@ function LoginContent() {
 
           {/* Error banner */}
           {errorMsg && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm font-semibold flex items-start gap-2">
-              <AlertCircle size={18} className="shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm font-semibold flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
+              </div>
+              {/* Direct link to the correct portal */}
+              {mismatchPortal && (
+                <Link
+                  href={mismatchPortal.href}
+                  className="flex items-center justify-center gap-2 bg-charcoal-900 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all mt-1"
+                >
+                  <ArrowLeftRight size={14} />
+                  {mismatchPortal.label}
+                </Link>
+              )}
             </div>
           )}
 
@@ -224,7 +276,11 @@ function LoginContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center gap-2 py-4 bg-charcoal-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black focus:outline-none transition-all shadow-lg disabled:opacity-50 group mt-2"
+              className={`w-full flex justify-center items-center gap-2 py-4 text-white rounded-2xl font-black text-sm uppercase tracking-widest focus:outline-none transition-all shadow-lg disabled:opacity-50 group mt-2 ${
+                isDriverPortal
+                  ? 'bg-charcoal-800 hover:bg-charcoal-900'
+                  : 'bg-charcoal-900 hover:bg-black'
+              }`}
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -237,9 +293,16 @@ function LoginContent() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-[10px] text-charcoal-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <Zap size={12} className="text-emerald-500" /> Secured by NaijaDrops
-          </p>
+          {/* Switch Portal Link */}
+          <div className="mt-6 pt-5 border-t border-charcoal-100">
+            <Link
+              href="/welcome"
+              className="w-full flex items-center justify-center gap-2 text-[10px] font-black text-charcoal-400 uppercase tracking-widest hover:text-emerald-600 transition-colors py-2"
+            >
+              <ArrowLeftRight size={13} />
+              {isDriverPortal ? "Not a driver? Switch to Customer" : "Are you a driver? Switch Portal"}
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>

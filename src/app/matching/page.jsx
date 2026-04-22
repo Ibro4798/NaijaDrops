@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Check, User, ShieldCheck } from 'lucide-react';
+import { Search, Check, User, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
 
 import { Suspense } from 'react';
 
@@ -109,7 +109,6 @@ function MatchingContent() {
         .neq('id', bid.id);
 
       // 3. Link driver and set to AWAITING PAYMENT (not accepted yet)
-      // Driver is NOT activated until customer pays
       const { error: orderErr } = await supabase
         .from('orders')
         .update({
@@ -148,98 +147,130 @@ function MatchingContent() {
   };
 
 
-  if (!orderData) return <div className="min-h-screen bg-charcoal-900 text-white p-10 font-bold">Initializing...</div>;
+  if (!orderData) return (
+    <div className="min-h-screen aura-gradient flex items-center justify-center p-10 font-black tracking-tight text-white italic">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="animate-spin text-emerald-500" size={40} />
+        <p>Initializing Signal...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <main className="bg-charcoal-900 min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-4">
+    <main className="aura-gradient min-h-[100dvh] relative overflow-hidden flex flex-col items-center justify-start py-20 px-4">
       {/* Search Radar UI */}
       {matchState === 'searching' && (
-        <div className="flex flex-col items-center z-10 text-center">
-          <div className="relative mb-8">
-            <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center absolute inset-0 m-auto z-10">
-               <Search size={40} className="text-charcoal-900 animate-pulse" />
+        <div className="flex flex-col items-center z-10 text-center mt-20 animate-in fade-in duration-1000">
+          <div className="relative mb-20 scale-125">
+            {/* Core Radar Pulsing */}
+            <div className="w-48 h-48 rounded-full bg-emerald-500/20 border border-emerald-500/40 relative flex items-center justify-center shadow-[0_0_100px_rgba(16,185,129,0.1)]">
+               <div className="w-24 h-24 bg-emerald-600 rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(16,185,129,0.5)] z-20">
+                  <Search size={36} className="text-white animate-pulse" />
+               </div>
+               
+               {/* Rotating Beam */}
+               <div className="absolute inset-0 rounded-full border-t-2 border-emerald-500/60 animate-[spin_3s_linear_infinite]"></div>
+               <div className="absolute inset-8 rounded-full border-t border-emerald-400 animate-[spin_5s_linear_infinite_reverse] opacity-30"></div>
+               
+               {/* Rings */}
+               <div className="w-72 h-72 rounded-full border border-emerald-500/10 absolute -inset-12 animate-pulse"></div>
+               <div className="w-96 h-96 rounded-full border border-emerald-500/5 absolute -inset-24 animate-ping duration-[4s]"></div>
             </div>
-            {/* Radar Ripples */}
-            <div className="w-24 h-24 rounded-full border border-emerald-500/50 absolute inset-0 m-auto animate-ping duration-1000"></div>
-            <div className="w-48 h-48 rounded-full border border-emerald-500/30 absolute -inset-12 m-auto animate-ping delay-300 duration-1000"></div>
-            <div className="w-72 h-72 rounded-full border border-emerald-500/10 absolute -inset-24 m-auto animate-ping delay-700 duration-1000"></div>
           </div>
-          <h2 className="text-3xl font-black text-white mb-2 tracking-tight animate-pulse">Contacting Drivers</h2>
-          <p className="text-emerald-400 font-bold text-sm uppercase tracking-widest bg-emerald-500/10 px-4 py-2 rounded-full border border-emerald-500/20">
-            Bid: ₦{orderData?.agreed_price}
-          </p>
+
+          <div className="space-y-6 max-w-sm px-6">
+             <h2 className="text-5xl font-black text-white tracking-tighter leading-tight italic">Broadcasting Signal</h2>
+             <div className="inline-flex flex-col items-center">
+                <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em] bg-white/5 border border-white/10 px-8 py-3 rounded-full mb-4">
+                   Base Estimate: ₦{orderData?.agreed_price?.toLocaleString()}
+                </p>
+                <p className="text-charcoal-400 font-bold text-xs leading-relaxed max-w-[280px]">
+                   Awaiting carrier response. Local units are evaluating your logistics manifest.
+                </p>
+             </div>
+          </div>
         </div>
       )}
 
-      {/* Driver Found UI - Now shows a list of bids if multiple */}
+      {/* Driver Found UI */}
       {matchState === 'driver_found' && bids.length > 0 && (
-        <div className="w-full max-w-sm space-y-4 animate-slide-up z-20">
-            <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg relative z-10">
-                    <Check size={32} className="stroke-[3]" />
+        <div className="w-full max-w-lg space-y-6 animate-in slide-in-from-bottom-5 duration-700 z-20 mt-10 px-4">
+            <div className="text-center mb-12">
+                <div className="w-24 h-24 bg-white shadow-premium rounded-[3rem] flex items-center justify-center mx-auto mb-8 relative overflow-hidden group border border-emerald-100">
+                    <div className="absolute inset-0 bg-emerald-500 animate-pulse opacity-10"></div>
+                    <Check size={48} className="text-emerald-600 stroke-[3] group-hover:scale-110 transition-transform" />
                 </div>
-                <h2 className="text-xl font-black text-white tracking-tight">Drivers responding!</h2>
-                <p className="text-gray-400 text-sm font-medium">Select a driver below.</p>
+                <h2 className="text-4xl font-black text-white tracking-tighter mb-2 italic">Units Response</h2>
+                <div className="h-1.5 w-16 bg-emerald-500 mx-auto rounded-full mb-3"></div>
+                <p className="text-charcoal-400 text-[10px] font-black uppercase tracking-[0.25em]">Transmission Locked</p>
             </div>
 
-            {bids.map((bid) => (
-              <div key={bid.id} className="bg-white rounded-[2rem] p-5 shadow-2xl">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center overflow-hidden">
-                           <User size={24} className="text-emerald-600" />
-                        </div>
-                        <div>
-                            <div className="font-bold text-charcoal-900 flex items-center gap-1">
-                                {bid.drivers?.full_name || 'Driver'} 
-                                <ShieldCheck size={14} className="text-blue-500" />
-                            </div>
-                            <div className="text-xs text-charcoal-500 font-medium">★ 4.9 • Verified</div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className="font-black text-xl text-emerald-600">₦{bid.amount}</div>
-                    </div>
-                </div>
-                
-                <div className="flex gap-2">
-                   <button 
+            <div className="space-y-4 max-h-[55dvh] overflow-y-auto px-1 custom-scrollbar pb-10">
+              {bids.map((bid) => (
+                <div key={bid.id} className="glass rounded-[2.8rem] p-7 border-white/20 shadow-premium group transition-all hover:bg-white active:scale-[0.98]">
+                  <div className="flex justify-between items-start mb-8">
+                      <div className="flex items-center gap-5">
+                          <div className="w-16 h-16 bg-emerald-100 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-200">
+                             <User size={36} className="text-emerald-600" />
+                          </div>
+                          <div>
+                              <div className="font-black text-2xl text-charcoal-900 tracking-tighter flex items-center gap-2">
+                                  {bid.drivers?.full_name || 'Terminal Unit'} 
+                                  <ShieldCheck size={18} className="text-blue-600" />
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">Verified Protocol</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="text-right">
+                          <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-[0.2em] mb-1">Carrier Bid</div>
+                          <div className="font-black text-3xl text-charcoal-900 tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
+                      </div>
+                  </div>
+                  
+                  <button 
                     onClick={() => handleAcceptBid(bid)} 
-                    className="w-full py-3 rounded-xl font-black text-white bg-charcoal-900 hover:bg-black transition-colors shadow-lg shadow-black/20 text-lg"
-                   >
-                     Accept ₦{bid.amount}
-                   </button>
+                    className="w-full py-5 rounded-[2rem] font-black text-white bg-charcoal-900 hover:bg-black transition-all shadow-premium text-lg active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative"
+                  >
+                    <span className="relative z-10 flex items-center gap-3">Accept Unit <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" /></span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
         </div>
       )}
-
 
       {/* Accepted Feedback UI */}
       {matchState === 'accepted' && (
-        <div className="flex flex-col items-center z-10 text-center animate-pulse">
-           <div className="w-20 h-20 bg-emerald-500 text-charcoal-900 rounded-full flex items-center justify-center mb-4">
-               <Check size={40} className="stroke-[3]" />
+        <div className="flex flex-col items-center z-10 text-center animate-in zoom-in-95 duration-500 mt-20">
+           <div className="w-28 h-28 bg-white shadow-premium text-emerald-600 rounded-[3.5rem] flex items-center justify-center mb-10 rotate-3 border-2 border-emerald-500/20">
+               <Check size={56} className="stroke-[4]" />
            </div>
-           <h2 className="text-2xl font-black text-white tracking-tight">Driver Confirmed</h2>
-           <p className="text-gray-400 font-medium">Preparing your invoice...</p>
+           <h2 className="text-6xl font-black text-white tracking-tighter mb-6 italic">Synchronized</h2>
+           <div className="bg-charcoal-900 border border-white/10 rounded-[2.5rem] px-10 py-5 shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
+              <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.5em] relative z-10 animate-pulse">Preparing Protocol Transfer...</p>
+           </div>
         </div>
       )}
 
       {/* Global Cancel Button */}
       {matchState !== 'accepted' && (
-        <div className="absolute bottom-10 left-0 right-0 px-8 z-30">
+        <div className="fixed bottom-12 left-0 right-0 px-10 z-30">
             <button 
                 onClick={handleCancelOrder}
-                className="w-full py-4 text-sm font-black uppercase tracking-widest text-red-400 hover:text-red-500 transition-colors border border-red-500/30 rounded-2xl bg-charcoal-900/50 backdrop-blur-md"
+                className="w-full py-6 text-[10px] font-black uppercase tracking-[0.6em] text-white/30 hover:text-red-400 transition-all border border-white/5 rounded-[2.5rem] bg-white/5 backdrop-blur-3xl hover:bg-white/10 active:scale-95"
             >
-                Cancel My Request
+                Terminate Mission
             </button>
         </div>
       )}
 
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-charcoal-900 to-black z-0"></div>
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[140px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
     </main>
   );
 }
