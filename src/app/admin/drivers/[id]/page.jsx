@@ -23,7 +23,7 @@ export default function DriverReviewPage() {
 
     async function fetchData() {
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('drivers')
         .select('*')
         .eq('id', params.id)
         .maybeSingle();
@@ -56,7 +56,7 @@ export default function DriverReviewPage() {
       if (verifyBool !== null) updates.is_verified = verifyBool;
 
       const { error } = await supabase
-        .from('profiles')
+        .from('drivers')
         .update(updates)
         .eq('id', params.id);
 
@@ -124,7 +124,7 @@ export default function DriverReviewPage() {
   const handleSaveNotes = async () => {
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('drivers')
         .update({ admin_notes: driver.admin_notes })
         .eq('id', params.id);
       if (error) throw error;

@@ -49,21 +49,21 @@ export default function DriverOnboarding() {
 
   useEffect(() => {
     async function checkAuth() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user, role, profile } = await getUserRole(supabase);
       if (!user) {
         router.push('/login');
         return;
       }
+
+      if (role !== 'driver') {
+         // If a customer somehow gets here, shouldn't really happen with layout guards, but be safe.
+         router.push('/welcome');
+         return;
+      }
+
       setUser(user);
       setContactInfo(prev => ({ ...prev, email: user.email }));
 
-      // Fetch profile
-      const { data: profile } = await supabase
-        .from('drivers')
-        .select('is_verified, phone, vehicle_type, plate_number')
-        .eq('id', user.id)
-        .maybeSingle();
-      
       if (profile) {
         setVehicleInfo({ type: profile.vehicle_type || '', plate: profile.plate_number || '' });
         setContactInfo({ whatsapp: profile.phone || '', email: user.email });

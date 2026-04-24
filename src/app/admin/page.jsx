@@ -29,8 +29,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { user, role } = await getUserRole(supabase);
+      if (!user || role !== 'admin') {
         router.push('/login?role=admin');
         return;
       }
@@ -53,8 +53,8 @@ export default function AdminDashboard() {
           supabase.from('orders').select('*').in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving']).order('updated_at', { ascending: false }).limit(5),
           supabase.from('orders').select('agreed_price, created_at').eq('status', 'delivered'),
           supabase.from('drivers').select('*').eq('driver_status', 'pending').order('created_at', { ascending: false }).limit(3),
-          supabase.from('driver_locations').select('driver_id, updated_at, lat, lng, drivers(full_name, phone)').order('updated_at', { ascending: false }).limit(5),
-          supabase.from('wallet_transactions').select('id, amount, created_at, drivers(full_name, phone)').eq('type', 'payout_request').order('created_at', { ascending: false }).limit(5)
+          supabase.from('driver_locations').select('driver_id, updated_at, lat, lng, drivers:driver_id(full_name, phone)').order('updated_at', { ascending: false }).limit(5),
+          supabase.from('wallet_transactions').select('id, amount, created_at, drivers:driver_id(full_name, phone)').eq('type', 'payout_request').order('created_at', { ascending: false }).limit(5)
         ]);
 
         const revenue = completedOrders?.reduce((sum, o) => sum + parseFloat(o.agreed_price || 0), 0) || 0;

@@ -113,15 +113,22 @@ function LoginContent() {
         });
         if (signUpError) throw signUpError;
 
-        // Belt-and-suspenders: upsert profile row directly
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const table = requestedRole === 'driver' ? 'drivers' : 'customers';
-          await supabase.from(table).upsert({
-            id: user.id,
-            email: user.email,
+        // Belt-and-suspenders: upsert role row directly
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        if (newUser) {
+          const targetTable = requestedRole === 'driver' ? 'drivers' : 'customers';
+          const payload = {
+            id: newUser.id,
+            email: newUser.email,
             full_name: fullName,
-          }, { onConflict: 'id' });
+          };
+          
+          if (requestedRole === 'driver') {
+            payload.driver_status = 'pending';
+            payload.is_verified = false;
+          }
+
+          await supabase.from(targetTable).upsert(payload, { onConflict: 'id' });
         }
 
         setErrorMsg("");

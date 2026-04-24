@@ -191,9 +191,8 @@ export default function AdminDriversPage() {
   useEffect(() => {
     async function fetchDrivers() {
       const { data: driversData } = await supabase
-        .from('profiles')
+        .from('drivers')
         .select(`*, driver_documents (id)`)
-        .eq('role', 'driver')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {

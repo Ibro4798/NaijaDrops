@@ -38,16 +38,17 @@ export default function SendPackage() {
 
   useEffect(() => {
     async function checkRole() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { user, role } = await getUserRole(supabase);
         if (user) {
             // Drivers should NEVER be on the customer dashboard
-            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-            if (profile?.role === 'driver') {
+            if (role === 'driver') {
                 router.push('/driver');
                 return;
             }
             
             // Note: Admins are allowed to view the customer dashboard for testing/support
+        } else {
+            router.push('/login?role=user');
         }
     }
     checkRole();
@@ -282,23 +283,14 @@ export default function SendPackage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      // Ensure profile exists — prevents orders_user_id_fkey FK violation
-      // This handles accounts where the signup trigger failed to create a profile row
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
+      // Ensure customer profile exists — prevents orders_user_id_fkey FK violation
+      const { role, user: verifiedUser } = await getUserRole(supabase);
 
-      if (!existingProfile) {
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: user.id,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          email: user.email,
-          role: 'user',
-          is_verified: false,
-        });
-        if (profileError) throw new Error('Failed to set up your account. Please contact support.');
+      if (!verifiedUser) { router.push('/login'); return; }
+      
+      // If they somehow got here but don't have a customer row, getUserRole handles the creation.
+      if (role !== 'user' && role !== 'admin') {
+         throw new Error("Only customers can place orders.");
       }
 
       let finalVoiceUrl = null;

@@ -127,48 +127,38 @@ export default function DriverDashboard() {
                 }
             }
 
-            const { data: authData } = await supabase.auth.getUser();
-            if (authData?.user) {
-                setUser(authData.user);
+            const { user, role, profile: prof } = await getUserRole(supabase);
+            
+            if (user && role === 'driver') {
+                setUser(user);
+                setProfile(prof);
                 
-                const { data: profileData } = await supabase
-                    .from('drivers')
-                    .select('*')
-                    .eq('id', authData.user.id)
-                    .maybeSingle();
+                try {
+                    const { data: stats } = await supabase.rpc('get_driver_stats', { d_id: user.id });
+                    if (stats && stats[0]) setDriverStats(stats[0]);
+                } catch (e) { console.error("Could not fetch stats", e); }
+
+                const status = prof.driver_status || 'pending';
                 
-                if (!profileData) {
-                    router.push('/');
-                    return;
-                }
-
-                if (profileData) {
-                    setProfile(profileData);
+                if (status === 'active') {
+                    setVerificationStatus('verified');
+                } else if (status === 'paused' || status === 'rejected') {
+                    setVerificationStatus(status);
+                } else {
+                    const { count } = await supabase
+                        .from('driver_documents')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('driver_id', user.id);
                     
-                    try {
-                        const { data: stats } = await supabase.rpc('get_driver_stats', { d_id: authData.user.id });
-                        if (stats && stats[0]) setDriverStats(stats[0]);
-                    } catch (e) { console.error("Could not fetch stats", e); }
-
-                    const status = profileData.driver_status || 'pending';
-                    
-                    if (status === 'active') {
-                        setVerificationStatus('verified');
-                    } else if (status === 'paused' || status === 'rejected') {
-                        setVerificationStatus(status);
-                    } else {
-                        const { count } = await supabase
-                            .from('driver_documents')
-                            .select('id', { count: 'exact', head: true })
-                            .eq('driver_id', authData.user.id);
-                        
-                        setVerificationStatus(count > 0 ? 'pending' : 'not_started');
-                    }
+                    setVerificationStatus(count > 0 ? 'pending' : 'not_started');
                 }
+            } else if (user) {
+                // Not a driver but logged in? Redirect to home/chooser
+                router.push('/welcome');
             }
         };
         fetchSession();
-    }, [supabase]);
+    }, [supabase, router]);
 
     const toggleStatus = async () => {
         if (verificationStatus !== 'verified') {
