@@ -36,8 +36,8 @@ export default function Contact() {
       name: "Call Support",
       icon: <Phone className="w-8 h-8 text-charcoal-700" />,
       description: "Call us for urgent delivery issues",
-      link: "tel:+2349077222227",
-      label: "+234 907 722 2227",
+      link: "tel:+2349118267433",
+      label: "+234 911 826 7433",
       color: "bg-gray-100 text-charcoal-900"
     }
   ];

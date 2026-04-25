@@ -32,6 +32,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   
   // Track center coordinates for returning
   const [markerPosition, setMarkerPosition] = useState({ lat: viewState.latitude, lng: viewState.longitude });
+  const [mapLoaded, setMapLoaded] = useState(false);
   const searchTimeoutRef = useRef(null);
   
   // Ref for the Map component to handle panTo
@@ -199,15 +200,26 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
         {/* Map Area */}
         <div className="relative flex-1 bg-gray-200 min-h-[500px]">
           {mapboxToken ? (
-            <Map
-              ref={mapRef}
-              mapboxAccessToken={mapboxToken}
-              {...viewState}
-              onMove={handleMove}
-              onMoveEnd={handleMoveEnd}
-              style={{width: '100%', height: '100%'}}
-              mapStyle="mapbox://styles/mapbox/streets-v12"
-            />
+            <div className="w-full h-full relative">
+              {!mapLoaded && (
+                <div className="absolute inset-0 bg-gray-50 z-[150] flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-4 border border-gray-100">
+                        <Loader2 size={32} className="text-emerald-500 animate-spin" />
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 animate-pulse">Synchronizing Satellite...</div>
+                </div>
+              )}
+              <Map
+                ref={mapRef}
+                mapboxAccessToken={mapboxToken}
+                {...viewState}
+                onMove={handleMove}
+                onMoveEnd={handleMoveEnd}
+                onLoad={() => setMapLoaded(true)}
+                style={{width: '100%', height: '100%'}}
+                mapStyle="mapbox://styles/mapbox/streets-v12"
+              />
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-8 text-center bg-gray-50">
                <Globe size={48} className="mb-4 text-gray-300" />

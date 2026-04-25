@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import IncomingOrderCard from '@/components/driver/IncomingOrderCard';
 import ActiveTripPanel from '@/components/driver/ActiveTripPanel';
 import { calculateDistance } from '@/utils/distance';
-import { getReliableLocation } from '@/utils/geolocation';
+import { getReliableLocation, getCurrentPositionStandard } from '@/utils/geolocation';
 import Skeleton from '@/components/ui/Skeleton';
 import { findBatchableOrders } from '@/utils/maestro';
 
@@ -165,6 +165,30 @@ export default function DriverDashboard() {
                         }
                     })
                     .subscribe();
+
+                // FIX: Realtime Profile Sync (Admin Approval)
+                const profileChannel = supabase.channel(`driver-profile-${user.id}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'profiles',
+                        filter: `id=eq.${user.id}`
+                    }, (payload) => {
+                        console.log("Profile updated via Realtime:", payload.new);
+                        const updatedProf = payload.new;
+                        setProfile(updatedProf);
+                        
+                        // Update verification status based on new profile data
+                        const status = updatedProf.driver_status || 'pending';
+                        if (status === 'active') setVerificationStatus('verified');
+                        else if (status === 'paused' || status === 'rejected') setVerificationStatus(status);
+                    })
+                    .subscribe();
+
+                return () => {
+                    supabase.removeChannel(notificationChannel);
+                    supabase.removeChannel(profileChannel);
+                };
 
                 const status = prof.driver_status || 'pending';
                 
@@ -673,7 +697,21 @@ export default function DriverDashboard() {
                                         <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-glow"></div>
                                     </div>
                                     <h2 className="text-white font-black text-2xl font-outfit tracking-tight mb-2 uppercase italic tracking-widest">Scanning Grid</h2>
-                                    <p className="text-charcoal-400 text-xs font-bold uppercase tracking-widest max-w-[200px]">Waiting for delivery requests in your radius</p>
+                                    <p className="text-charcoal-400 text-xs font-bold uppercase tracking-widest max-w-[200px] mb-6">Waiting for delivery requests in your radius</p>
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                const loc = await getCurrentPositionStandard();
+                                                if (loc) setCurrentLocation({ lat: loc.lat, lng: loc.lng });
+                                            } catch (e) {
+                                                const loc = await getReliableLocation();
+                                                if (loc) setCurrentLocation({ lat: loc.lat, lng: loc.lng });
+                                            }
+                                        }}
+                                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-white/5 flex items-center gap-2"
+                                    >
+                                        <MapPin size={14} className="text-emerald-500" /> Use Current Location
+                                    </button>
                                 </div>
                             )}
 

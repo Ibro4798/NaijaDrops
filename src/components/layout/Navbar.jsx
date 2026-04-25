@@ -15,6 +15,7 @@ export default function Navbar() {
   const [profile, setProfile] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -24,29 +25,33 @@ export default function Navbar() {
 
   useEffect(() => {
     async function setupProfile() {
-      const { user, role, profile: prof } = await getUserRole(supabase);
-      
-      if (user && role) {
-        setProfile({ role, email: user.email, ...prof });
-
-        if (role === 'user') {
-            const checkActiveOrder = async () => {
-                const { data: orders } = await supabase.from('orders')
-                  .select('id, status')
-                  .eq('user_id', user.id)
-                  .in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving'])
-                  .order('created_at', { ascending: false })
-                  .limit(1);
-                  
-                setActiveOrder(orders?.[0] || null);
-            };
-            
-            await checkActiveOrder();
-            const channel = supabase.channel(`navbar-orders-${user.id}`)
-              .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` }, checkActiveOrder)
-              .subscribe();
-            return () => supabase.removeChannel(channel);
+      try {
+        const { user, role, profile: prof } = await getUserRole(supabase);
+        
+        if (user && role) {
+          setProfile({ role, email: user.email, ...prof });
+  
+          if (role === 'user') {
+              const checkActiveOrder = async () => {
+                  const { data: orders } = await supabase.from('orders')
+                    .select('id, status')
+                    .eq('user_id', user.id)
+                    .in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving'])
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                    
+                  setActiveOrder(orders?.[0] || null);
+              };
+              
+              await checkActiveOrder();
+              const channel = supabase.channel(`navbar-orders-${user.id}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` }, checkActiveOrder)
+                .subscribe();
+              return () => supabase.removeChannel(channel);
+          }
         }
+      } finally {
+        setIsCheckingAuth(false);
       }
     }
     setupProfile();
@@ -138,7 +143,7 @@ export default function Navbar() {
               </form>
             )}
 
-            {!profile && (
+            {!profile && !isCheckingAuth && (
                 <Link 
                     href="/login" 
                     className="bg-charcoal-900 text-white px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-black transition-all shadow-premium"

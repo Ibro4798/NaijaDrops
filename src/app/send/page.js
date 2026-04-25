@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
-import { getReliableLocation } from '@/utils/geolocation';
+import { getReliableLocation, getCurrentPositionStandard } from '@/utils/geolocation';
 import { calculateDistance } from '@/utils/distance';
 import { PRICING_RATES } from '@/utils/constants';
 import { 
@@ -213,12 +213,22 @@ export default function SendPackage() {
 
   const useCurrentLocation = async (slot) => {
     setGpsStatus({ slot, loading: true });
-    const location = await getReliableLocation();
-    if (location) {
-      setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
-      setActiveModal(slot);
+    try {
+        const location = await getCurrentPositionStandard();
+        if (location) {
+            setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
+            setActiveModal(slot);
+        }
+    } catch (err) {
+        console.error("Standard GPS failed, falling back:", err);
+        const location = await getReliableLocation();
+        if (location) {
+            setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
+            setActiveModal(slot);
+        }
+    } finally {
+        setGpsStatus({ slot: null, loading: false });
     }
-    setGpsStatus({ slot: null, loading: false });
   };
 
   // ─── Record Logic ──────────────────────────────────────────────────────────
@@ -399,7 +409,7 @@ export default function SendPackage() {
                                 {isResolvingLink.pickup ? <Loader2 size={18} className="animate-spin text-emerald-600" /> : <button onMouseDown={() => useCurrentLocation('pickup')} className="text-emerald-300 hover:text-emerald-600 transition-colors"><Navigation size={22} /></button>}
                              </div>
                              {suggestions.pickup.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-top-4">
+                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[200] animate-in slide-in-from-top-4">
                                    {suggestions.pickup.map((loc, i) => (
                                       <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-6 py-4 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 active:bg-emerald-100 group transition-colors">
                                          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform"><Search size={18} /></div>
@@ -446,7 +456,7 @@ export default function SendPackage() {
                                 {isResolvingLink.dropoff ? <Loader2 size={18} className="animate-spin text-blue-600" /> : <button onMouseDown={() => useCurrentLocation('dropoff')} className="text-blue-300 hover:text-blue-600 transition-colors"><MapIcon size={22} /></button>}
                              </div>
                              {suggestions.dropoff.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-top-4">
+                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[200] animate-in slide-in-from-top-4">
                                    {suggestions.dropoff.map((loc, i) => (
                                       <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-6 py-4 text-left hover:bg-blue-50 border-b border-gray-50 last:border-0 flex items-center gap-3 active:bg-blue-100 group transition-colors">
                                          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform"><Search size={18} /></div>

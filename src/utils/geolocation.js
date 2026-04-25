@@ -103,3 +103,30 @@ export async function getReliableLocation(onProgress) {
         }
     });
 }
+/**
+ * Industry Standard Geolocation (One-shot)
+ * Used for "Use Current Location" buttons
+ */
+export async function getCurrentPositionStandard() {
+    return new Promise((resolve, reject) => {
+        if (!("geolocation" in navigator)) {
+            reject(new Error("Location services not supported."));
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                resolve({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    source: 'standard-gps'
+                });
+            },
+            (err) => {
+                reject(err);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
+}
