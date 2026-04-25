@@ -116,7 +116,7 @@ export default function Navbar() {
                 {profile?.role === 'driver' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
-                        href="/driver/wallet" 
+                        href="/driver/earnings" 
                         className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-glow"
                     >
                         <Wallet size={16} /> Wallet

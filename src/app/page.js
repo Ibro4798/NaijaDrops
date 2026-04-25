@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { getUserRole } from "@/utils/auth";
 import { MapPin, Package, ShoppingCart, ChevronRight, LayoutDashboard, Truck, ShieldCheck, Zap, Globe, Star, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   const [profile, setProfile] = useState(null);
@@ -213,7 +214,86 @@ export default function Home() {
            </div>
         </div>
 
+        {/* Operations Protocol (How it Works) */}
+        <div className="mt-40">
+           <div className="text-center mb-20">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500 mb-4">Operations Protocol</h2>
+              <h3 className="text-5xl md:text-7xl font-black text-white tracking-tighter">The Stitched Workflow</h3>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {[
+                { step: "01", title: "Pin Resolve", desc: "Our geospatial engine identifies the exact coordinates of your request." },
+                { step: "02", title: "Nexus Match", desc: "We dispatch the highest-rated carrier within a 2km radius instantly." },
+                { step: "03", title: "Standard Drop", desc: "Real-time tracking and verified drop-off with digital signature." }
+              ].map((item, i) => (
+                <div key={i} className="relative p-10 bg-white/5 border border-white/10 rounded-[3rem] group hover:bg-white/10 transition-all overflow-hidden">
+                   <div className="text-8xl font-black text-white/5 absolute -top-4 -right-4 group-hover:text-emerald-500/10 transition-colors uppercase">{item.step}</div>
+                   <h4 className="text-2xl font-black text-white mb-4 tracking-tight relative z-10">{item.title}</h4>
+                   <p className="text-charcoal-400 font-medium leading-relaxed relative z-10">{item.desc}</p>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        {/* Security / Industry Standard Proof */}
+        <div className="mt-40 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+           <div>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500 mb-6">Security Engineering</h2>
+              <h3 className="text-5xl font-black text-white tracking-tighter mb-8 leading-tight">Your trust is our <br/>primary architecture.</h3>
+              <div className="space-y-6">
+                 {[
+                   { t: "Verified Personnel", s: "Every carrier on the NaijaDrops network undergoes mandatory hardware and background verification." },
+                   { t: "Escrow Logic", s: "Payment is secured in our internal settlement engine until the drop-off is verified via GPS." },
+                   { t: "Audit Trails", s: "Full timestamped logs for every mission, accessible within your history terminal." }
+                 ].map((feat, i) => (
+                   <div key={i} className="flex items-start gap-4 p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                         <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                         <div className="font-black text-white tracking-tight mb-0.5">{feat.t}</div>
+                         <div className="text-xs text-charcoal-500 font-medium leading-relaxed">{feat.s}</div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </div>
+           
+           <div className="relative">
+              <div className="aspect-square bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-[4rem] border border-white/10 flex items-center justify-center overflow-hidden relative group">
+                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05]"></div>
+                 <Globe className="w-64 h-64 text-white/10 group-hover:scale-110 transition-transform duration-1000" />
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center p-12 glass rounded-[3rem] border-white/20 shadow-premium">
+                       <div className="text-6xl font-black text-charcoal-900 tracking-tighter mb-2">KANO</div>
+                       <div className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em]">Operational Region</div>
+                    </div>
+                 </div>
+              </div>
+              <div className="absolute -bottom-8 -left-8 glass-dark p-8 rounded-[2.5rem] border-white/10 shadow-2xl animate-bounce-slow">
+                 <div className="text-3xl font-black text-white italic">99.9%</div>
+                 <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Efficiency Rate</div>
+              </div>
+           </div>
+        </div>
+
+        {/* Localized City Coverage Teaser */}
+        <div className="mt-40 text-center bg-white/5 p-20 rounded-[4rem] border border-white/10 relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] -mr-48 -mt-48 transition-all"></div>
+           <h4 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-8 leading-none">Serving all Districts in <br/><span className="text-emerald-500">Kano Metropolis.</span></h4>
+           <div className="flex flex-wrap justify-center gap-4">
+              {['Nassarawa', 'Tarauni', 'Fagge', 'Dala', 'Kumbotso', 'Gwale', 'Ungogo'].map((dist) => (
+                <span key={dist} className="px-6 py-2 rounded-full border border-white/10 bg-white/5 text-charcoal-400 font-bold text-sm hover:border-emerald-500 hover:text-white transition-all cursor-default">
+                  {dist}
+                </span>
+              ))}
+           </div>
+        </div>
+
       </div>
+
+      <Footer />
     </main>
   );
 }
