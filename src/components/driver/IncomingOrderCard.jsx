@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, Zap, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer, onReject }) {
+export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer, onReject, isEmbedded = false }) {
   const [customOffer, setCustomOffer] = useState(order?.agreed_price ? parseInt(order.agreed_price) : 0);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -10,10 +10,10 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
 
   return (
     <motion.div 
-      initial={{ y: 100, opacity: 0, scale: 0.9 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      exit={{ y: 100, opacity: 0, scale: 0.9 }}
-      className="fixed inset-x-6 bottom-[calc(8rem+var(--safe-bottom))] z-50 glass-dark rounded-[3rem] shadow-premium overflow-hidden ring-1 ring-white/10 backdrop-blur-3xl"
+      initial={!isEmbedded ? { y: 100, opacity: 0, scale: 0.9 } : { opacity: 0, scale: 0.9 }}
+      animate={!isEmbedded ? { y: 0, opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
+      exit={!isEmbedded ? { y: 100, opacity: 0, scale: 0.9 } : { opacity: 0, scale: 0.9 }}
+      className={`${!isEmbedded ? 'fixed inset-x-6 bottom-[calc(8rem+var(--safe-bottom))] z-50' : 'relative w-full'} glass-dark rounded-[3rem] shadow-premium overflow-hidden ring-1 ring-white/10 backdrop-blur-3xl`}
     >
       {/* Background Pulse */}
       <div className="absolute inset-0 pointer-events-none">

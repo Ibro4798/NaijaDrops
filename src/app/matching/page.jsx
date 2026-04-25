@@ -207,34 +207,37 @@ function MatchingContent() {
 
             <div className="space-y-4 max-h-[55dvh] overflow-y-auto px-1 custom-scrollbar pb-10">
               {bids.map((bid) => (
-                <div key={bid.id} className="glass rounded-[2.8rem] p-7 border-white/20 shadow-premium group transition-all hover:bg-white active:scale-[0.98]">
+                <div key={bid.id} className="glass rounded-[2.8rem] p-7 border-emerald-500/10 shadow-premium group transition-all hover:bg-white active:scale-[0.98] border border-white/20">
                   <div className="flex justify-between items-start mb-8">
                       <div className="flex items-center gap-5">
-                          <div className="w-16 h-16 bg-emerald-100 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-200">
+                          <div className="w-16 h-16 bg-emerald-50 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-100/50">
                              <User size={36} className="text-emerald-600" />
                           </div>
                           <div>
-                              <div className="font-black text-2xl text-charcoal-900 tracking-tighter flex items-center gap-2">
+                              <div className="font-black text-2xl text-charcoal-900 tracking-tighter flex items-center gap-2 italic">
                                   {bid.drivers?.full_name || 'Terminal Unit'} 
                                   <ShieldCheck size={18} className="text-blue-600" />
                               </div>
                               <div className="flex items-center gap-2 mt-1">
-                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">Verified Protocol</span>
+                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                    Protocol Verified
+                                 </span>
                               </div>
                           </div>
                       </div>
                       <div className="text-right">
-                          <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-[0.2em] mb-1">Carrier Bid</div>
+                          <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-[0.2em] mb-1">Official Bid</div>
                           <div className="font-black text-3xl text-charcoal-900 tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
                       </div>
                   </div>
                   
                   <button 
                     onClick={() => handleAcceptBid(bid)} 
-                    className="w-full py-5 rounded-[2rem] font-black text-white bg-charcoal-900 hover:bg-black transition-all shadow-premium text-lg active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative"
+                    className="w-full py-5 rounded-[1.8rem] font-black text-white bg-charcoal-900 hover:bg-black transition-all shadow-premium text-lg active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative group/btn"
                   >
-                    <span className="relative z-10 flex items-center gap-3">Accept Unit <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" /></span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <span className="relative z-10 flex items-center gap-3">Accept Unit <ChevronRight size={22} className="group-hover/btn:translate-x-1 transition-transform" /></span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
                   </button>
                 </div>
               ))}

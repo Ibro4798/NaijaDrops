@@ -12,6 +12,14 @@ import { getMapboxRoute } from '@/utils/mapbox';
 export default function TrackingMap({ driverLocation, dropoffLocation, demandData }) {
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const mapRef = useRef();
+
+  useEffect(() => {
+    if (!mapboxToken) {
+        console.warn("[MAPBOX] Missing NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN. Map rendering will be disabled.");
+    } else if (mapboxToken.startsWith('pk.ey') === false) {
+        console.error("[MAPBOX] Provided token does not appear to be a valid Mapbox public key.");
+    }
+  }, [mapboxToken]);
   
   const [routeData, setRouteData] = useState(null);
   const [routeDuration, setRouteDuration] = useState(null);
@@ -188,10 +196,12 @@ export default function TrackingMap({ driverLocation, dropoffLocation, demandDat
           )}
         </Map>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-8 text-center bg-gray-50">
-           <Globe size={48} className="mb-4 text-gray-300" />
-           <p className="font-bold text-lg text-charcoal-600">Tracking disabled (Demo Mode)</p>
-           <p className="text-sm">Provide `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` in `.env.local`.</p>
+        <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-8 text-center bg-gray-50 aura-gradient">
+           <Globe size={48} className="mb-4 text-emerald-500/30 animate-pulse" />
+           <p className="font-black text-xs text-white/40 uppercase tracking-[0.4em] mb-2">Satellite Sync Required</p>
+           <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
+             Mapbox token status: {mapboxToken ? 'Configured but potentially restricted' : 'Missing from environment'}
+           </p>
         </div>
       )}
     </div>

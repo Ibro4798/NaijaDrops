@@ -247,14 +247,47 @@ export default function DriverReviewPage() {
                   value={driver.admin_notes || ''}
                   onChange={(e) => setDriver(prev => ({ ...prev, admin_notes: e.target.value }))}
                   placeholder="Record tactical assessment notes..."
-                  className="w-full bg-charcoal-950/80 border border-white/5 rounded-[2rem] p-6 text-sm text-white focus:outline-none focus:border-emerald-500 focus:bg-black transition-all min-h-[160px] mb-6 font-bold placeholder:text-charcoal-800 shadow-inner"
+                  className="w-full bg-charcoal-950/80 border border-white/5 rounded-[2rem] p-6 text-sm text-white focus:outline-none focus:border-emerald-500 focus:bg-black transition-all min-h-[140px] mb-4 font-bold placeholder:text-charcoal-800 shadow-inner"
                 />
                 <button 
                   onClick={handleSaveNotes}
-                  className="w-full py-4 bg-white/10 hover:bg-emerald-500 hover:text-charcoal-950 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-[0.4em] border border-white/5 shadow-premium"
+                  className="w-full py-4 bg-white/10 hover:bg-emerald-500 hover:text-charcoal-950 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-[0.4em] border border-white/5 shadow-premium mb-6"
                 >
                   Commit Log Entry
                 </button>
+
+                <div className="h-px bg-white/5 w-full mb-6"></div>
+
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] font-outfit italic">Direct Transmission</h3>
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-glow"></div>
+                </div>
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-4">Broadcast message to driver notification field</p>
+                
+                <div className="flex gap-2">
+                    <input 
+                        type="text"
+                        id="admin-msg-input"
+                        placeholder="Type message..." 
+                        className="flex-1 bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500 transition-all font-bold"
+                    />
+                    <button 
+                        onClick={async () => {
+                            const input = document.getElementById('admin-msg-input');
+                            const msg = input.value;
+                            if (!msg) return;
+                            setActionLoading(true);
+                            await sendNotification("Message from Admin", msg);
+                            setActionLoading(false);
+                            input.value = '';
+                            alert("Transmission Successful.");
+                        }}
+                        disabled={actionLoading}
+                        className="w-12 h-12 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white rounded-xl flex items-center justify-center transition-all border border-blue-500/20 disabled:opacity-20"
+                    >
+                        <Send size={18} />
+                    </button>
+                </div>
             </motion.div>
 
             {/* Vehicle Data */}

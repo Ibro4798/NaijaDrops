@@ -209,16 +209,17 @@ export default function Tracking() {
         {orderData.status !== 'delivered' && driverProfile && (
             <button 
                 onClick={() => { setShowChat(true); setUnreadCount(0); }}
-                className="absolute bottom-6 right-4 z-40 w-16 h-16 bg-charcoal-900 hover:bg-black text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.4)] flex items-center justify-center transition-transform active:scale-95 border-2 border-emerald-500/40 group"
+                className="absolute bottom-8 right-6 z-40 px-6 h-16 bg-charcoal-900 text-white rounded-full shadow-premium flex items-center gap-3 transition-all active:scale-95 border-2 border-emerald-500/30 group hover:bg-black"
             >
                 <div className="relative">
-                    <MessageSquare size={24} className="group-hover:scale-110 transition-transform" />
+                    <MessageSquare size={20} className="group-hover:scale-110 transition-transform italic" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-charcoal-950 rounded-full text-[9px] font-black flex items-center justify-center animate-bounce shadow-glow">
+                        <span className="absolute -top-3 -right-3 w-5 h-5 bg-emerald-500 text-charcoal-950 rounded-full text-[9px] font-black flex items-center justify-center animate-bounce shadow-glow ring-2 ring-charcoal-900">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}
                 </div>
+                <span className="font-black text-[10px] uppercase tracking-[0.2em] italic">Open Comms</span>
             </button>
         )}
       </div>

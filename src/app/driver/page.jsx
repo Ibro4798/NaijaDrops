@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star, Zap, Activity } from 'lucide-react';
+import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star, Zap, Activity, Bell, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import IncomingOrderCard from '@/components/driver/IncomingOrderCard';
@@ -42,6 +42,8 @@ export default function DriverDashboard() {
     const [verificationStatus, setVerificationStatus] = useState(null);
     const [driverStats, setDriverStats] = useState(null);
     const [cancellationNotice, setCancellationNotice] = useState(null); // { orderId: string, message: string }
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     // ============================================================================
     // LOCATION BATCHING: Queue GPS updates and flush every 15 seconds
@@ -137,6 +139,32 @@ export default function DriverDashboard() {
                     const { data: stats } = await supabase.rpc('get_driver_stats', { d_id: user.id });
                     if (stats && stats[0]) setDriverStats(stats[0]);
                 } catch (e) { console.error("Could not fetch stats", e); }
+
+                const fetchNotifications = async () => {
+                    const { data } = await supabase
+                        .from('notifications')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                    if (data) setNotifications(data);
+                };
+                fetchNotifications();
+
+                // Subscribe to internal notifications
+                const notificationChannel = supabase.channel(`driver-notifications-${user.id}`)
+                    .on('postgres_changes', { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'notifications', 
+                        filter: `user_id=eq.${user.id}` 
+                    }, (payload) => {
+                        setNotifications(prev => [payload.new, ...prev]);
+                        if (Notification.permission === 'granted') {
+                            new Notification(payload.new.title, { body: payload.new.message });
+                        }
+                    })
+                    .subscribe();
 
                 const status = prof.driver_status || 'pending';
                 
@@ -336,10 +364,23 @@ export default function DriverDashboard() {
     // Maestro AI: Batch Detection Effect
     useEffect(() => {
         const checkBatches = async () => {
-            if (availableOrders.length > 1 && !activeTrip) {
+            if (!isOnline || activeTrip) {
+                setIncomingOrder(null);
+                setSuggestedBatch(null);
+                return;
+            }
+
+            if (availableOrders.length > 1) {
                 const batches = await findBatchableOrders(availableOrders);
-                setSuggestedBatch(batches?.length > 0 ? batches[0] : null);
-            } else if (availableOrders.length === 1 && !activeTrip) {
+                if (batches?.length > 0) {
+                    setSuggestedBatch(batches[0]);
+                    setIncomingOrder(null);
+                } else {
+                    // Multiple orders but no batch, show list (handled in UI)
+                    setSuggestedBatch(null);
+                    setIncomingOrder(availableOrders[0]); // Default to first for legacy compat
+                }
+            } else if (availableOrders.length === 1) {
                 setIncomingOrder(availableOrders[0]);
                 setSuggestedBatch(null);
             } else {
@@ -348,7 +389,7 @@ export default function DriverDashboard() {
             }
         };
         checkBatches();
-    }, [availableOrders, activeTrip]);
+    }, [availableOrders, activeTrip, isOnline]);
 
     const stopListening = () => {
         if (orderSubRef.current) {
@@ -479,11 +520,55 @@ export default function DriverDashboard() {
                     </div>
 
                     <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="w-12 h-12 glass flex items-center justify-center text-white shadow-premium pointer-events-auto hover:bg-white/10 transition-all rounded-2xl relative"
+                        >
+                            <Bell size={20} />
+                            {notifications.some(n => !n.is_read) && (
+                                <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-charcoal-900 shadow-glow"></div>
+                            )}
+                        </button>
                         <Link href="/driver/wallet" className="w-12 h-12 glass flex items-center justify-center text-emerald-500 shadow-premium pointer-events-auto hover:bg-emerald-500 hover:text-white transition-all group rounded-2xl">
                             <Wallet size={20} />
                         </Link>
                     </div>
                 </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Notifications Panel */}
+            <AnimatePresence>
+                {showNotifications && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="fixed top-24 right-6 w-80 z-[60] glass-dark border border-white/10 rounded-[2.5rem] p-6 shadow-premium overflow-hidden"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-white font-black text-xs uppercase tracking-[0.2em] font-outfit">Official Transmissions</h3>
+                            <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-white transition-colors">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+                            {notifications.length === 0 ? (
+                                <div className="py-10 text-center">
+                                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">No signals received</p>
+                                </div>
+                            ) : (
+                                notifications.map(notif => (
+                                    <div key={notif.id} className={`p-4 rounded-2xl border ${notif.is_read ? 'bg-white/5 border-white/5' : 'bg-blue-500/10 border-blue-500/20'} transition-all`}>
+                                        <div className="font-black text-[10px] text-blue-400 uppercase tracking-widest mb-1">{notif.title}</div>
+                                        <div className="text-[11px] text-white/80 font-medium leading-relaxed">{notif.message}</div>
+                                        <div className="text-[9px] text-gray-500 mt-2 font-mono">{new Date(notif.created_at).toLocaleDateString()}</div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
@@ -556,13 +641,30 @@ export default function DriverDashboard() {
                                         </div>
                                     </div>
                                 </div>
-                            ) : incomingOrder ? (
-                                <IncomingOrderCard 
-                                    order={incomingOrder} 
-                                    onReject={() => setAvailableOrders(prev => prev.filter(o => o.id !== incomingOrder.id))}
-                                    onAcceptBase={() => handleAcceptBase(incomingOrder)}
-                                    onCounterOffer={(amount) => handleCounterOffer(incomingOrder, amount)}
-                                />
+                             ) : availableOrders.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-6 pt-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-glow"></div>
+                                            <span className="text-white font-black text-[10px] uppercase tracking-[0.3em] font-outfit italic">Job Radar ({availableOrders.length})</span>
+                                        </div>
+                                        <span className="text-charcoal-500 text-[9px] font-black uppercase tracking-widest">Swipe for more</span>
+                                    </div>
+                                    
+                                    <div className="flex gap-4 overflow-x-auto pb-10 px-2 -mx-4 no-scrollbar snap-x snap-mandatory">
+                                        {availableOrders.map((order, idx) => (
+                                            <div key={order.id} className="min-w-[90vw] snap-center first:ml-4 last:mr-4">
+                                                <IncomingOrderCard 
+                                                    order={order} 
+                                                    onReject={() => setAvailableOrders(prev => prev.filter(o => o.id !== order.id))}
+                                                    onAcceptBase={() => handleAcceptBase(order)}
+                                                    onCounterOffer={(amount) => handleCounterOffer(order, amount)}
+                                                    isEmbedded={true}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             ) : (
                                 /* Scanning State */
                                 <div className="glass-dark p-10 rounded-[3rem] border-white/5 text-center flex flex-col items-center shadow-premium">
@@ -574,6 +676,7 @@ export default function DriverDashboard() {
                                     <p className="text-charcoal-400 text-xs font-bold uppercase tracking-widest max-w-[200px]">Waiting for delivery requests in your radius</p>
                                 </div>
                             )}
+
 
                             {/* Heavy Offline Button */}
                             <button onClick={toggleStatus} className="w-full py-5 bg-charcoal-900 border border-white/10 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-premium hover:bg-black transition-all">
@@ -608,8 +711,28 @@ export default function DriverDashboard() {
                             )}
 
                             <button onClick={toggleStatus} className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2.5rem] font-black text-lg uppercase tracking-[0.2em] shadow-glow transition-all active:scale-95">
-                                Initialize Fleet Mode
+                                Go Online
                             </button>
+
+                            {/* Verification Status Banner */}
+                            {(verificationStatus === 'pending' || verificationStatus === 'not_started') && (
+                                <div className="mt-4 glass-dark p-6 rounded-[2rem] border border-amber-500/20 text-left relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-pointer" onClick={() => router.push('/driver/onboarding')}>
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-12 -mt-12"></div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20">
+                                            {verificationStatus === 'pending' ? <Clock size={20} /> : <Info size={20} />}
+                                        </div>
+                                        <div>
+                                            <div className="text-amber-500 font-black text-[10px] uppercase tracking-widest italic">{verificationStatus === 'pending' ? 'Compliance Review' : 'Authorization Required'}</div>
+                                            <div className="text-white font-bold text-xs">
+                                                {verificationStatus === 'pending' 
+                                                    ? 'Your unit metadata is being evaluated by admin.' 
+                                                    : 'Broadcast your driver credentials to begin operations.'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

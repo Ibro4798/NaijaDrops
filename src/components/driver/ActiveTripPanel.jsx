@@ -136,10 +136,14 @@ export default function ActiveTripPanel({ order, onUpdateStatus, driverProfile, 
              </div>
            </div>
            
-           <div className="flex gap-3">
-             <button onClick={() => setShowChat(true)} className="w-12 h-12 rounded-2xl glass-dark text-white flex items-center justify-center border border-white/5 hover:bg-emerald-500 transition-all group scale-100 hover:scale-105 active:scale-95 shadow-premium">
-               <MessageSquare size={20} className="group-hover:fill-current transition-all" />
-             </button>
+           <div className="flex gap-2">
+              <button 
+                onClick={() => setShowChat(true)} 
+                className="flex items-center gap-2 px-5 h-12 rounded-2xl bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-[0.2em] shadow-glow hover:bg-emerald-400 transition-all active:scale-95 border border-emerald-400/50"
+              >
+                <MessageSquare size={16} /> 
+                Open Comms
+              </button>
            </div>
         </div>
 
