@@ -28,10 +28,15 @@ export default function Navbar() {
       try {
         const { user, role, profile: prof } = await getUserRole(supabase);
         
-        if (user && role) {
-          setProfile({ role, email: user.email, ...prof });
+        if (user) {
+          if (role) {
+            setProfile({ role, email: user.email, ...prof });
+          } else {
+            // Logged in but no role assigned yet? Treat as user for now or wait
+            setProfile({ role: 'user', email: user.email });
+          }
   
-          if (role === 'user') {
+          if (role === 'user' || !role) {
               const checkActiveOrder = async () => {
                   const { data: orders } = await supabase.from('orders')
                     .select('id, status')
@@ -49,12 +54,25 @@ export default function Navbar() {
                 .subscribe();
               return () => supabase.removeChannel(channel);
           }
+        } else {
+          setProfile(null);
         }
       } finally {
         setIsCheckingAuth(false);
       }
     }
+
     setupProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') setupProfile();
+      if (event === 'SIGNED_OUT') {
+        setProfile(null);
+        setActiveOrder(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [supabase]);
 
   // Navbar component logic
@@ -79,13 +97,6 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {/* Action Group */}
             <div className="flex items-center gap-1 sm:gap-2 mr-2">
-              <Link 
-                href="/contact" 
-                className="text-charcoal-500 hover:text-emerald-700 p-2 transition-colors"
-                title="Support"
-              >
-                <Smartphone size={20} />
-              </Link>
             </div>
 
             <AnimatePresence>

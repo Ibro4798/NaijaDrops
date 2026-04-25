@@ -383,7 +383,7 @@ export default function SendPackage() {
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
               {/* Pickup Stage */}
-              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group">
+              <div className={`glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group transition-all ${suggestions.pickup.length > 0 ? 'z-[100]' : 'z-10'}`}>
                  <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500/50 rounded-l-full"></div>
                  <div className="flex items-start gap-6">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -409,7 +409,7 @@ export default function SendPackage() {
                                 {isResolvingLink.pickup ? <Loader2 size={18} className="animate-spin text-emerald-600" /> : <button onMouseDown={() => useCurrentLocation('pickup')} className="text-emerald-300 hover:text-emerald-600 transition-colors"><Navigation size={22} /></button>}
                              </div>
                              {suggestions.pickup.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[200] animate-in slide-in-from-top-4">
+                                <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[999] animate-in slide-in-from-top-4">
                                    {suggestions.pickup.map((loc, i) => (
                                       <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'pickup')} className="w-full px-6 py-4 text-left hover:bg-emerald-50 border-b border-gray-50 last:border-0 flex items-center gap-3 active:bg-emerald-100 group transition-colors">
                                          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform"><Search size={18} /></div>
@@ -430,7 +430,7 @@ export default function SendPackage() {
               </div>
 
               {/* Dropoff Stage */}
-              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group">
+              <div className={`glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group transition-all ${suggestions.dropoff.length > 0 ? 'z-[100]' : 'z-10'}`}>
                  <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500/50 rounded-l-full"></div>
                  <div className="flex items-start gap-6">
                     <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -456,7 +456,7 @@ export default function SendPackage() {
                                 {isResolvingLink.dropoff ? <Loader2 size={18} className="animate-spin text-blue-600" /> : <button onMouseDown={() => useCurrentLocation('dropoff')} className="text-blue-300 hover:text-blue-600 transition-colors"><MapIcon size={22} /></button>}
                              </div>
                              {suggestions.dropoff.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[200] animate-in slide-in-from-top-4">
+                                <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-white rounded-[2rem] shadow-premium border border-gray-100 overflow-hidden z-[999] animate-in slide-in-from-top-4">
                                    {suggestions.dropoff.map((loc, i) => (
                                       <button key={i} onMouseDown={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full px-6 py-4 text-left hover:bg-blue-50 border-b border-gray-50 last:border-0 flex items-center gap-3 active:bg-blue-100 group transition-colors">
                                          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform"><Search size={18} /></div>

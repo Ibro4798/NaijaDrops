@@ -10,7 +10,7 @@ export default function DriverBottomNav() {
   const navItems = [
     { label: 'Jobs', icon: <Briefcase size={20} />, href: '/driver' },
     { label: 'Earnings', icon: <CreditCard size={20} />, href: '/driver/wallet' },
-    { label: 'Map', icon: <Map size={20} />, href: '/driver' },
+    { label: 'Map', icon: <Map size={20} />, href: '/driver/map' },
     { label: 'Account', icon: <User size={20} />, href: '/driver/profile' },
   ];
 
