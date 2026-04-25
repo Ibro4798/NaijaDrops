@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigation, Phone, MessageSquare, CheckCircle2, User, X, Camera, MapPin, AlertTriangle, ChevronRight, Zap } from 'lucide-react';
+import { Navigation, Phone, MessageSquare, CheckCircle2, User, X, Camera, MapPin, AlertTriangle, ChevronRight, Zap, Check } from 'lucide-react';
 import OrderChat from '@/components/OrderChat';
 import { createClient } from '@/utils/supabase/client';
 import { calculateDistance } from '@/utils/distance';
@@ -114,151 +114,130 @@ export default function ActiveTripPanel({ order, onUpdateStatus, driverProfile, 
 
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 glass-dark rounded-t-[3rem] shadow-premium overflow-hidden backdrop-blur-3xl border-t border-white/10 pb-[var(--safe-bottom)]">
-      <div className="w-16 h-1 bg-white/10 rounded-full mx-auto mt-4 mb-2"></div>
+    <div className="fixed inset-x-0 bottom-0 z-50 bg-charcoal-900 rounded-t-[3.5rem] shadow-premium overflow-hidden border-t border-white/5 pb-[var(--safe-bottom)]">
+      {/* Visual Indicator Grabber */}
+      <div className="w-16 h-1.5 bg-white/10 rounded-full mx-auto mt-6 mb-2"></div>
       
       <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
-           <div className="flex items-center gap-4">
-             <div className="relative">
-                <div className="absolute inset-0 bg-emerald-500/20 rounded-2xl animate-pulse"></div>
-                <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center text-emerald-500 border-white/20 shadow-premium relative z-10">
-                   <User size={24} />
-                </div>
-             </div>
-             <div>
-               <h3 className="font-black text-white text-xl leading-none font-outfit uppercase tracking-tighter italic">Live Payload</h3>
-               <div className="flex items-center gap-2 mt-2">
-                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                   {driverProfile?.plate_number || 'ACTIVE'}
-                 </span>
+        {/* Step Progress Indicator per Stitch Reference */}
+        <div className="flex items-center justify-between mb-10 px-2 relative">
+           {/* Connecting Line */}
+           <div className="absolute top-4 left-4 right-4 h-0.5 bg-white/5 z-0"></div>
+           <div className="absolute top-4 left-4 h-0.5 bg-emerald-500 z-10 transition-all duration-1000" style={{ width: order.status === 'delivered' ? '100%' : order.status === 'picked_up' || order.status === 'arriving' ? '66%' : '33%' }}></div>
+
+           {[
+             { id: 'requested', label: 'Requested' },
+             { id: 'picked_up', label: 'Picked Up' },
+             { id: 'arriving', label: 'In Transit' },
+             { id: 'delivered', label: 'Delivered' }
+           ].map((s, i) => {
+             const isActive = order.status === s.id || (i === 0 && order.status === 'accepted') || (i === 1 && order.status === 'arriving_pickup');
+             const isComplete = i < (order.status === 'delivered' ? 4 : order.status === 'picked_up' || order.status === 'arriving' ? 2 : 1);
+             
+             return (
+               <div key={s.id} className="flex flex-col items-center gap-3 relative z-20">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isComplete ? 'bg-emerald-500 text-charcoal-900 shadow-glow' : isActive ? 'bg-charcoal-900 border-2 border-emerald-500 text-emerald-500' : 'bg-charcoal-900 border-2 border-white/10 text-white/20'}`}>
+                     {isComplete ? <Check size={14} className="stroke-[4]" /> : <div className="w-1.5 h-1.5 rounded-full bg-current"></div>}
+                  </div>
+                  <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-500' : 'text-charcoal-500'}`}>{s.label}</span>
                </div>
-             </div>
+             )
+           })}
+        </div>
+
+        {/* Profile Stats Area */}
+        <div className="flex items-center justify-between mb-10">
+           <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-3xl border-2 border-emerald-500/20 overflow-hidden shadow-premium p-1 bg-charcoal-950">
+                 <img src={driverProfile?.avatar_url || "https://ui-avatars.com/api/?name=Driver&background=10b981&color=fff"} className="w-full h-full object-cover rounded-2xl" alt="Driver" />
+              </div>
+              <div>
+                 <h3 className="text-white font-black text-xl font-outfit tracking-tighter leading-none mb-1">{driverProfile?.full_name || 'Musa Danjuma'}</h3>
+                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                       <Zap size={10} fill="currentColor" />
+                       <span className="text-[10px] font-black uppercase tracking-widest">4.9 Rare</span>
+                    </div>
+                 </div>
+              </div>
            </div>
            
            <div className="flex gap-2">
               <button 
-                onClick={() => setShowChat(true)} 
-                className="flex items-center gap-2 px-5 h-12 rounded-2xl bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-[0.2em] shadow-glow hover:bg-emerald-400 transition-all active:scale-95 border border-emerald-400/50"
+                onClick={() => window.open(`tel:${order.customer_phone}`, '_self')}
+                className="w-14 h-14 glass flex items-center justify-center text-white rounded-2xl border border-white/5 shadow-premium hover:bg-white/10 transition-all active:scale-90"
               >
-                <MessageSquare size={16} /> 
-                Open Comms
+                 <Phone size={20} />
+              </button>
+              <button 
+                onClick={() => setShowChat(true)}
+                className="w-14 h-14 glass flex items-center justify-center text-emerald-500 rounded-2xl border border-white/5 shadow-premium hover:bg-emerald-500 hover:text-white transition-all active:scale-90"
+              >
+                 <MessageSquare size={20} />
               </button>
            </div>
         </div>
 
-        <div className="glass-dark rounded-[2rem] p-6 mb-8 border border-white/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-          
-          <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
-             <MapPin size={10} className="text-emerald-500" /> Target Proximity
-          </div>
-          
-          <div className="text-lg font-black text-white mb-2 font-outfit uppercase tracking-tight leading-tight">
-            {order.status === 'accepted' || order.status === 'arriving_pickup' ? order.pickup_name : order.dropoff_name}
-          </div>
+        {/* Action Button Section per Stitch Tall Button Style */}
+        <div className="space-y-4">
+           {action && !showPinModal && (
+             <motion.button 
+               whileTap={{ scale: 0.98 }}
+               onClick={handleActionClick}
+               className={`w-full py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-xl transition-all ${action.color}`}
+             >
+               {action.label}
+               <ChevronRight size={18} />
+             </motion.button>
+           )}
 
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full shadow-glow"></div>
-            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest">
-              STALL/GATE: { (order.status === 'accepted' || order.status === 'arriving_pickup') ? (order.pickup_details || 'N/A') : (order.dropoff_details || 'N/A') }
-            </span>
-          </div>
+           {showPinModal && (
+              <div className="bg-charcoal-950/50 p-6 rounded-[3rem] border border-white/5 mb-4">
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-white font-black text-md font-outfit uppercase tracking-widest italic">Verify Handover</h4>
+                    <button onClick={() => setShowPinModal(false)} className="text-charcoal-500 hover:text-white">
+                       <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <label className={`h-32 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${photo ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-white/10 text-charcoal-600'}`}>
+                      <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+                      {photo ? <CheckCircle2 size={24} /> : <Camera size={24} />}
+                      <span className="text-[8px] font-black uppercase tracking-widest">{photo ? 'Photo Clear' : 'Take Photo'}</span>
+                    </label>
+                    <input 
+                       type="text" 
+                       inputMode="numeric"
+                       maxLength={4}
+                       value={pinEntry}
+                       onChange={(e) => setPinEntry(e.target.value.replace(/\D/g, ''))}
+                       placeholder="XXXX"
+                       className="w-full bg-charcoal-900 border border-white/5 rounded-[2rem] text-center text-3xl font-black text-emerald-500 font-outfit focus:outline-none focus:border-emerald-500 placeholder:text-charcoal-800"
+                    />
+                  </div>
 
-          <div className="flex gap-3">
-             <button onClick={() => {
-                const mapElement = document.querySelector('.absolute.inset-0.transition-opacity');
-                if (mapElement) mapElement.scrollIntoView({ behavior: 'smooth' });
-             }} className="flex-1 py-4 rounded-2xl bg-charcoal-950 text-white hover:bg-black font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all border border-white/5 shadow-premium active:scale-95">
-               <Navigation size={16} /> Radar View
-             </button>
-             <button onClick={() => window.open(getNavLinks().google, '_blank')} className="w-14 h-14 rounded-2xl glass text-emerald-500 hover:bg-emerald-500 hover:text-white flex items-center justify-center border border-white/20 transition-all shadow-premium active:scale-95 group">
-                <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
-             </button>
-          </div>
+                  <button 
+                    onClick={submitPin}
+                    disabled={pinEntry.length !== 4 || !photo || uploading}
+                    className="w-full py-5 rounded-[2rem] bg-emerald-500 text-charcoal-900 font-black text-[11px] uppercase tracking-[0.2em] shadow-glow"
+                  >
+                    Complete Delivery Mission
+                  </button>
+              </div>
+           )}
+
+           <button 
+             onClick={() => {
+                const lat = order.status === 'accepted' || order.status === 'arriving_pickup' ? order.pickup_lat : order.dropoff_lat;
+                const lng = order.status === 'accepted' || order.status === 'arriving_pickup' ? order.pickup_lng : order.dropoff_lng;
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+             }}
+             className="w-full py-5 rounded-[2.5rem] bg-charcoal-950 text-white border border-white/5 font-black text-[10px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+           >
+              <Navigation size={16} /> Radar Assist
+           </button>
         </div>
-
-        <AnimatePresence mode="wait">
-          {action && !showPinModal && (
-            <motion.button 
-              key="action-btn"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              onClick={handleActionClick}
-              className={`w-full py-5 rounded-[2.5rem] font-black text-[15px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 shadow-premium transition-all active:scale-[0.97] border italic ${action.color}`}
-            >
-              {action.next === 'delivered' && <Zap size={20} fill="currentColor" />}
-              {action.label}
-            </motion.button>
-          )}
-
-          {showPinModal && (
-            <motion.div 
-              key="pin-modal"
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="border-t border-white/5 pt-6 mt-2"
-            >
-              <div className="flex justify-between items-center mb-6">
-                 <div>
-                   <h4 className="font-black text-white text-lg font-outfit uppercase tracking-tighter italic">Proof of Service</h4>
-                   <p className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest mt-1">Acquire biometric & input key</p>
-                 </div>
-                 <button onClick={() => setShowPinModal(false)} className="glass-dark p-2 rounded-xl text-charcoal-400 hover:text-white border border-white/5">
-                   <X size={18} />
-                 </button>
-              </div>
-
-              <div className="mb-6 grid grid-cols-2 gap-4">
-                <label className={`h-40 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-500 relative overflow-hidden ${photo ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-glow' : 'border-white/10 bg-charcoal-900/40 text-charcoal-600 hover:border-emerald-500 hover:text-emerald-500'}`}>
-                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
-                  {photo ? (
-                    <>
-                       <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
-                       <CheckCircle2 size={32} className="relative z-10" />
-                       <span className="font-black text-[10px] uppercase tracking-widest relative z-10">Capture Synced</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera size={32} />
-                      <span className="font-black text-[10px] uppercase tracking-widest">Open Sensor</span>
-                    </>
-                  )}
-                </label>
-
-                <div className="flex flex-col gap-3">
-                   <div className="relative flex-1">
-                      <input 
-                        type="text" 
-                        inputMode="numeric"
-                        maxLength={4}
-                        value={pinEntry}
-                        onChange={(e) => setPinEntry(e.target.value.replace(/\D/g, ''))}
-                        placeholder="----" 
-                        className="w-full h-full text-center text-4xl font-black font-outfit uppercase bg-charcoal-950/60 border border-white/5 rounded-[2rem] focus:outline-none focus:border-emerald-500 focus:bg-black transition-all text-emerald-500 placeholder:text-charcoal-800"
-                      />
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">Code Entry</div>
-                   </div>
-                </div>
-              </div>
-              
-              {pinError && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center mb-4">{pinError}</p>}
-              
-              <button 
-                onClick={submitPin}
-                disabled={pinEntry.length !== 4 || !photo || uploading}
-                className="w-full py-5 rounded-[2.5rem] font-black text-charcoal-950 text-sm uppercase tracking-[0.3em] bg-emerald-500 hover:bg-emerald-400 shadow-glow disabled:opacity-30 disabled:shadow-none transition-all flex items-center justify-center gap-3 active:scale-95 shadow-premium"
-              >
-                {uploading ? (
-                  <div className="w-6 h-6 border-2 border-charcoal-900 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>Dock Payload & Finish <ChevronRight size={18} /></>
-                )}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {showChat && (
           <OrderChat 

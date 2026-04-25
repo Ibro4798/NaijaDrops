@@ -524,42 +524,59 @@ export default function DriverDashboard() {
             {/* Aura Overlay for Depth */}
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-charcoal-950/40 via-transparent to-charcoal-950/80"></div>
 
-            {/* Online Status Bar (Aura Glass) */}
-            <AnimatePresence>
-                {isOnline && !activeTrip && (
-                <motion.div 
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key="online-status"
-                    className="absolute top-6 left-6 right-6 z-40 flex items-center justify-between pointer-events-none"
-                >
-                    <div className="glass-dark px-6 py-3 rounded-full border-emerald-500/20 flex items-center gap-3 shadow-premium pointer-events-auto">
-                        <div className="relative w-2.5 h-2.5">
-                            <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping shadow-glow"></div>
-                            <div className="absolute inset-0 bg-emerald-500 rounded-full"></div>
+            {/* Premium Stitch Header */}
+            <div className="absolute top-0 left-0 right-0 z-40 p-6 bg-gradient-to-b from-charcoal-950 to-transparent">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 overflow-hidden shadow-premium">
+                            <img src={profile?.avatar_url || "https://ui-avatars.com/api/?name=Driver&background=10b981&color=fff"} className="w-full h-full object-cover" alt="Profile" />
                         </div>
-                        <span className="text-[10px] font-black text-white uppercase tracking-[0.25em] font-outfit">Fleet Radar: Active</span>
-                        <div className="h-4 w-px bg-white/10 mx-1"></div>
-                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{profile?.city || 'Kano'} Cluster</span>
+                        <div>
+                            <h1 className="text-white font-black text-xl font-outfit tracking-tighter">Available Jobs</h1>
+                            <div className="flex items-center gap-1.5 opacity-60">
+                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                <span className="text-[9px] font-black text-white uppercase tracking-widest">{profile?.city || 'Kano'} Cluster</span>
+                            </div>
+                        </div>
                     </div>
-
                     <div className="flex gap-2">
                         <button 
                             onClick={() => setShowNotifications(!showNotifications)}
-                            className="w-12 h-12 glass flex items-center justify-center text-white shadow-premium pointer-events-auto hover:bg-white/10 transition-all rounded-2xl relative"
+                            className="w-11 h-11 glass flex items-center justify-center text-white shadow-premium hover:bg-white/10 transition-all rounded-xl relative border border-white/5"
                         >
-                            <Bell size={20} />
+                            <Bell size={18} />
                             {notifications.some(n => !n.is_read) && (
-                                <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-charcoal-900 shadow-glow"></div>
+                                <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-400 rounded-full border border-charcoal-900 shadow-glow animate-pulse"></div>
                             )}
                         </button>
-                        <Link href="/driver/wallet" className="w-12 h-12 glass flex items-center justify-center text-emerald-500 shadow-premium pointer-events-auto hover:bg-emerald-500 hover:text-white transition-all group rounded-2xl">
-                            <Wallet size={20} />
-                        </Link>
                     </div>
-                </motion.div>
+                </div>
+
+                {/* Online/Offline Toggle Strip */}
+                <div className="flex justify-center">
+                    <div className="bg-charcoal-900/80 backdrop-blur-xl border border-white/5 rounded-full p-1.5 flex gap-1 shadow-premium">
+                        <button 
+                            onClick={() => !isOnline && toggleStatus()}
+                            className={`px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${isOnline ? 'bg-emerald-500 text-charcoal-950 shadow-glow scale-105' : 'text-charcoal-500 hover:text-white'}`}
+                        >
+                            {isOnline && <div className="w-1.5 h-1.5 bg-charcoal-950 rounded-full animate-pulse"></div>}
+                            Online
+                        </button>
+                        <button 
+                            onClick={() => isOnline && toggleStatus()}
+                            className={`px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all ${!isOnline ? 'bg-white/10 text-white' : 'text-charcoal-500 hover:text-white'}`}
+                        >
+                            Offline
+                        </button>
+                    </div>
+                </div>
+
+                {isOnline && (
+                    <div className="mt-4 flex items-center justify-center gap-3">
+                        <span className="text-[9px] font-black text-emerald-500/60 uppercase tracking-[0.25em] animate-pulse">Searching for nearby requests...</span>
+                    </div>
                 )}
-            </AnimatePresence>
+            </div>
 
             {/* Notifications Panel */}
             <AnimatePresence>
@@ -596,14 +613,6 @@ export default function DriverDashboard() {
                 )}
             </AnimatePresence>
 
-            {/* Offline Wallet Shortcut */}
-            {!isOnline && !activeTrip && (
-                <div className="absolute top-6 right-6 z-40">
-                    <Link href="/driver/wallet" className="w-12 h-12 glass flex items-center justify-center text-emerald-500 shadow-premium hover:bg-emerald-500 hover:text-white transition-all rounded-2xl">
-                        <Wallet size={20} />
-                    </Link>
-                </div>
-            )}
 
             {/* Hardened Location Status Indicator */}
             {isOnline && (
@@ -717,9 +726,6 @@ export default function DriverDashboard() {
 
 
                             {/* Heavy Offline Button */}
-                            <button onClick={toggleStatus} className="w-full py-5 bg-charcoal-900 border border-white/10 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-premium hover:bg-black transition-all">
-                                Go Offline
-                            </button>
                         </motion.div>
                     ) : (
                         /* Offline State */
