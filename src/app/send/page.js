@@ -383,10 +383,10 @@ export default function SendPackage() {
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
               {/* Pickup Stage */}
-              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative overflow-hidden group">
-                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
-                 <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-lg group-hover:rotate-6 transition-transform">
+              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group">
+                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500/50 rounded-l-full"></div>
+                 <div className="flex items-start gap-6">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                        <MapPin size={24} />
                     </div>
                     <div className="flex-1">
@@ -430,10 +430,10 @@ export default function SendPackage() {
               </div>
 
               {/* Dropoff Stage */}
-              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative overflow-hidden group">
-                 <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-                 <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-lg group-hover:-rotate-6 transition-transform">
+              <div className="glass rounded-[2.5rem] p-8 border-white/20 shadow-premium relative group">
+                 <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500/50 rounded-l-full"></div>
+                 <div className="flex items-start gap-6">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                        <Navigation size={24} />
                     </div>
                     <div className="flex-1">

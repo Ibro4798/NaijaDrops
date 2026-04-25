@@ -137,8 +137,8 @@ export default function Home() {
               <div className="h-full glass rounded-[4rem] p-12 flex flex-col relative overflow-hidden transition-all border-white/20 shadow-premium group-hover:bg-white group-hover:border-transparent">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] group-hover:bg-emerald-500/30 transition-all translate-x-1/4 -translate-y-1/4"></div>
                 
-                <div className="w-20 h-20 bg-charcoal-950 text-emerald-400 rounded-3xl flex items-center justify-center mb-10 shadow-2xl group-hover:scale-110 transition-transform group-hover:bg-emerald-500 group-hover:text-white">
-                  <Package size={40} />
+                <div className="w-16 h-16 bg-charcoal-950 text-emerald-400 rounded-2xl flex items-center justify-center mb-8 shadow-2xl group-hover:scale-110 transition-transform group-hover:bg-emerald-500 group-hover:text-white">
+                  <Package size={32} />
                 </div>
                 
                 <h2 className="text-5xl font-black text-charcoal-900 mb-6 tracking-tighter">I'm Shipping</h2>
@@ -166,8 +166,8 @@ export default function Home() {
               <div className="h-full glass-dark rounded-[4rem] p-12 flex flex-col relative overflow-hidden transition-all border-white/10 shadow-2xl backdrop-blur-3xl group-hover:bg-emerald-950/40">
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] transition-all -translate-x-1/4 translate-y-1/4"></div>
                 
-                <div className="w-20 h-20 bg-white/10 text-white rounded-3xl border border-white/20 flex items-center justify-center mb-10 group-hover:rotate-12 transition-transform backdrop-blur-xl">
-                  <Truck size={40} />
+                <div className="w-16 h-16 bg-white/10 text-white rounded-2xl border border-white/20 flex items-center justify-center mb-8 group-hover:rotate-12 transition-transform backdrop-blur-xl">
+                  <Truck size={32} />
                 </div>
                 
                 <h2 className="text-5xl font-black text-white mb-6 tracking-tighter">I'm Driving</h2>
@@ -196,11 +196,11 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm"
+              className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
             >
-              <div className="text-4xl font-black text-white mb-1">{stat.val}</div>
-              <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4">{stat.label}</div>
-              <div className="text-charcoal-500 text-xs font-bold">{stat.sub}</div>
+              <div className="text-3xl font-black text-white mb-0.5">{stat.val}</div>
+              <div className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-3">{stat.label}</div>
+              <div className="text-charcoal-500 text-[10px] font-bold">{stat.sub}</div>
             </motion.div>
           ))}
         </div>
