@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Package, LogOut, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone } from "lucide-react";
+import { Package, LogOut, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone, Sun, Moon } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { getUserRole } from "@/utils/auth";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function Navbar() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function Navbar() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -89,7 +91,7 @@ export default function Navbar() {
             <div className="bg-emerald-500 p-2 rounded-xl mr-3 group-hover:rotate-12 transition-transform hidden sm:flex">
                 <Package size={24} className="text-white" />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-charcoal-900 group-hover:text-emerald-700 transition-colors">
+            <span className="text-2xl font-black tracking-tighter text-charcoal-900 dark:text-white group-hover:text-emerald-700 transition-colors">
                 NaijaDrops<span className="text-emerald-500">.</span>
             </span>
           </Link>
@@ -141,6 +143,14 @@ export default function Navbar() {
                 </motion.div>
                 )}
             </AnimatePresence>
+
+            <button 
+              onClick={toggleTheme}
+              className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all border border-transparent"
+              title="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
             {profile && (
               <form action="/api/auth/signout" method="POST" className="m-0 p-0">

@@ -147,7 +147,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 bg-charcoal-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center sm:p-4 bg-charcoal-900/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col sm:max-h-[90vh]">
         
         {/* Header */}
@@ -180,7 +180,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
               className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-charcoal-900 shadow-sm transition-all"
             />
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto z-[200]">
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto z-[250]">
                 {suggestions.map((sug, idx) => (
                   <button key={idx} onClick={() => selectSuggestion(sug)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3 border-b border-gray-50 last:border-0 transition-colors">
                     <MapPin size={16} className="text-emerald-500 mt-1 shrink-0" />

@@ -148,7 +148,7 @@ function MatchingContent() {
 
 
   if (!orderData) return (
-    <div className="min-h-screen aura-gradient flex items-center justify-center p-10 font-black tracking-tight text-white italic">
+    <div className="min-h-screen bg-gray-50 dark:bg-charcoal-950 transition-colors flex items-center justify-center p-10 font-bold tracking-tight text-gray-900 dark:text-white italic">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="animate-spin text-emerald-500" size={40} />
         <p>Initializing Signal...</p>
@@ -157,7 +157,7 @@ function MatchingContent() {
   );
 
   return (
-    <main className="aura-gradient min-h-[100dvh] relative overflow-hidden flex flex-col items-center justify-start py-20 px-4">
+    <main className="min-h-[100dvh] bg-gray-50 dark:bg-charcoal-950 transition-colors relative overflow-hidden flex flex-col items-center justify-start py-20 px-4">
       {/* Search Radar UI */}
       {matchState === 'searching' && (
         <div className="flex flex-col items-center z-10 text-center mt-20 animate-in fade-in duration-1000">
@@ -179,12 +179,12 @@ function MatchingContent() {
           </div>
 
           <div className="space-y-6 max-w-sm px-6">
-             <h2 className="text-5xl font-black text-white tracking-tighter leading-tight italic">Broadcasting Signal</h2>
+             <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight italic">Broadcasting Signal</h2>
              <div className="inline-flex flex-col items-center">
-                <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em] bg-white/5 border border-white/10 px-8 py-3 rounded-full mb-4">
+                <p className="text-emerald-700 dark:text-emerald-400 font-black text-[10px] uppercase tracking-[0.4em] bg-emerald-50 dark:bg-white/5 border border-emerald-100 dark:border-white/10 px-8 py-3 rounded-full mb-4">
                    Base Estimate: ₦{orderData?.agreed_price?.toLocaleString()}
                 </p>
-                <p className="text-charcoal-400 font-bold text-xs leading-relaxed max-w-[280px]">
+                <p className="text-gray-500 dark:text-charcoal-400 font-bold text-xs leading-relaxed max-w-[280px]">
                    Awaiting carrier response. Local units are evaluating your logistics manifest.
                 </p>
              </div>
@@ -196,30 +196,30 @@ function MatchingContent() {
       {matchState === 'driver_found' && bids.length > 0 && (
         <div className="w-full max-w-lg space-y-6 animate-in slide-in-from-bottom-5 duration-700 z-20 mt-10 px-4">
             <div className="text-center mb-12">
-                <div className="w-24 h-24 bg-white shadow-premium rounded-[3rem] flex items-center justify-center mx-auto mb-8 relative overflow-hidden group border border-emerald-100">
+                <div className="w-24 h-24 bg-white dark:bg-charcoal-800 shadow-premium rounded-[3rem] flex items-center justify-center mx-auto mb-8 relative overflow-hidden group border border-emerald-100 dark:border-white/10">
                     <div className="absolute inset-0 bg-emerald-500 animate-pulse opacity-10"></div>
                     <Check size={48} className="text-emerald-600 stroke-[3] group-hover:scale-110 transition-transform" />
                 </div>
-                <h2 className="text-4xl font-black text-white tracking-tighter mb-2 italic">Units Response</h2>
+                <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter mb-2 italic">Units Response</h2>
                 <div className="h-1.5 w-16 bg-emerald-500 mx-auto rounded-full mb-3"></div>
-                <p className="text-charcoal-400 text-[10px] font-black uppercase tracking-[0.25em]">Transmission Locked</p>
+                <p className="text-gray-500 dark:text-charcoal-400 text-[10px] font-black uppercase tracking-[0.25em]">Transmission Locked</p>
             </div>
 
             <div className="space-y-4 max-h-[55dvh] overflow-y-auto px-1 custom-scrollbar pb-10">
               {bids.map((bid) => (
-                <div key={bid.id} className="glass rounded-[2.8rem] p-7 border-emerald-500/10 shadow-premium group transition-all hover:bg-white active:scale-[0.98] border border-white/20">
+                <div key={bid.id} className="bg-white dark:bg-charcoal-800 rounded-[2.8rem] p-7 shadow-sm dark:shadow-premium group transition-all hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98] border border-gray-100 dark:border-white/10">
                   <div className="flex justify-between items-start mb-8">
                       <div className="flex items-center gap-5">
-                          <div className="w-16 h-16 bg-emerald-50 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-100/50">
-                             <User size={36} className="text-emerald-600" />
+                          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/10 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-100/50 dark:border-emerald-500/20">
+                             <User size={36} className="text-emerald-600 dark:text-emerald-500" />
                           </div>
                           <div>
-                              <div className="font-black text-2xl text-charcoal-900 tracking-tighter flex items-center gap-2 italic">
+                              <div className="font-black text-2xl text-gray-900 dark:text-white tracking-tighter flex items-center gap-2 italic">
                                   {bid.drivers?.full_name || 'Terminal Unit'} 
                                   <ShieldCheck size={18} className="text-blue-600" />
                               </div>
                               <div className="flex items-center gap-2 mt-1">
-                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 flex items-center gap-1.5">
+                                 <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                                     Protocol Verified
                                  </span>
@@ -227,8 +227,8 @@ function MatchingContent() {
                           </div>
                       </div>
                       <div className="text-right">
-                          <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-[0.2em] mb-1">Official Bid</div>
-                          <div className="font-black text-3xl text-charcoal-900 tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
+                          <div className="text-[9px] font-black text-gray-500 dark:text-charcoal-400 uppercase tracking-[0.2em] mb-1">Official Bid</div>
+                          <div className="font-black text-3xl text-gray-900 dark:text-white tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
                       </div>
                   </div>
                   
@@ -248,25 +248,25 @@ function MatchingContent() {
       {/* Accepted Feedback UI */}
       {matchState === 'accepted' && (
         <div className="flex flex-col items-center z-10 text-center animate-in zoom-in-95 duration-500 mt-20">
-           <div className="w-28 h-28 bg-white shadow-premium text-emerald-600 rounded-[3.5rem] flex items-center justify-center mb-10 rotate-3 border-2 border-emerald-500/20">
+           <div className="w-28 h-28 bg-white dark:bg-charcoal-800 shadow-premium text-emerald-600 dark:text-emerald-400 rounded-[3.5rem] flex items-center justify-center mb-10 rotate-3 border-2 border-emerald-500/20">
                <Check size={56} className="stroke-[4]" />
            </div>
-           <h2 className="text-6xl font-black text-white tracking-tighter mb-6 italic">Synchronized</h2>
-           <div className="bg-charcoal-900 border border-white/10 rounded-[2.5rem] px-10 py-5 shadow-2xl relative overflow-hidden">
+           <h2 className="text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-6 italic">Synchronized</h2>
+           <div className="bg-white dark:bg-charcoal-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] px-10 py-5 shadow-2xl relative overflow-hidden">
               <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
-              <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.5em] relative z-10 animate-pulse">Preparing Protocol Transfer...</p>
+              <p className="text-emerald-700 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-[0.5em] relative z-10 animate-pulse">Preparing Protocol Transfer...</p>
            </div>
         </div>
       )}
 
       {/* Global Cancel Button */}
       {matchState !== 'accepted' && (
-        <div className="fixed bottom-12 left-0 right-0 px-10 z-30">
+        <div className="fixed bottom-12 left-0 right-0 px-6 z-30 flex justify-center pointer-events-none">
             <button 
                 onClick={handleCancelOrder}
-                className="w-full py-6 text-[10px] font-black uppercase tracking-[0.6em] text-white/30 hover:text-red-400 transition-all border border-white/5 rounded-[2.5rem] bg-white/5 backdrop-blur-3xl hover:bg-white/10 active:scale-95"
+                className="w-full max-w-sm py-4 font-bold text-sm tracking-widest text-red-600 hover:text-white transition-all border-2 border-red-200 hover:border-red-500 rounded-3xl bg-red-50 hover:bg-red-500 dark:bg-red-500/10 dark:border-red-500/30 dark:hover:bg-red-500 dark:text-red-400 backdrop-blur-xl active:scale-95 shadow-lg pointer-events-auto"
             >
-                Terminate Mission
+                CANCEL ORDER
             </button>
         </div>
       )}

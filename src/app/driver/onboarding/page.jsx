@@ -14,8 +14,10 @@ import {
   CreditCard,
   ChevronRight,
   Camera,
-  Mail
+  Mail,
+  Navigation
 } from 'lucide-react';
+import { getUserRole } from '@/utils/auth';
 
 export default function DriverOnboarding() {
   const router = useRouter();
@@ -424,5 +426,3 @@ export default function DriverOnboarding() {
     </div>
   );
 }
-
-import { Navigation } from 'lucide-react'; // Fix missing import for bike icon
