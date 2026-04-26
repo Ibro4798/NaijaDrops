@@ -210,7 +210,65 @@ export default function Home() {
         <div className="mt-40 pt-20 border-t border-white/5 text-center">
            <div className="inline-flex items-center gap-4 px-8 py-4 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 backdrop-blur-md">
               <ShieldCheck className="text-emerald-500" size={24} />
-              <p className="text-charcoal-300 font-black text-sm tracking-wide uppercase">Official Logistics Partner for Kano Metropolis</p>
+              <p className="text-charcoal-300 font-black text-sm tracking-wide uppercase font-bold">Official Logistics Partner for Kano Metropolis</p>
+           </div>
+        </div>
+
+        {/* The Fleet Ecosystem */}
+        <div className="mt-40">
+           <div className="text-center mb-20 space-y-4">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500">Precision Fleet</h2>
+              <h3 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic font-outfit">Engineered for Velocity</h3>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { type: "Moto-Nexus", cap: "15 KG", reach: "Hyper-Local", desc: "Our bike fleet handles 90% of city dispatches with agility across narrow metropolitan routes.", icon: <Zap className="text-emerald-500" /> },
+                { type: "Cargo-Prime", cap: "200 KG", reach: "Logistics Hubs", desc: "Specialized three-wheelers for vendor stock replenishment and bulk consumer orders.", icon: <Package className="text-emerald-500" /> },
+                { type: "Transit-Max", cap: "2 TONS", reach: "Regional Scan", desc: "Heavy-duty van support for business-to-business bulk logistics and warehouse transfers.", icon: <Truck className="text-emerald-500" /> }
+              ].map((vehicle, i) => (
+                <div key={i} className="p-10 bg-charcoal-900 border border-white/5 rounded-[3rem] hover:border-emerald-500/30 transition-all group">
+                   <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                      {vehicle.icon}
+                   </div>
+                   <h4 className="text-3xl font-black text-white mb-2 tracking-tight italic font-outfit">{vehicle.type}</h4>
+                   <div className="flex gap-3 mb-6">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">{vehicle.cap}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-charcoal-500 bg-white/5 px-3 py-1 rounded-full">{vehicle.reach}</span>
+                   </div>
+                   <p className="text-charcoal-400 font-medium leading-relaxed">{vehicle.desc}</p>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        {/* Business Infrastructure Portal */}
+        <div className="mt-40 glass rounded-[4rem] border-emerald-500/20 p-16 md:p-24 relative overflow-hidden transition-all hover:bg-white/5 group">
+           <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none group-hover:bg-emerald-600/20 transition-all"></div>
+           
+           <div className="max-w-3xl relative z-10">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500 mb-8">Business Nexus</h2>
+              <h3 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.9] mb-12 italic font-outfit">Scale your Kano <br/>operations with us.</h3>
+              
+              <p className="text-charcoal-400 text-xl font-medium mb-16 leading-relaxed">
+                 From pharmacies to fashion giants, NaijaDrops provides the API and dashboard infrastructure to manage hundreds of dispatches without lifting a finger.
+              </p>
+              
+              <div className="flex flex-wrap gap-10 mb-20">
+                 <div>
+                    <div className="text-5xl font-black text-white italic mb-2 tracking-tighter font-outfit text-transparent bg-clip-text bg-gradient-to-r from-white to-charcoal-400">Enterprise API</div>
+                    <div className="text-xs font-bold text-charcoal-500 uppercase tracking-widest">Connect your checkout</div>
+                 </div>
+                 <div className="w-px h-16 bg-white/10 hidden md:block"></div>
+                 <div>
+                    <div className="text-5xl font-black text-white italic mb-2 tracking-tighter font-outfit text-transparent bg-clip-text bg-gradient-to-r from-white to-charcoal-400">Bulk Dispatch</div>
+                    <div className="text-xs font-bold text-charcoal-500 uppercase tracking-widest">One click, 100 drops</div>
+                 </div>
+              </div>
+              
+              <Link href="/contact" className="inline-flex items-center gap-4 px-12 py-7 bg-emerald-500 text-white rounded-[2rem] font-black text-2xl hover:bg-emerald-400 transition-all shadow-glow hover:-translate-y-1 active:scale-95">
+                 Inquire for Business <ArrowRight size={32} />
+              </Link>
            </div>
         </div>
 
@@ -278,17 +336,27 @@ export default function Home() {
            </div>
         </div>
 
-        {/* Localized City Coverage Teaser */}
-        <div className="mt-40 text-center bg-white/5 p-20 rounded-[4rem] border border-white/10 relative overflow-hidden">
+        {/* Localized City Coverage */}
+        <div className="mt-40 text-center bg-emerald-500/5 p-20 rounded-[4rem] border border-emerald-500/10 relative overflow-hidden">
            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] -mr-48 -mt-48 transition-all"></div>
-           <h4 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-8 leading-none">Serving all Districts in <br/><span className="text-emerald-500">Kano Metropolis.</span></h4>
-           <div className="flex flex-wrap justify-center gap-4">
-              {['Nassarawa', 'Tarauni', 'Fagge', 'Dala', 'Kumbotso', 'Gwale', 'Ungogo'].map((dist) => (
-                <span key={dist} className="px-6 py-2 rounded-full border border-white/10 bg-white/5 text-charcoal-400 font-bold text-sm hover:border-emerald-500 hover:text-white transition-all cursor-default">
+           <div className="absolute bottom-10 left-10 w-24 h-24 bg-blue-500/20 rounded-full blur-[40px] animate-pulse"></div>
+           
+           <Globe size={48} className="mx-auto mb-8 text-emerald-500 opacity-50" />
+           <h4 className="text-4xl md:text-7xl font-black text-white tracking-tighter mb-10 leading-[0.9] italic font-outfit">The Kano Metropolis <br/><span className="text-emerald-500">Universal Grid.</span></h4>
+           
+           <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
+              {[
+                'Nassarawa', 'Tarauni', 'Fagge', 'Dala', 'Kumbotso', 'Gwale', 'Ungogo', 
+                'Kano Municipal', 'Sabon Gari', 'Hotoro', 'Naibawa', 'Zoo Road', 'Challawa',
+                'Katsina Road', 'Zaria Road', 'Maiduguri Road', 'BUK New Site'
+              ].map((dist) => (
+                <span key={dist} className="px-6 py-2.5 rounded-full border border-white/10 bg-white/5 text-charcoal-400 font-bold text-xs hover:border-emerald-500 hover:text-white transition-all cursor-default uppercase tracking-widest">
                   {dist}
                 </span>
               ))}
            </div>
+           
+           <p className="mt-12 text-charcoal-500 font-bold text-sm tracking-tight">Expanding to Zaria and Katsina Q4 2026.</p>
         </div>
 
       </div>

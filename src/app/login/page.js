@@ -197,18 +197,24 @@ function LoginContent() {
 
           {/* Error banner */}
           {errorMsg && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm font-semibold flex flex-col gap-2">
-              <div className="flex items-start gap-2">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <span>{errorMsg}</span>
+            <div className={`mb-6 p-5 rounded-[2rem] border-2 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300 ${mismatchPortal ? 'bg-amber-50 border-amber-100 text-amber-900' : 'bg-red-50 border-red-100 text-red-900'}`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${mismatchPortal ? 'bg-amber-500/20 text-amber-600' : 'bg-red-500/20 text-red-600'}`}>
+                    <AlertCircle size={20} />
+                </div>
+                <div className="pt-1">
+                    <p className="text-xs font-black uppercase tracking-widest leading-none mb-1 opacity-60">System Notification</p>
+                    <p className="text-sm font-bold leading-tight">{errorMsg}</p>
+                </div>
               </div>
-              {/* Direct link to the correct portal */}
+
+              {/* Direct link to the correct portal - HIGH VISIBILITY ACTION */}
               {mismatchPortal && (
                 <Link
                   href={mismatchPortal.href}
-                  className="flex items-center justify-center gap-2 bg-charcoal-900 text-white px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all mt-1"
+                  className="flex items-center justify-center gap-3 bg-charcoal-900 text-white px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl hover:-translate-y-0.5 active:scale-95"
                 >
-                  <ArrowLeftRight size={14} />
+                  <ArrowLeftRight size={16} className="text-emerald-400" />
                   {mismatchPortal.label}
                 </Link>
               )}

@@ -196,11 +196,11 @@ export default function TrackingMap({ driverLocation, dropoffLocation, demandDat
           )}
         </Map>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-8 text-center bg-gray-50 aura-gradient">
-           <Globe size={48} className="mb-4 text-emerald-500/30 animate-pulse" />
-           <p className="font-black text-xs text-white/40 uppercase tracking-[0.4em] mb-2">Satellite Sync Required</p>
-           <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
-             Mapbox token status: {mapboxToken ? 'Configured but potentially restricted' : 'Missing from environment'}
+        <div className="w-full h-full flex flex-col items-center justify-center text-charcoal-400 p-8 text-center bg-gray-50 dark:bg-charcoal-900 border-2 border-dashed border-charcoal-200 dark:border-white/5 rounded-[3rem]">
+           <Globe size={48} className="mb-6 text-emerald-500/40 animate-pulse" />
+           <p className="font-black text-[10px] uppercase tracking-[0.4em] text-emerald-600 dark:text-emerald-400">Map Loading Lifecycle...</p>
+           <p className="mt-4 text-[9px] text-charcoal-500 font-bold max-w-[240px] leading-relaxed uppercase tracking-widest">
+             Token Status: {mapboxToken ? 'Connected' : 'Disconnected'}
            </p>
         </div>
       )}

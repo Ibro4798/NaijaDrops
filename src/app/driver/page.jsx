@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star, Zap, Activity, Bell, Info } from 'lucide-react';
+import { MapPin, Power, Clock, ShieldCheck, AlertCircle, Wallet, Star, Zap, Activity, Bell, Info, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import IncomingOrderCard from '@/components/driver/IncomingOrderCard';
@@ -16,7 +16,12 @@ import { findBatchableOrders } from '@/utils/maestro';
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { 
   ssr: false,
-  loading: () => <div className="h-full w-full bg-charcoal-800 animate-pulse flex items-center justify-center text-charcoal-500 font-bold">Scanning GPS...</div>
+  loading: () => (
+    <div className="h-full w-full bg-charcoal-800 animate-pulse flex flex-col items-center justify-center text-emerald-500 font-black tracking-[0.2em] uppercase text-xs gap-4">
+      <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      Map Loading...
+    </div>
+  )
 });
 
 export default function DriverDashboard() {
@@ -115,6 +120,23 @@ export default function DriverDashboard() {
     const queueLocationUpdate = (lat, lng) => {
         // Just queue it, don't upload yet. Batch interval will handle it.
         locationBatchRef.current = { lat, lng };
+    };
+
+    const handleSignOut = async () => {
+        if (!window.confirm("Are you sure you want to terminate your session?")) return;
+        
+        // 1. Terminate all protocols
+        stopTracking();
+        stopListening();
+        
+        // 2. Sign out of Supabase
+        await supabase.auth.signOut();
+        
+        // 3. Clear local cache
+        localStorage.removeItem('naijadrops_role');
+        
+        // 4. Redirect to welcome
+        router.push('/welcome');
     };
 
     useEffect(() => {
@@ -238,7 +260,7 @@ export default function DriverDashboard() {
         }
     };
 
-    const fetchAvailableOrders = async (location) => {
+    const fetchAvailableOrders = useCallback(async (location) => {
         if (!location) return;
         const { data, error } = await supabase
             .from('orders')
@@ -252,11 +274,11 @@ export default function DriverDashboard() {
                   distKm = calculateDistance(location.lat, location.lng, o.pickup_lat, o.pickup_lng);
                   o.distanceKm = distKm.toFixed(1);
                 }
-                return o; // BROADCAST: Send ALL orders to ALL drivers for testing phase
+                return o;
             });
             setAvailableOrders(nearby);
         }
-    };
+    }, [supabase]);
 
     const startTracking = async () => {
         setGeoError(null);
@@ -444,16 +466,15 @@ export default function DriverDashboard() {
         };
     }, [user]);
 
-    const handleUpdateStatus = async (nextStatus, extraFields = {}) => {
+    const handleUpdateStatus = useCallback(async (nextStatus, extraFields = {}) => {
         if (!activeTrip) return;
-        setActiveTrip({ ...activeTrip, status: nextStatus, ...extraFields });
+        setActiveTrip(prev => ({ ...prev, status: nextStatus, ...extraFields }));
         
         await supabase.from('orders').update({ status: nextStatus, ...extraFields }).eq('id', activeTrip.id);
         
         if (nextStatus === 'delivered') {
             try {
-                // Wait for order update then credit wallet
-                const driverEarning = activeTrip.agreed_price * 0.85; // Driver gets 85% (15% platform fee)
+                const driverEarning = activeTrip.agreed_price * 0.85;
                 await supabase.from('wallet_transactions').insert({
                     driver_id: user.id,
                     amount: driverEarning,
@@ -467,7 +488,7 @@ export default function DriverDashboard() {
             setActiveTrip(null);
             alert('Delivery completed! Great job. Earnings have been added to your wallet.');
         }
-    };
+    }, [activeTrip, supabase, user]);
 
     const handleAcceptBase = async (order) => {
         if (!user || !order) return;
@@ -512,8 +533,9 @@ export default function DriverDashboard() {
                         demandData={availableOrders}
                     />
                 ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-charcoal-950">
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-charcoal-950 gap-4">
                         <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                        <p className="text-emerald-500 font-black text-[10px] uppercase tracking-[0.4em] animate-pulse">Map Loading...</p>
                     </div>
                 )}
             </div>
@@ -535,6 +557,12 @@ export default function DriverDashboard() {
                     </div>
 
                     <div className="flex gap-2 pointer-events-auto">
+                        <button 
+                            onClick={handleSignOut}
+                            className="w-14 h-14 glass flex items-center justify-center text-red-500 shadow-premium hover:bg-white/10 transition-all rounded-[1.8rem] border border-white/5"
+                        >
+                            <LogOut size={20} />
+                        </button>
                         <button 
                             onClick={() => setShowNotifications(!showNotifications)}
                             className="w-14 h-14 glass flex items-center justify-center text-white shadow-premium hover:bg-white/10 transition-all rounded-[1.8rem] relative border border-white/5"
@@ -678,7 +706,7 @@ export default function DriverDashboard() {
                                                 Relocate Unit
                                             </button>
                                             <button 
-                                                onClick={toggleStatus}
+                                                onClick={handleSignOut}
                                                 className="w-full py-5 text-[10px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
                                             >
                                                 Terminate Protocol

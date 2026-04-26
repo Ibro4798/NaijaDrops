@@ -28,17 +28,17 @@ export default function WelcomePage() {
 
   if (checking) {
     return (
-      <div className="min-h-[100dvh] aura-gradient flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      <div className="min-h-[100dvh] bg-gray-50 dark:bg-charcoal-950 transition-colors flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] aura-gradient flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-gray-50 dark:bg-charcoal-950 transition-colors flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
       {/* Decorative glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Logo + Header */}
       <motion.div
@@ -49,11 +49,11 @@ export default function WelcomePage() {
         <div className="w-20 h-20 bg-emerald-500 rounded-[1.75rem] flex items-center justify-center shadow-glow mx-auto mb-6">
           <Package className="h-10 w-10 text-white" />
         </div>
-        <h1 className="text-5xl font-black text-white tracking-tighter leading-none mb-3 font-outfit">
+        <h1 className="text-6xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-4 font-outfit italic">
           NaijaDrops
         </h1>
-        <p className="text-charcoal-500 font-bold text-[11px] uppercase tracking-[0.3em]">
-          Kano&apos;s Fastest Logistics
+        <p className="text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-[0.5em] opacity-80 mb-2">
+          Kano&apos;s Premium Logistics Grid
         </p>
       </motion.div>
 
@@ -67,24 +67,24 @@ export default function WelcomePage() {
         >
           <Link
             href="/login?role=user"
-            className="block w-full bg-white rounded-[2rem] p-8 shadow-premium group hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="block w-full bg-white dark:bg-charcoal-800 rounded-[2.5rem] p-10 shadow-premium dark:shadow-premium-dark group hover:scale-[1.02] active:scale-[0.98] transition-all border border-gray-100 dark:border-white/5"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                  <Package size={28} className="text-emerald-600" />
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/10 rounded-[1.4rem] flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 transition-colors">
+                  <Package size={32} className="text-emerald-600 dark:text-emerald-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-charcoal-900 tracking-tight leading-none mb-1">
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1.5 italic">
                     Send a Package
                   </h2>
-                  <p className="text-[10px] font-bold text-charcoal-400 uppercase tracking-widest">
-                    Customer Portal
+                  <p className="text-[10px] font-black text-gray-400 dark:text-emerald-500/50 uppercase tracking-[0.2em]">
+                    Logistics Interface
                   </p>
                 </div>
               </div>
-              <div className="w-10 h-10 bg-charcoal-900 text-white rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
-                <ArrowRight size={18} />
+              <div className="w-12 h-12 bg-gray-900 dark:bg-white text-white dark:text-charcoal-900 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 transition-colors shadow-lg">
+                <ArrowRight size={20} />
               </div>
             </div>
           </Link>
@@ -98,24 +98,24 @@ export default function WelcomePage() {
         >
           <Link
             href="/login?role=driver"
-            className="block w-full bg-charcoal-900 rounded-[2rem] p-8 shadow-premium group hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/5"
+            className="block w-full bg-charcoal-900 dark:bg-charcoal-800 rounded-[2.5rem] p-10 shadow-premium group hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/10"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                  <Truck size={28} className="text-emerald-400" />
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-emerald-500/10 rounded-[1.4rem] flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                  <Truck size={32} className="text-emerald-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-white tracking-tight leading-none mb-1">
+                  <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1.5 italic">
                     Drive & Earn
                   </h2>
-                  <p className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">
-                    Driver Portal
+                  <p className="text-[10px] font-black text-charcoal-500 dark:text-emerald-400/50 uppercase tracking-[0.2em]">
+                    Carrier Interface
                   </p>
                 </div>
               </div>
-              <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center group-hover:bg-emerald-400 transition-colors">
-                <ArrowRight size={18} />
+              <div className="w-12 h-12 bg-emerald-500 text-charcoal-900 rounded-xl flex items-center justify-center group-hover:bg-emerald-400 transition-colors shadow-glow">
+                <ArrowRight size={20} />
               </div>
             </div>
           </Link>

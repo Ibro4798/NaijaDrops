@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Check, User, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Check, User, ShieldCheck, ChevronRight, Loader2, Star } from 'lucide-react';
 
 import { Suspense } from 'react';
 
@@ -210,25 +210,33 @@ function MatchingContent() {
                 <div key={bid.id} className="bg-white dark:bg-charcoal-800 rounded-[2.8rem] p-7 shadow-sm dark:shadow-premium group transition-all hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98] border border-gray-100 dark:border-white/10">
                   <div className="flex justify-between items-start mb-8">
                       <div className="flex items-center gap-5">
-                          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/10 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-100/50 dark:border-emerald-500/20">
-                             <User size={36} className="text-emerald-600 dark:text-emerald-500" />
+                          <div className="w-16 h-16 bg-charcoal-100 dark:bg-emerald-500/10 rounded-[1.4rem] flex items-center justify-center overflow-hidden border border-emerald-100/50 dark:border-emerald-500/20 shadow-inner">
+                             {bid.drivers?.avatar_url ? (
+                               <img src={bid.drivers.avatar_url} alt="Driver" className="w-full h-full object-cover" />
+                             ) : (
+                               <User size={32} className="text-emerald-600 dark:text-emerald-500" />
+                             )}
                           </div>
                           <div>
-                              <div className="font-black text-2xl text-gray-900 dark:text-white tracking-tighter flex items-center gap-2 italic">
+                              <div className="font-black text-2xl text-charcoal-900 dark:text-white tracking-tighter flex items-center gap-2 italic">
                                   {bid.drivers?.full_name || 'Terminal Unit'} 
-                                  <ShieldCheck size={18} className="text-blue-600" />
+                                  <ShieldCheck size={18} className="text-blue-500" />
                               </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                 <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-1.5">
+                              <div className="flex items-center gap-3 mt-1">
+                                 <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5 shadow-sm">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                                    Protocol Verified
+                                    Verified
                                  </span>
+                                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 text-amber-600">
+                                    <Star size={12} fill="currentColor" />
+                                    <span className="text-[10px] font-black">{bid.drivers?.avg_rating || "5.0"}</span>
+                                 </div>
                               </div>
                           </div>
                       </div>
                       <div className="text-right">
-                          <div className="text-[9px] font-black text-gray-500 dark:text-charcoal-400 uppercase tracking-[0.2em] mb-1">Official Bid</div>
-                          <div className="font-black text-3xl text-gray-900 dark:text-white tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
+                          <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-[0.3em] mb-1">Grid Bid</div>
+                          <div className="font-black text-3xl text-charcoal-900 dark:text-white tracking-tighter italic">₦{bid.amount?.toLocaleString()}</div>
                       </div>
                   </div>
                   
@@ -261,12 +269,12 @@ function MatchingContent() {
 
       {/* Global Cancel Button */}
       {matchState !== 'accepted' && (
-        <div className="fixed bottom-12 left-0 right-0 px-6 z-30 flex justify-center pointer-events-none">
+        <div className="fixed bottom-32 left-0 right-0 px-6 z-30 flex justify-center pointer-events-none">
             <button 
                 onClick={handleCancelOrder}
-                className="w-full max-w-sm py-4 font-bold text-sm tracking-widest text-red-600 hover:text-white transition-all border-2 border-red-200 hover:border-red-500 rounded-3xl bg-red-50 hover:bg-red-500 dark:bg-red-500/10 dark:border-red-500/30 dark:hover:bg-red-500 dark:text-red-400 backdrop-blur-xl active:scale-95 shadow-lg pointer-events-auto"
+                className="w-full max-w-sm py-4 font-black text-[11px] uppercase tracking-[0.3em] text-red-600 hover:text-white transition-all border-2 border-red-200 hover:border-red-500 rounded-2xl bg-red-50/80 hover:bg-red-500 dark:bg-red-500/10 dark:border-red-500/30 dark:hover:bg-red-500 dark:text-red-400 backdrop-blur-xl active:scale-95 shadow-2xl pointer-events-auto"
             >
-                CANCEL ORDER
+                Terminate Request
             </button>
         </div>
       )}

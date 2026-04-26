@@ -59,7 +59,7 @@ export default async function DriverLayout({ children }) {
   return (
     <div className="min-h-[100dvh] bg-charcoal-950 text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       {/* Main Content Area */}
-      <main className="max-w-md mx-auto h-[100dvh] flex flex-col relative pb-20">
+      <main className="max-w-md mx-auto min-h-[100dvh] flex flex-col relative pb-24 overflow-y-auto overflow-x-hidden no-scrollbar">
         {children}
       </main>
 

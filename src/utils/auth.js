@@ -48,21 +48,25 @@ export async function getUserRole(supabase) {
     return { user, role: 'user', profile: customerProfile };
   }
 
-  // ── Self-heal: user exists in auth but no role row found ──────────────────
   const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
   const metadataRole = user.user_metadata?.role || 'user';
 
-  console.warn('[getUserRole] Missing role row. Creating as:', metadataRole);
+  console.warn('[getUserRole] Missing role row. Attempting self-heal for:', metadataRole);
 
-  if (metadataRole === 'driver') {
-    await supabase.from('drivers').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' });
-    return { user, role: 'driver', profile: { id: user.id, email: user.email, full_name: fullName } };
-  } else if (metadataRole === 'admin' && user.email?.endsWith('@naijadrops.tech')) {
-    await supabase.from('admins').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' });
-    return { user, role: 'admin', profile: { id: user.id, email: user.email, full_name: fullName } };
-  } else {
-    await supabase.from('customers').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' });
-    return { user, role: 'user', profile: { id: user.id, email: user.email, full_name: fullName } };
+  try {
+    if (metadataRole === 'driver') {
+      const { data: newProfile } = await supabase.from('drivers').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' }).select().single();
+      return { user, role: 'driver', profile: newProfile };
+    } else if (metadataRole === 'admin' && user.email?.endsWith('@naijadrops.tech')) {
+      const { data: newProfile } = await supabase.from('admins').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' }).select().single();
+      return { user, role: 'admin', profile: newProfile };
+    } else {
+      const { data: newProfile } = await supabase.from('customers').upsert({ id: user.id, email: user.email, full_name: fullName }, { onConflict: 'id' }).select().single();
+      return { user, role: 'user', profile: newProfile };
+    }
+  } catch (err) {
+    console.error('[getUserRole] Self-heal failed:', err);
+    return { user, role: null, profile: null };
   }
 }
 
