@@ -1,5 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
-import ChatNotificationListener from "@/components/ChatNotificationListener";
+
 import "./globals.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Outfit, Inter } from "next/font/google";
@@ -48,9 +47,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${inter.variable}`}>
       <body className="font-sans bg-charcoal-50 text-charcoal-900 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
         <ThemeProvider>
-          <Navbar />
           {children}
-          <ChatNotificationListener />
         </ThemeProvider>
       </body>
     </html>

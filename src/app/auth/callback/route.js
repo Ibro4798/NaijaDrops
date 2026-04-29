@@ -24,12 +24,25 @@ export async function GET(request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+    const { error, data: { user } } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && user) {
+      // Check if profile exists and has a role
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role) {
+        // If already has a role, go to root (layout will handle redirection to portal)
+        return NextResponse.redirect(`${origin}/`)
+      }
+
+      // Default to role selection for new users
+      return NextResponse.redirect(`${origin}/auth/role-select`)
     }
   }
 
   // return the user to an error page with some instructions
-  return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+  return NextResponse.redirect(`${origin}/auth/login?error=auth-code-error`)
 }
