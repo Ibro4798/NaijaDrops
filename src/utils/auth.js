@@ -45,7 +45,7 @@ export async function getUserRole(supabase) {
 export function getRoleRedirectPath(role) {
   switch (role) {
     case 'admin':  return '/admin';
-    case 'vendor': return '/vendor/dashboard';
+    case 'vendor': return '/dashboard';
     case 'rider':  return '/rider';
     default:       return '/auth/role-select';
   }

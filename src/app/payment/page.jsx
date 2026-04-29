@@ -42,15 +42,15 @@ function PaymentContent() {
                 if (orderErr) throw orderErr;
                 setOrderData(order);
 
-                if (order.driver_id) {
+                if (order.rider_id) {
                     const { data: driver, error: driverErr } = await supabase
-                        .from('drivers')
-                        .select('*')
-                        .eq('id', order.driver_id)
+                        .from('riders')
+                        .select('*, users(full_name)')
+                        .eq('user_id', order.rider_id)
                         .single();
                     
                     if (driverErr) throw driverErr;
-                    setDriverData(driver);
+                    setDriverData({ ...driver, full_name: driver?.users?.full_name });
                 }
             } catch (err) {
                 console.error("Fetch payment details failed", err);
@@ -102,7 +102,7 @@ function PaymentContent() {
             setIsProcessing(false);
 
             setTimeout(() => {
-                router.push(`/tracking/${orderId}`);
+                router.push(`/track/${orderId}`);
             }, 2000);
         } catch (err) {
             console.error(err);
@@ -120,7 +120,7 @@ function PaymentContent() {
                 const { error: updateErr } = await supabase
                     .from('orders')
                     .update({
-                        status: 'accepted',
+                        status: 'confirmed',
                         delivery_pin: generatedPin
                     })
                     .eq('id', orderId);
@@ -132,7 +132,7 @@ function PaymentContent() {
                 setIsProcessing(false);
 
                 setTimeout(() => {
-                    router.push(`/tracking/${orderId}`);
+                    router.push(`/track/${orderId}`);
                 }, 2000);
             } catch (err) {
                 console.error(err);

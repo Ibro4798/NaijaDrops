@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? null
 
   if (code) {
     const cookieStore = await cookies()
@@ -13,36 +13,37 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
-        get(name) {
-          return cookieStore.get(name)?.value
-        },
-        set(name, value, options) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name, options) {
-          cookieStore.delete({ name, ...options })
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value },
+          set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+          remove(name, options) { cookieStore.delete({ name, ...options }) },
         },
       }
     )
+
     const { error, data: { user } } = await supabase.auth.exchangeCodeForSession(code)
+
     if (!error && user) {
-      // Check if profile exists and has a role
+      // If a specific next URL was requested (e.g. password reset), honor it
+      if (next) {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+
+      // Check if user has a role already
       const { data: profile } = await supabase
         .from('users')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .single()
 
-      if (profile?.role) {
-        // If already has a role, go to root (layout will handle redirection to portal)
-        return NextResponse.redirect(`${origin}/`)
-      }
+      if (profile?.role === 'vendor') return NextResponse.redirect(`${origin}/dashboard`)
+      if (profile?.role === 'rider') return NextResponse.redirect(`${origin}/rider`)
+      if (profile?.role === 'admin') return NextResponse.redirect(`${origin}/admin`)
 
-      // Default to role selection for new users
+      // New user — send to role selection
       return NextResponse.redirect(`${origin}/auth/role-select`)
     }
   }
 
-  // return the user to an error page with some instructions
   return NextResponse.redirect(`${origin}/auth/login?error=auth-code-error`)
 }
