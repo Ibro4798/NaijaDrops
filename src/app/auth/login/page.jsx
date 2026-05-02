@@ -65,10 +65,15 @@ export default function LoginPage() {
     }
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { 
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+             role: sessionStorage.getItem("nd_intended_role") || 'vendor'
+          }
+        },
       });
       if (error) setError(error.message);
       else setError("Check your email to verify your account, then sign in.");
