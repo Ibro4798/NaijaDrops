@@ -42,7 +42,7 @@ export default function RoleSelectPage() {
     // Update profile in users table
     const { error: userError } = await supabase
       .from("users")
-      .update({ role, name: user.email?.split('@')[0] || 'User' })
+      .update({ role, full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User' })
       .eq("id", user.id);
 
     if (userError) {
