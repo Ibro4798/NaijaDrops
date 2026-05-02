@@ -20,7 +20,7 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
  * Finds the nearest online rider and assigns them to the newly created order.
  */
 export async function assignNearestRider(orderId, pickupLat, pickupLng) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // 1. Fetch all currently online, approved riders
