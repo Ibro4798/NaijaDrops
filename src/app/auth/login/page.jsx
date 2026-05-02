@@ -84,10 +84,21 @@ export default function LoginPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     setError(null);
+
+    // Get the choice they made on the landing page
+    const intendedRole = sessionStorage.getItem("nd_intended_role") || "vendor";
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { 
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      },
     });
+    
     if (error) {
       setError(error.message);
       setGoogleLoading(false);
