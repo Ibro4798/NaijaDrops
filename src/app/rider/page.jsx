@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic';
 
 const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false });
 
+import DriverHeartbeat from '@/components/driver/DriverHeartbeat';
+
 export default function RiderHome() {
   const supabase = createClient();
   const [isOnline, setIsOnline] = useState(false);
@@ -22,10 +24,24 @@ export default function RiderHome() {
       setProfile(profile);
       setLoading(false);
 
-      if (profile?.status === 'online') setIsOnline(true);
+      // Operational Status Handling
+      if (profile?.operational_status === 'online') setIsOnline(true);
     }
     loadIdentity();
-  }, [supabase]);
+    
+    // Listen for PROFILE status changes (e.g., Admin pauses driver)
+    const profileChannel = supabase.channel(`profile-${profile?.user_id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'riders', filter: `user_id=eq.${profile?.user_id}` },
+        payload => {
+          if (payload.new.status === 'paused' || payload.new.status === 'rejected') {
+             setIsOnline(false);
+             window.location.reload(); // Force trigger layout guards
+          }
+        })
+      .subscribe();
+
+    return () => supabase.removeChannel(profileChannel);
+  }, [supabase, profile?.user_id]);
 
   // Real-time Order Stream
   useEffect(() => {
@@ -34,9 +50,12 @@ export default function RiderHome() {
       return;
     }
 
-    // Initial Fetch
     const fetchOrders = async () => {
-      const { data } = await supabase.from('orders').select('*').eq('status', 'pending');
+      // Only show pending orders that match driver's vehicle
+      const { data } = await supabase.from('orders')
+        .select('*')
+        .eq('status', 'pending')
+        .eq('vehicle_type', profile?.vehicle_type || 'bike');
       setOrders(data || []);
     };
     fetchOrders();
@@ -44,7 +63,9 @@ export default function RiderHome() {
     const channel = supabase.channel('rider-feed')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         if (payload.eventType === 'INSERT' && payload.new.status === 'pending') {
-          setOrders(prev => [payload.new, ...prev]);
+          if (payload.new.vehicle_type === profile?.vehicle_type) {
+            setOrders(prev => [payload.new, ...prev]);
+          }
         } else if (payload.eventType === 'UPDATE') {
           if (payload.new.status !== 'pending') {
             setOrders(prev => prev.filter(o => o.id !== payload.new.id));
@@ -56,14 +77,15 @@ export default function RiderHome() {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [isOnline, supabase]);
+  }, [isOnline, supabase, profile?.vehicle_type]);
 
   const toggleStatus = async () => {
     const next = !isOnline;
     const { data: { user } } = await supabase.auth.getUser();
     
     await supabase.from('riders').update({ 
-      status: next ? 'online' : 'offline' 
+      operational_status: next ? 'online' : 'offline',
+      last_seen_at: new Date().toISOString()
     }).eq('user_id', user.id);
     
     setIsOnline(next);
@@ -81,6 +103,7 @@ export default function RiderHome() {
 
   return (
     <div className="space-y-6">
+      {profile && <DriverHeartbeat riderId={profile.user_id} isOnline={isOnline} />}
       {/* Visual Status Header */}
       <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
         <div className="flex items-center justify-between relative z-10">
