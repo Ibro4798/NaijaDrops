@@ -241,11 +241,12 @@ function Step3Content() {
         <AnimatePresence mode="wait">
 
           {/* ====== QUICK MATCH MODE ====== */}
-          {mode === "quickmatch" && (
-            <motion.div key="quickmatch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-
+          {(mode === "quickmatch" || (mode === "negotiate" && matchState === "found")) && (
+            <motion.div key="quickmatch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+              {mode === "negotiate" && <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest px-1">Instant Match Available</div>}
+              
               {/* Searching state */}
-              {matchState === "searching" && (
+              {matchState === "searching" && mode === "quickmatch" && (
                 <div className="flex flex-col items-center py-16">
                   <div className="relative mb-8">
                     <div className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
@@ -263,14 +264,8 @@ function Step3Content() {
               {/* Driver found */}
               {matchState === "found" && matchedRider && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  <div className="text-center mb-6">
-                    <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/40 px-4 py-2 rounded-full mb-4">
-                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">Best driver found</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-5">
+                  <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-widest rounded-bl-xl">Best Value</div>
                     <div className="flex items-center gap-4 mb-5">
                       <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-3xl border border-emerald-500/20">
                         {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
@@ -278,35 +273,18 @@ function Step3Content() {
                       <div className="flex-1">
                         <div className="text-white font-black text-xl">{matchedRider.name}</div>
                         <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1 text-amber-400">
-                            <Star size={12} fill="currentColor" />
-                            <span className="text-xs font-black">{matchedRider.rating}</span>
-                          </div>
+                          <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
                           <span className="text-charcoal-600">·</span>
-                          <span className="text-charcoal-400 text-xs font-medium capitalize">{matchedRider.vehicle_type}</span>
-                          {matchedRider.plate && <><span className="text-charcoal-600">·</span><span className="text-charcoal-400 text-xs">{matchedRider.plate}</span></>}
+                          <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white/[0.03] rounded-2xl p-3 text-center">
-                        <Clock size={16} className="text-emerald-400 mx-auto mb-1" />
-                        <div className="text-white font-black text-lg">{matchedRider.eta_min} min</div>
-                        <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">ETA to pickup</div>
-                      </div>
-                      <div className="bg-white/[0.03] rounded-2xl p-3 text-center">
-                        <DollarSign size={16} className="text-emerald-400 mx-auto mb-1" />
-                        <div className="text-emerald-400 font-black text-lg">₦{matchedRider.price?.toLocaleString()}</div>
-                        <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">Total price</div>
-                      </div>
-                    </div>
+                    <button onClick={acceptQuickMatch}
+                      className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                      Instant Start <Zap size={18} />
+                    </button>
                   </div>
-
-                  <button onClick={acceptQuickMatch}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl flex items-center justify-center gap-2 text-lg shadow-[0_0_24px_rgba(16,185,129,0.4)] transition-all active:scale-[0.98]">
-                    Accept & Continue <ChevronRight size={20} />
-                  </button>
                 </motion.div>
               )}
 
@@ -322,14 +300,14 @@ function Step3Content() {
               )}
 
               {/* No drivers */}
-              {matchState === "no_drivers" && (
+              {matchState === "no_drivers" && mode === "quickmatch" && (
                 <div className="flex flex-col items-center py-12 text-center">
                   <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-6">
                     <AlertCircle size={36} className="text-amber-400" />
                   </div>
                   <h2 className="text-white font-black text-xl mb-3">No drivers nearby</h2>
                   <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
-                    No available riders found in your area right now.<br />Try increasing your offer price to attract more drivers.
+                    No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
                   </p>
                   <button onClick={() => setMode("negotiate")}
                     className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-6 py-3.5 rounded-2xl text-sm flex items-center gap-2 hover:bg-amber-500/30 transition-all">
@@ -342,84 +320,53 @@ function Step3Content() {
 
           {/* ====== NEGOTIATE MODE ====== */}
           {mode === "negotiate" && (
-            <motion.div key="negotiate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4">
-                <p className="text-charcoal-400 text-sm leading-relaxed">
-                  <span className="text-white font-bold">How it works:</span> Set your price. Nearby drivers will see it and can accept or counter. First to accept gets the job — all others are closed immediately.
-                </p>
-              </div>
-
+            <motion.div key="negotiate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5 mt-4">
               {!offerSent ? (
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Your Offer Price</label>
+                  <div className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl">
+                    <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Set Your Offer</label>
                     <div className="relative">
                       <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
-                      <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="0"
-                        className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all" />
+                      <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
+                        className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
                     </div>
-                    <p className="text-charcoal-600 text-xs mt-2 ml-1">Suggested: ₦{draft.estimated_price?.toLocaleString()}</p>
+                    <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
+                       <span>Recommended: ₦{draft.estimated_price}</span>
+                    </div>
                   </div>
 
-                  {error && (
-                    <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                      <AlertCircle size={14} className="text-red-400" />
-                      <p className="text-red-400 text-xs font-medium">{error}</p>
-                    </div>
-                  )}
-
                   <button onClick={sendOffer}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 text-base transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                    Broadcast Offer <ChevronRight size={18} />
+                    className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
+                     Broadcast New Offer 📢
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Timer */}
-                  <div className={`flex items-center justify-between px-5 py-3.5 rounded-2xl border ${timeLeft > 20 ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className={timeLeft > 20 ? "text-emerald-400" : "text-amber-400"} />
-                      <span className={`text-sm font-black ${timeLeft > 20 ? "text-emerald-400" : "text-amber-400"}`}>
-                        Offer expires in {timeLeft}s
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white">
-                      <span className="text-lg font-black">₦{parseInt(offerPrice).toLocaleString()}</span>
-                    </div>
+                  <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
+                     <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
+                     <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
                   </div>
 
                   {bids.length === 0 ? (
-                    <div className="text-center py-10">
-                      <Loader2 className="text-emerald-500 animate-spin mx-auto mb-3" size={28} />
-                      <p className="text-charcoal-400 text-sm">Waiting for driver responses…</p>
+                    <div className="text-center py-6 bg-charcoal-900/50 rounded-2xl">
+                      <Loader2 className="text-emerald-500 animate-spin mx-auto mb-3" size={24} />
+                      <p className="text-charcoal-500 text-xs font-black uppercase tracking-widest">Awaiting Driver Bids...</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Driver Responses</div>
                       {bids.map(bid => (
                         <motion.div key={bid.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                           className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">
-                              {bid.riders?.vehicle_type === "car" ? "🚗" : "🏍️"}
-                            </div>
+                            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
                             <div>
-                              <div className="text-white font-black text-base">{bid.riders?.users?.full_name || "Driver"}</div>
-                              <div className="flex items-center gap-1 text-amber-400">
-                                <Star size={10} fill="currentColor" />
-                                <span className="text-xs font-bold">{bid.riders?.avg_rating || "4.8"}</span>
-                              </div>
+                              <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
+                              <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.avg_rating || "4.8"}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-emerald-400 font-black text-lg">₦{bid.amount?.toLocaleString()}</div>
-                              <div className="text-charcoal-600 text-[10px] font-bold">{bid.status === "counter" ? "Counter" : "Accepted"}</div>
-                            </div>
-                            <button onClick={() => acceptBid(bid)}
-                              className="bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black px-4 py-2.5 rounded-xl text-sm transition-all active:scale-95">
-                              Accept
-                            </button>
+                             <div className="text-emerald-400 font-black">₦{bid.amount?.toLocaleString()}</div>
+                             <button onClick={() => acceptBid(bid)} className="bg-emerald-500 text-charcoal-950 font-black px-4 py-2 rounded-xl text-xs">Accept</button>
                           </div>
                         </motion.div>
                       ))}
