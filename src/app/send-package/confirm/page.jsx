@@ -1,7 +1,11 @@
 "use client";
 
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { motion } from "framer-motion";
+import { ArrowLeft, ShieldCheck, Star, Clock } from "lucide-react";
 import dynamic from 'next/dynamic';
-
 const PaystackButton = dynamic(
   () => import('react-paystack').then((mod) => mod.PaystackButton),
   { ssr: false }
