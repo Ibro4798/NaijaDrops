@@ -59,8 +59,7 @@ export default function LoginPage() {
 
       if (profile?.role === "rider") router.replace("/rider");
       else if (profile?.role === "admin") router.replace("/admin");
-      else if (profile?.role === "vendor") router.replace("/dashboard");
-      else router.replace("/auth/role-select");
+      else router.replace("/dashboard");
       return;
     }
 
