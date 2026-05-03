@@ -86,24 +86,26 @@ function Step3Content() {
 
   async function startQuickMatch(oid) {
     setMatchState("searching");
-    // Listen for a rider to accept via realtime
+    
+    // Setup Realtime listener first (to catch the update from the API)
     const channel = supabase.channel(`order-match-${oid}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${oid}`
       }, async (payload) => {
-        if (payload.new.rider_id && payload.new.status === "assigned") {
+        if (payload.new.rider_id && payload.new.status === "matched") {
           // Fetch rider profile
           const { data: rider } = await supabase
             .from("riders")
             .select("*, users(full_name, email)")
-            .eq("user_id", payload.new.rider_id)
+            .eq("id", payload.new.rider_id)
             .single();
+            
           setMatchedRider({
             id: payload.new.rider_id,
             name: rider?.users?.full_name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
-            rating: rider?.rating || 5.0, // Using the new rating column
+            rating: rider?.rating || 5.0,
             eta_min: Math.round(5 + Math.random() * 10),
             price: payload.new.agreed_price,
           });
@@ -113,12 +115,23 @@ function Step3Content() {
       .subscribe();
     channelRef.current = channel;
 
-    // Timeout: 10 seconds with no match → show no_drivers
-    setTimeout(() => {
-      if (matchState !== "found" && matchState !== "accepted") {
+    // Trigger the actual Dispatch Engine (Section 3 & 4)
+    try {
+      const response = await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: oid })
+      });
+      const data = await response.json();
+      
+      if (!data.success) {
         setMatchState("no_drivers");
+        setError(data.message);
       }
-    }, 10000);
+    } catch (e) {
+      console.error("Dispatch Fault:", e);
+      setMatchState("no_drivers");
+    }
   }
 
   function startNegotiationTimer() {
@@ -170,6 +183,10 @@ function Step3Content() {
 
     // Lock: assign this rider, reject all other bids
     await supabase.from("orders").update({ rider_id: bid.rider_id, agreed_price: bid.amount, status: "assigned" }).eq("id", orderId);
+    
+    // Set rider to awaiting_payment to lock them from other jobs
+    await supabase.from("riders").update({ operational_status: "awaiting_payment" }).eq("user_id", bid.rider_id);
+
     await supabase.from("bids").update({ status: "rejected" }).eq("order_id", orderId).neq("id", bid.id);
     await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
 
@@ -188,6 +205,13 @@ function Step3Content() {
 
   async function cancelMatch() {
     if (!orderId) return;
+    
+    // Get the rider ID before we clear it to release them
+    const { data: order } = await supabase.from("orders").select("rider_id").eq("id", orderId).single();
+    if (order?.rider_id) {
+      await supabase.from("riders").update({ operational_status: "online" }).eq("user_id", order.rider_id);
+    }
+
     setMatchState("searching");
     
     // Reset order and release rider
@@ -202,8 +226,12 @@ function Step3Content() {
     if (orderId) startQuickMatch(orderId);
   }
 
-  function acceptQuickMatch() {
+  async function acceptQuickMatch() {
     if (!matchedRider) return;
+    
+    // Set rider to awaiting_payment to lock them from other jobs
+    await supabase.from("riders").update({ operational_status: "awaiting_payment" }).eq("user_id", matchedRider.id);
+
     setMatchState("accepted");
     setTimeout(() => router.push(`/send-package/confirm?orderId=${orderId}`), 800);
   }

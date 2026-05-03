@@ -41,6 +41,8 @@ export async function POST(req) {
         .from("orders")
         .update({ 
           payment_status: "authorized",
+          negotiation_status: "concluded",
+          is_assigned: true,
           status: "assigned" 
         })
         .eq("id", orderId);
