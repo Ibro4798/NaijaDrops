@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false });
 
 import DriverHeartbeat from '@/components/driver/DriverHeartbeat';
+import DriverNotifications from '@/components/driver/DriverNotifications';
 
 export default function RiderHome() {
   const supabase = createClient();
@@ -104,23 +105,33 @@ export default function RiderHome() {
   return (
     <div className="space-y-6">
       {profile && <DriverHeartbeat riderId={profile.user_id} isOnline={isOnline} />}
+      {profile && <DriverNotifications profile={profile} isOnline={isOnline} />}
       {/* Visual Status Header */}
       <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
         <div className="flex items-center justify-between relative z-10">
-          <div>
-            <h2 className="text-3xl font-black text-white tracking-tighter italic font-outfit uppercase">
-              {isOnline ? 'Active Radar' : 'Stationed'}
-            </h2>
-            <p className="text-charcoal-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">
-              {isOnline ? 'Scanning for dispatches in Kano' : 'Disconnected from grid'}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <h2 className="text-3xl font-black text-white tracking-tighter italic font-outfit uppercase">
+                {isOnline ? 'Active Radar' : 'Stationed'}
+              </h2>
+              <div className="flex items-center justify-end gap-1.5 mt-1">
+                <div className="flex items-center gap-0.5 text-emerald-500">
+                  <Zap size={10} fill="currentColor" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">{profile?.rating || '5.0'} Rating</span>
+                </div>
+                <span className="text-charcoal-700 text-[10px]">•</span>
+                <p className="text-charcoal-500 text-[10px] font-black uppercase tracking-widest">
+                  {isOnline ? 'Grid Scanning' : 'Disconnected'}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={toggleStatus}
+              className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-2xl ${isOnline ? 'bg-emerald-500 text-charcoal-950 shadow-emerald-500/20' : 'bg-charcoal-900 text-charcoal-500 border border-white/5'}`}
+            >
+              <Power size={32} strokeWidth={3} />
+            </button>
           </div>
-          <button 
-            onClick={toggleStatus}
-            className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-2xl ${isOnline ? 'bg-emerald-500 text-charcoal-950 shadow-emerald-500/20' : 'bg-charcoal-900 text-charcoal-500 border border-white/5'}`}
-          >
-            <Power size={32} strokeWidth={3} />
-          </button>
         </div>
         {isOnline && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 animate-pulse"></div>}
       </div>
@@ -146,34 +157,67 @@ export default function RiderHome() {
             <div className="space-y-4">
               <h3 className="text-xs font-black text-charcoal-400 uppercase tracking-widest px-2">Proximity Alerts ({orders.length})</h3>
               {orders.length > 0 ? orders.map((order) => (
-                <div key={order.id} className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] hover:bg-emerald-500/[0.02] hover:border-emerald-500/30 transition-all group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 bg-charcoal-900 rounded-2xl flex items-center justify-center text-emerald-500 border border-white/5">
-                      <Truck size={24} />
+                <div key={order.id} className="bg-white/[0.03] border border-white/10 p-7 rounded-[2.5rem] hover:bg-emerald-500/[0.02] hover:border-emerald-500/30 transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-5">
+                    <Truck size={80} />
+                  </div>
+                  
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-charcoal-900 rounded-[1.25rem] flex items-center justify-center text-emerald-500 border border-white/5 shadow-inner">
+                        <Package size={28} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Order Payload</div>
+                        <div className="text-lg font-black text-white uppercase tracking-tight italic">{order.item_category || 'General'}</div>
+                      </div>
                     </div>
                     <div className="text-right">
-                       <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Payload Est.</div>
-                       <div className="text-2xl font-black text-white italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
+                       <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Proposed Fare</div>
+                       <div className="text-3xl font-black text-white italic tracking-tighter">₦{order.estimated_price?.toLocaleString()}</div>
                     </div>
                   </div>
                   
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3">
-                      <MapPin size={14} className="text-charcoal-600" />
-                      <div className="text-sm font-bold text-white truncate">{order.pickup_name}</div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-charcoal-950/40 p-4 rounded-2xl border border-white/5">
+                       <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                         <MapPin size={10} /> Pickup
+                       </div>
+                       <div className="text-xs font-bold text-white leading-tight truncate">{order.pickup_name || 'View on Radar'}</div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Package size={14} className="text-charcoal-600" />
-                      <div className="text-[11px] font-bold text-charcoal-400 uppercase tracking-tight">{order.item_category} • {order.item_size}</div>
+                    <div className="bg-charcoal-950/40 p-4 rounded-2xl border border-white/5">
+                       <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                         <Zap size={10} /> Size/Vehicle
+                       </div>
+                       <div className="text-xs font-bold text-emerald-500 leading-tight uppercase">{order.item_size} • {order.vehicle_type}</div>
                     </div>
                   </div>
 
-                  <button 
-                    onClick={() => handleAcceptOrder(order.id)}
-                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-xl uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
-                  >
-                    Accept Engagement <Zap size={16} fill="currentColor" />
-                  </button>
+                  {/* Enhanced Details Section */}
+                  <div className="bg-black/20 rounded-2xl p-5 border border-white/5 mb-6 space-y-4">
+                    <div>
+                       <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1.5">Manifest Description</div>
+                       <p className="text-xs text-charcoal-300 font-medium leading-relaxed italic">"{order.item_description || 'No specific description provided.'}"</p>
+                    </div>
+                    
+                    {order.voice_note_url && (
+                      <div className="pt-3 border-t border-white/5">
+                        <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                          <FileText size={10} /> Special Instructions
+                        </div>
+                        <p className="text-[11px] text-emerald-400/80 font-bold leading-relaxed">{order.voice_note_url}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => handleAcceptOrder(order.id)}
+                      className="flex-1 py-4.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-2xl uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-glow"
+                    >
+                      Review & Negotiate
+                    </button>
+                  </div>
                 </div>
               )) : (
                 <div className="py-20 text-center opacity-30 flex flex-col items-center">

@@ -236,7 +236,7 @@ export default function DriverOnboardingPage() {
                  </div>
                )}
 
-               <button onClick={handleSubmit} disabled={loading || !formData.id_card_url || !formData.profile_photo_url}
+               <button onClick={handleSubmit} disabled={loading || !formData.id_card_url || !formData.profile_photo_url || !formData.full_name}
                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl flex items-center justify-center gap-2 mt-8 disabled:opacity-50 shadow-[0_0_24px_rgba(16,185,129,0.3)]">
                   {loading ? <Loader2 size={22} className="animate-spin" /> : "Complete Application"}
                </button>

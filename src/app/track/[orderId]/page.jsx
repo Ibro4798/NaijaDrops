@@ -39,6 +39,9 @@ export default function TrackPage() {
   
   // For smooth interpolation
   const [interpolatedPos, setInterpolatedPos] = useState(null);
+  const [eta, setEta] = useState(null);
+  const [lastStatus, setLastStatus] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -47,7 +50,17 @@ export default function TrackPage() {
     // 1. Realtime Listeners
     const channel = supabase.channel(`track-${orderId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        payload => setOrder(prev => ({ ...prev, ...payload.new })))
+        payload => {
+           setOrder(prev => {
+             const newOrder = { ...prev, ...payload.new };
+             if (lastStatus && lastStatus !== newOrder.status) {
+                const step = STATUS_STEPS.find(s => s.key === newOrder.status);
+                if (step) triggerNotification(step.label);
+             }
+             setLastStatus(newOrder.status);
+             return newOrder;
+           });
+        })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "rider_locations" }, 
         payload => {
           if (order?.rider_id && payload.new.rider_id === order.rider_id) {
@@ -62,13 +75,46 @@ export default function TrackPage() {
       supabase.removeChannel(channel);
       clearInterval(locationPoll);
     };
-  }, [orderId, order?.rider_id]);
+  }, [orderId, order?.rider_id, lastStatus]);
+
+  useEffect(() => {
+    if (riderPos && order) {
+       calculateETA();
+    }
+  }, [riderPos, order?.status]);
+
+  function triggerNotification(msg) {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 5000);
+  }
+
+  function calculateETA() {
+    const targetLat = order.status === 'assigned' ? order.pickup_lat : order.dropoff_lat;
+    const targetLng = order.status === 'assigned' ? order.pickup_lng : order.dropoff_lng;
+    
+    // Haversine distance
+    const R = 6371; // km
+    const dLat = (targetLat - riderPos.lat) * Math.PI / 180;
+    const dLng = (targetLng - riderPos.lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(riderPos.lat * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) * 
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dist = R * c;
+
+    // Estimate: 25km/h avg in Kano traffic
+    const timeMins = Math.round((dist / 25) * 60);
+    setEta(timeMins < 1 ? "Arriving" : `${timeMins} min`);
+
+    if (dist < 0.2 && order.status === 'assigned') triggerNotification("Driver is near pickup point");
+  }
 
   async function fetchOrder() {
     // PUBLIC ACCESS: We use the order ID as a token. RLS should allow select for all.
     const { data, error } = await supabase.from("orders").select("*, riders(*, users(full_name))").eq("id", orderId).single();
     if (data) {
       setOrder(data);
+      setLastStatus(data.status);
       setRider(data.riders);
       if (data.dropoff_lng) {
         setMapView(v => ({ ...v, longitude: data.dropoff_lng, latitude: data.dropoff_lat }));
@@ -163,6 +209,16 @@ export default function TrackPage() {
         </Map>
       </div>
 
+      {/* Notification Toast */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }}
+            className="absolute top-28 right-5 z-40 bg-emerald-500 text-charcoal-950 px-5 py-3 rounded-2xl font-black text-xs shadow-2xl flex items-center gap-2">
+            <CheckCircle2 size={16} /> {notification}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Disconnection Warning */}
       <AnimatePresence>
         {isDisconnected && order.status !== 'delivered' && (
@@ -198,10 +254,19 @@ export default function TrackPage() {
           {/* Driver Card */}
           {rider && (
             <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4">
-               <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-2xl border border-emerald-500/20">🏍️</div>
+               <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-2xl border border-emerald-500/20 relative">
+                  🏍️
+                  {eta && (
+                    <div className="absolute -top-1 -right-1 bg-emerald-500 text-charcoal-950 text-[8px] font-black px-1 rounded-sm border border-charcoal-950">
+                      {eta}
+                    </div>
+                  )}
+               </div>
                <div className="flex-1">
                  <div className="text-white font-black">{rider.users?.full_name || "Assigned Driver"}</div>
-                 <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">{rider.plate_number || "KANO-TRK"}</div>
+                 <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">
+                   {rider.plate_number || "KANO-TRK"} • <span className="text-emerald-500">{rider.rating || '5.0'} ★</span>
+                 </div>
                </div>
                <div className="flex gap-2">
                   <a href={`tel:${rider.phone || "08000"}`} className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-charcoal-950"><Phone size={18} /></a>

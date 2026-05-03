@@ -65,6 +65,7 @@ function Step3Content() {
         item_size: draft.size,
         vehicle_type: draft.vehicle,
         item_description: draft.description,
+        voice_note_url: draft.voice_note, // Saving the optional instructions
         receiver_name: draft.receiver_name,
         receiver_phone: draft.receiver_phone,
         notify_receiver: draft.notify_receiver,
@@ -102,7 +103,7 @@ function Step3Content() {
             name: rider?.users?.full_name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
-            rating: rider?.avg_rating || 4.8,
+            rating: rider?.rating || 5.0, // Using the new rating column
             eta_min: Math.round(5 + Math.random() * 10),
             price: payload.new.agreed_price,
           });
@@ -177,7 +178,7 @@ function Step3Content() {
       name: bid.riders?.users?.full_name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
-      rating: bid.riders?.avg_rating || 4.8,
+      rating: bid.riders?.rating || 5.0,
       eta_min: Math.round(5 + Math.random() * 10),
       price: bid.amount,
     });

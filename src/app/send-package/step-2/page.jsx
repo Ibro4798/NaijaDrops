@@ -10,15 +10,17 @@ import {
 
 const DRAFT_KEY = "nd_order_draft";
 
-// Pricing: base + per km
+// Pricing constants
 const BASE_PRICE = 500;
 const PRICE_PER_KM = { bike: 120, car: 200 };
+const SIZE_MULTIPLIERS = { small: 1.0, medium: 1.25, large: 1.6 };
 
-function calcPrice(distanceM, vehicleType) {
+function calcPrice(distanceM, vehicleType, sizeId) {
   if (!distanceM) return null;
   const km = distanceM / 1000;
   const rate = PRICE_PER_KM[vehicleType] || PRICE_PER_KM.bike;
-  return Math.round(BASE_PRICE + km * rate);
+  const sizeMultiplier = SIZE_MULTIPLIERS[sizeId] || 1.0;
+  return Math.round((BASE_PRICE + km * rate) * sizeMultiplier);
 }
 
 const SIZES = [
@@ -35,14 +37,15 @@ const VEHICLES = [
 export default function Step2Page() {
   const router = useRouter();
   const [draft, setDraft] = useState(null);
-  const [size, setSize] = useState(null);
+  const [size, setSize] = useState("small");
   const [vehicle, setVehicle] = useState("bike");
   const [description, setDescription] = useState("");
+  const [voiceNote, setVoiceNote] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [notifyReceiver, setNotifyReceiver] = useState(false);
 
-  const estimatedPrice = calcPrice(draft?.distance_m, vehicle);
+  const estimatedPrice = calcPrice(draft?.distance_m, vehicle, size);
 
   const distanceKm = draft?.distance_m ? (draft.distance_m / 1000).toFixed(1) : null;
 
@@ -55,6 +58,7 @@ export default function Step2Page() {
       if (d.size) setSize(d.size);
       if (d.vehicle) setVehicle(d.vehicle);
       if (d.description) setDescription(d.description);
+      if (d.voice_note) setVoiceNote(d.voice_note);
       if (d.receiver_name) setReceiverName(d.receiver_name);
       if (d.receiver_phone) setReceiverPhone(d.receiver_phone);
       if (d.notify_receiver !== undefined) setNotifyReceiver(d.notify_receiver);
@@ -72,6 +76,7 @@ export default function Step2Page() {
       size,
       vehicle,
       description: description.trim(),
+      voice_note: voiceNote.trim(),
       receiver_name: receiverName.trim(),
       receiver_phone: receiverPhone.trim(),
       notify_receiver: notifyReceiver,
@@ -115,7 +120,7 @@ export default function Step2Page() {
         <div className="text-right">
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Price Estimate</div>
           <AnimatePresence mode="wait">
-            <motion.div key={`${vehicle}-${estimatedPrice}`} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-emerald-400 font-black text-2xl">
+            <motion.div key={`${vehicle}-${size}-${estimatedPrice}`} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-emerald-400 font-black text-2xl">
               {estimatedPrice ? `₦${estimatedPrice.toLocaleString()}` : "—"}
             </motion.div>
           </AnimatePresence>
@@ -176,6 +181,17 @@ export default function Step2Page() {
             <input type="text" placeholder="Package description (e.g. Red shoes, size 42)"
               value={description} onChange={e => setDescription(e.target.value)}
               className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+          </div>
+
+          <div className="relative">
+             <FileText className="absolute left-4 top-4 text-charcoal-600" size={15} />
+             <textarea 
+               placeholder="Additional delivery notes (Optional)"
+               value={voiceNote} 
+               onChange={e => setVoiceNote(e.target.value)}
+               rows={2}
+               className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium resize-none"
+             />
           </div>
 
           <div className="relative">
