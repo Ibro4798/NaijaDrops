@@ -4,9 +4,20 @@ import { cookies } from 'next/headers'
 export async function createClient() {
   const cookieStore = await cookies()
 
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    // Return a mock object to prevent "reading property of undefined" errors during build
+    return {
+      auth: { getUser: async () => ({ data: { user: null }, error: null }) },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) })
+    };
+  }
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    url,
+    key,
     {
       cookies: {
         get(name) {

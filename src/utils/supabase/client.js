@@ -5,8 +5,14 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    console.warn("Supabase credentials missing. Returning null client (likely build time).")
-    return null
+    console.warn("Supabase credentials missing. Returning mock client for build safety.");
+    return {
+      auth: { 
+        getUser: async () => ({ data: { user: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+      },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) })
+    };
   }
 
   return createBrowserClient(url, key)
