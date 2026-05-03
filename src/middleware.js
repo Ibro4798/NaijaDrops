@@ -52,6 +52,27 @@ export async function middleware(request) {
     }
   }
 
+  // 3. LAYER 2: RIDER/DRIVER GATE
+  if (pathname.startsWith("/driver") || pathname.startsWith("/rider")) {
+    if (!user) return NextResponse.redirect(new URL('/auth/login', request.url));
+    
+    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    if (activeMode !== "rider") {
+      return NextResponse.redirect(new URL('/select-mode', request.url));
+    }
+  }
+
+  // 4. LAYER 3: CUSTOMER GATE
+  const isCustomerRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/send-package") || pathname.startsWith("/profile");
+  if (isCustomerRoute) {
+    if (!user) return NextResponse.redirect(new URL('/auth/login', request.url));
+
+    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    if (activeMode !== "customer") {
+      return NextResponse.redirect(new URL('/select-mode', request.url));
+    }
+  }
+
   return response;
 }
 
