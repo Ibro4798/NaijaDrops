@@ -186,6 +186,22 @@ function Step3Content() {
     setTimeout(() => router.push(`/send-package/confirm?orderId=${orderId}`), 1000);
   }
 
+  async function cancelMatch() {
+    if (!orderId) return;
+    setMatchState("searching");
+    
+    // Reset order and release rider
+    await supabase.from("orders").update({ 
+      rider_id: null, 
+      status: "pending" 
+    }).eq("id", orderId);
+    
+    setMatchedRider(null);
+    setBids([]);
+    setOfferSent(false);
+    if (orderId) startQuickMatch(orderId);
+  }
+
   function acceptQuickMatch() {
     if (!matchedRider) return;
     setMatchState("accepted");
@@ -281,10 +297,15 @@ function Step3Content() {
                       </div>
                     </div>
 
-                    <button onClick={acceptQuickMatch}
-                      className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                      Instant Start <Zap size={18} />
-                    </button>
+                    <div className="flex gap-3">
+                      <button onClick={cancelMatch} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest">
+                        Cancel Match
+                      </button>
+                      <button onClick={acceptQuickMatch}
+                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                        Instant Start <Zap size={18} />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}

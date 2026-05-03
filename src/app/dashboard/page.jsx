@@ -1,26 +1,44 @@
-"use client";
+// ─── Profile Completion Modal ────────────────────────────────────────────────
+function ProfileModal({ isOpen, onClose, onSave, currentName }) {
+  const [name, setName] = useState(currentName || "");
+  const [loading, setLoading] = useState(false);
 
-import { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
-import { Package, MapPin, Clock, ChevronRight, Truck, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+  if (!isOpen) return null;
 
-const Map = dynamic(() => import("react-map-gl").then(m => m.default), { ssr: false });
-const Marker = dynamic(() => import("react-map-gl").then(m => m.Marker), { ssr: false });
-
-// Kano city center
-const KANO_CENTER = { lat: 11.9964, lng: 8.5200 };
-
-const STATUS_CONFIG = {
-  pending: { label: "Finding Driver", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20", icon: <Loader2 size={14} className="animate-spin" /> },
-  assigned: { label: "Driver Assigned", color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20", icon: <Truck size={14} /> },
-  picked_up: { label: "Picked Up", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20", icon: <Package size={14} /> },
-  in_transit: { label: "In Transit", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20", icon: <MapPin size={14} /> },
-  delivered: { label: "Delivered", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20", icon: <CheckCircle2 size={14} /> },
-  cancelled: { label: "Cancelled", color: "text-red-400", bg: "bg-red-400/10 border-red-400/20", icon: <AlertCircle size={14} /> },
-};
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-charcoal-950/90 backdrop-blur-md" onClick={onClose} />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
+        className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+        <div className="text-center">
+           <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
+           <p className="text-charcoal-500 text-xs mt-2 uppercase font-bold tracking-widest">Help riders find you faster</p>
+        </div>
+        
+        <div className="space-y-4">
+           <div>
+              <label className="text-[10px] font-black text-charcoal-600 uppercase tracking-widest block mb-2 px-1">Full Name</label>
+              <input 
+                type="text" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold focus:border-emerald-500 transition-all outline-none"
+              />
+           </div>
+           
+           <button 
+             onClick={() => { setLoading(true); onSave(name); }}
+             disabled={loading || !name}
+             className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-glow disabled:opacity-50"
+           >
+             {loading ? <Loader2 className="animate-spin mx-auto" /> : "Save Profile"}
+           </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -34,6 +52,8 @@ export default function DashboardPage() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [greeting, setGreeting] = useState("Good day");
   const [displayName, setDisplayName] = useState("");
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -42,43 +62,61 @@ export default function DashboardPage() {
     else setGreeting("Good evening");
   }, []);
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user: u } } = await supabase.auth.getUser();
-      if (!u) return;
-      setUser(u);
+  async function loadData() {
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (!u) return;
+    setUser(u);
 
-      const { data: profile } = await supabase.from("users").select("full_name").eq("id", u.id).single();
-      if (profile?.full_name) {
-        setDisplayName(profile.full_name.split(" ")[0]);
-      }
-
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("id, status, pickup_name, dropoff_name, agreed_price, created_at")
-        .eq("vendor_id", u.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (orders) {
-        const active = orders.filter(o => ["pending", "assigned", "picked_up", "in_transit"].includes(o.status));
-        setActiveOrderCount(active.length);
-        setLatestOrder(orders[0] || null);
-      }
+    const { data: profile } = await supabase.from("users").select("full_name").eq("id", u.id).single();
+    if (profile?.full_name) {
+      setDisplayName(profile.full_name.split(" ")[0]);
+      setIsProfileIncomplete(false);
+    } else {
+      setIsProfileIncomplete(true);
     }
-    load();
 
-    // Request user location
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, status, pickup_name, dropoff_name, agreed_price, created_at")
+      .eq("vendor_id", u.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (orders) {
+      const active = orders.filter(o => ["pending", "assigned", "picked_up", "in_transit"].includes(o.status));
+      setActiveOrderCount(active.length);
+      setLatestOrder(orders[0] || null);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {} // Fallback to Kano center silently
+        () => {}
       );
     }
   }, []);
 
+  const handleUpdateProfile = async (name) => {
+    const { error } = await supabase.from("users").update({ full_name: name }).eq("id", user.id);
+    if (!error) {
+       setIsProfileModalOpen(false);
+       loadData();
+    }
+  };
+
   return (
     <div className="h-[100dvh] w-full relative overflow-hidden bg-charcoal-950">
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+        onSave={handleUpdateProfile} 
+        currentName={displayName}
+      />
+
       {/* Full-screen Mapbox Map */}
       <div className="absolute inset-0 z-0">
         {mapboxToken ? (
@@ -127,10 +165,29 @@ export default function DashboardPage() {
 
       {/* Bottom Sheet */}
       <div className="absolute bottom-0 inset-x-0 z-20">
-        {/* Sheet blur/gradient */}
-        <div className="absolute inset-x-0 bottom-0 h-[340px] bg-gradient-to-t from-charcoal-950 via-charcoal-950/95 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-[400px] bg-gradient-to-t from-charcoal-950 via-charcoal-950/95 to-transparent pointer-events-none" />
 
         <div className="relative px-5 pb-8 pt-6 space-y-4">
+          
+          {/* Trust Nudge */}
+          {isProfileIncomplete && (
+            <motion.button 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={() => setIsProfileModalOpen(true)}
+              className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center gap-4 text-left hover:bg-blue-500/15 transition-all"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                <AlertCircle size={20} />
+              </div>
+              <div className="flex-1">
+                 <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Trust Boost Available</div>
+                 <p className="text-xs text-blue-200/70 font-medium leading-tight">Add your name to match with riders 2x faster.</p>
+              </div>
+              <ChevronRight size={14} className="text-blue-500/50" />
+            </motion.button>
+          )}
+
           {/* Latest order status chip */}
           <AnimatePresence>
             {latestOrder && (
@@ -209,3 +266,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

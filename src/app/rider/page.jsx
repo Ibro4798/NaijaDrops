@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Truck, Activity, MapPin, Package, ShieldCheck, Zap, Power, Loader2, AlertCircle } from 'lucide-react';
+import { Truck, Activity, MapPin, Package, ShieldCheck, Zap, Power, Loader2, AlertCircle, X, MessageCircle, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
@@ -11,32 +11,152 @@ const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false }
 import DriverHeartbeat from '@/components/driver/DriverHeartbeat';
 import DriverNotifications from '@/components/driver/DriverNotifications';
 
+// ─── Job Detail Modal ───────────────────────────────────────────────────────
+function JobDetailModal({ order, onClose, onAccept, onBid, loading }) {
+  const [bidAmount, setBidAmount] = useState(order.estimated_price || 0);
+  const [isNegotiating, setIsNegotiating] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }}
+        className="w-full max-w-lg bg-charcoal-950 border-t sm:border border-white/10 rounded-t-[3rem] sm:rounded-[3rem] overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        {/* Header */}
+        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+           <div>
+              <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase font-outfit">Manifest Details</h2>
+              <p className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mt-1">Order ID: {order.id.slice(0, 8)}</p>
+           </div>
+           <button onClick={onClose} className="w-12 h-12 glass-dark rounded-2xl flex items-center justify-center text-charcoal-400">
+              <X size={20} />
+           </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+           {/* Manifest Section */}
+           <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 shrink-0 border border-emerald-500/20">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                   <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1">Pickup From</div>
+                   <div className="text-white font-bold leading-tight">{order.pickup_name}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white shrink-0 border border-white/10">
+                  <Package size={20} />
+                </div>
+                <div>
+                   <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1 italic">Payload Manifest</div>
+                   <div className="text-white font-bold mb-1 uppercase text-sm">{order.item_category} • {order.item_size}</div>
+                   <p className="text-xs text-charcoal-400 leading-relaxed italic">"{order.item_description || 'No description provided.'}"</p>
+                </div>
+              </div>
+
+              {order.voice_note_url && (
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-5">
+                   <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] uppercase tracking-widest mb-2">
+                      <FileText size={12} /> Special Handling Notes
+                   </div>
+                   <p className="text-xs text-emerald-400/80 font-bold leading-relaxed">{order.voice_note_url}</p>
+                </div>
+              )}
+           </div>
+
+           {/* Pricing Section */}
+           {!isNegotiating ? (
+             <div className="bg-charcoal-900 rounded-[2rem] p-6 border border-white/5 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Proposed Fare</div>
+                  <div className="text-3xl font-black text-white italic tracking-tighter">₦{order.estimated_price?.toLocaleString()}</div>
+                </div>
+                <button 
+                  onClick={() => setIsNegotiating(true)}
+                  className="text-emerald-500 font-black text-[10px] uppercase tracking-widest border border-emerald-500/30 px-4 py-2 rounded-xl hover:bg-emerald-500/10 transition-all"
+                >
+                  Counter Offer
+                </button>
+             </div>
+           ) : (
+             <div className="bg-emerald-500/10 rounded-[2rem] p-6 border border-emerald-500/20 space-y-4">
+                <div className="flex justify-between items-end">
+                   <div>
+                      <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2">Your Counter Offer</div>
+                      <div className="relative">
+                        <span className="absolute left-0 bottom-1.5 text-2xl font-black text-white">₦</span>
+                        <input 
+                          type="number"
+                          value={bidAmount}
+                          onChange={(e) => setBidAmount(parseInt(e.target.value) || 0)}
+                          className="bg-transparent border-b-2 border-emerald-500/30 focus:border-emerald-500 text-3xl font-black text-white w-full pl-8 pb-1 focus:outline-none transition-all"
+                        />
+                      </div>
+                   </div>
+                   <button onClick={() => setIsNegotiating(false)} className="text-charcoal-600 text-[10px] font-black uppercase mb-2">Cancel</button>
+                </div>
+                <p className="text-[10px] text-emerald-500/60 font-bold uppercase tracking-widest italic">Note: High bids may decrease match probability.</p>
+             </div>
+           )}
+        </div>
+
+        {/* CTA */}
+        <div className="p-8 bg-charcoal-900/50 border-t border-white/5">
+           {!isNegotiating ? (
+             <button 
+               onClick={() => onAccept(order.id, order.estimated_price)}
+               disabled={loading}
+               className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-2xl uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 shadow-glow disabled:opacity-50"
+             >
+               {loading ? <Loader2 className="animate-spin" /> : <>Accept Proposed Fare <Zap size={16} fill="currentColor" /></>}
+             </button>
+           ) : (
+             <button 
+               onClick={() => onBid(order.id, bidAmount)}
+               disabled={loading || bidAmount <= 0}
+               className="w-full py-5 bg-white hover:bg-emerald-400 hover:text-charcoal-950 text-charcoal-950 font-black rounded-2xl uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 shadow-premium disabled:opacity-50"
+             >
+               {loading ? <Loader2 className="animate-spin" /> : <>Submit Counter Offer <MessageCircle size={16} /></>}
+             </button>
+           )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Main Rider Dashboard ────────────────────────────────────────────────────
 export default function RiderHome() {
   const supabase = createClient();
   const [isOnline, setIsOnline] = useState(false);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     async function loadIdentity() {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       const { data: profile } = await supabase.from('riders').select('*').eq('user_id', user.id).single();
       setProfile(profile);
       setLoading(false);
 
-      // Operational Status Handling
       if (profile?.operational_status === 'online') setIsOnline(true);
     }
     loadIdentity();
     
-    // Listen for PROFILE status changes (e.g., Admin pauses driver)
     const profileChannel = supabase.channel(`profile-${profile?.user_id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'riders', filter: `user_id=eq.${profile?.user_id}` },
         payload => {
           if (payload.new.status === 'paused' || payload.new.status === 'rejected') {
              setIsOnline(false);
-             window.location.reload(); // Force trigger layout guards
+             window.location.reload(); 
           }
         })
       .subscribe();
@@ -44,7 +164,6 @@ export default function RiderHome() {
     return () => supabase.removeChannel(profileChannel);
   }, [supabase, profile?.user_id]);
 
-  // Real-time Order Stream
   useEffect(() => {
     if (!isOnline) {
       setOrders([]);
@@ -52,7 +171,6 @@ export default function RiderHome() {
     }
 
     const fetchOrders = async () => {
-      // Only show pending orders that match driver's vehicle
       const { data } = await supabase.from('orders')
         .select('*')
         .eq('status', 'pending')
@@ -92,12 +210,41 @@ export default function RiderHome() {
     setIsOnline(next);
   };
 
-  const handleAcceptOrder = async (orderId) => {
+  const handleAcceptOrder = async (orderId, price) => {
+    setActionLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('orders').update({
+    
+    // Direct acceptance (skipping bid table for fast match)
+    const { error } = await supabase.from('orders').update({
       rider_id: user.id,
+      agreed_price: price,
       status: 'assigned'
     }).eq('id', orderId);
+
+    if (!error) {
+       setSelectedOrder(null);
+       window.location.href = '/rider/active-job'; // Direct navigation
+    }
+    setActionLoading(false);
+  };
+
+  const handleSendBid = async (orderId, amount) => {
+    setActionLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Insert into bids table
+    const { error } = await supabase.from('bids').insert({
+      order_id: orderId,
+      rider_id: user.id,
+      amount: amount,
+      status: 'pending'
+    });
+
+    if (!error) {
+       setSelectedOrder(null);
+       alert("Bid Submitted! Waiting for customer to review.");
+    }
+    setActionLoading(false);
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" /></div>;
@@ -106,6 +253,20 @@ export default function RiderHome() {
     <div className="space-y-6">
       {profile && <DriverHeartbeat riderId={profile.user_id} isOnline={isOnline} />}
       {profile && <DriverNotifications profile={profile} isOnline={isOnline} />}
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <JobDetailModal 
+            order={selectedOrder} 
+            loading={actionLoading}
+            onClose={() => setSelectedOrder(null)}
+            onAccept={handleAcceptOrder}
+            onBid={handleSendBid}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Visual Status Header */}
       <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
         <div className="flex items-center justify-between relative z-10">
@@ -193,26 +354,9 @@ export default function RiderHome() {
                     </div>
                   </div>
 
-                  {/* Enhanced Details Section */}
-                  <div className="bg-black/20 rounded-2xl p-5 border border-white/5 mb-6 space-y-4">
-                    <div>
-                       <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1.5">Manifest Description</div>
-                       <p className="text-xs text-charcoal-300 font-medium leading-relaxed italic">"{order.item_description || 'No specific description provided.'}"</p>
-                    </div>
-                    
-                    {order.voice_note_url && (
-                      <div className="pt-3 border-t border-white/5">
-                        <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                          <FileText size={10} /> Special Instructions
-                        </div>
-                        <p className="text-[11px] text-emerald-400/80 font-bold leading-relaxed">{order.voice_note_url}</p>
-                      </div>
-                    )}
-                  </div>
-
                   <div className="flex gap-3">
                     <button 
-                      onClick={() => handleAcceptOrder(order.id)}
+                      onClick={() => setSelectedOrder(order)}
                       className="flex-1 py-4.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-2xl uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-glow"
                     >
                       Review & Negotiate
