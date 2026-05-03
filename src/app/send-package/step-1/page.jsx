@@ -139,15 +139,45 @@ export default function Step1Page() {
     }, () => setGpsLoading(false));
   }
 
-  function handleLinkPaste() {
+  async function handleLinkPaste() {
+    if (!linkInput) return;
+    
+    // 1. Try local regex first for standard long URLs
     const coords = parseMapLink(linkInput);
-    if (!coords) { alert("Couldn't extract location from that link. Try copying the full Maps URL."); return; }
-    reverseGeocodeMapbox(coords.lat, coords.lng, mapboxToken).then(name => {
+    
+    if (coords) {
+      const name = await reverseGeocodeMapbox(coords.lat, coords.lng, mapboxToken);
       const point = { name, lat: coords.lat, lng: coords.lng };
       selectLocation(point, linkTarget);
       setShowLinkModal(false);
       setLinkInput("");
-    });
+      return;
+    }
+
+    // 2. If short link, use server-side resolver
+    setGpsLoading(true); // Reuse spinner for link resolving
+    try {
+      const resp = await fetch("/api/resolve-map-link", {
+        method: "POST",
+        body: JSON.stringify({ url: linkInput }),
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await resp.json();
+      
+      if (data.lat && data.lng) {
+        const name = await reverseGeocodeMapbox(data.lat, data.lng, mapboxToken);
+        const point = { name, lat: data.lat, lng: data.lng };
+        selectLocation(point, linkTarget);
+        setShowLinkModal(false);
+        setLinkInput("");
+      } else {
+        alert(data.error || "Couldn't extract location from that link.");
+      }
+    } catch (err) {
+      alert("Failed to resolve map link. Please try the full URL.");
+    } finally {
+      setGpsLoading(false);
+    }
   }
 
   function handleContinue() {
