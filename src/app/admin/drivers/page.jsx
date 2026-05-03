@@ -190,13 +190,14 @@ export default function AdminDriversPage() {
 
   useEffect(() => {
     async function fetchDrivers() {
+      // Querying the hardened 'riders' table, getting basic info and emails
       const { data: driversData } = await supabase
-        .from('drivers')
-        .select(`*, driver_documents (id)`)
+        .from('riders')
+        .select(`*, users(email)`)
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
-        setDrivers((driversData || []).filter(d => d.driver_status === statusFilter));
+        setDrivers((driversData || []).filter(d => d.status === statusFilter));
       } else {
         setDrivers(driversData || []);
       }
@@ -207,8 +208,7 @@ export default function AdminDriversPage() {
 
     const channel = supabase
       .channel('admin-driver-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDrivers)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_documents' }, fetchDrivers)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'riders' }, fetchDrivers)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -220,6 +220,7 @@ export default function AdminDriversPage() {
     if (!confirm("Are you sure you want to delete this driver? This will permanently remove their application and login account.")) return;
 
     try {
+      // Deleting the auth user automatically cascades to 'riders' if FK is configured
       const res = await fetch('/api/admin/delete-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,13 +239,13 @@ export default function AdminDriversPage() {
 
   const filteredDrivers = drivers.filter(d => {
     const searchMatch = d.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                       d.email?.toLowerCase().includes(search.toLowerCase()) ||
+                       d.users?.email?.toLowerCase().includes(search.toLowerCase()) ||
                        d.phone?.includes(search);
     return searchMatch;
   });
 
   const statusColors = {
-    active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    approved: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     paused: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     rejected: 'bg-red-500/10 text-red-500 border-red-500/20'
@@ -277,7 +278,7 @@ export default function AdminDriversPage() {
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
           {/* Status Filter */}
           <div className="flex glass-dark p-1.5 rounded-[1.5rem] border border-white/5 w-full sm:w-auto overflow-x-auto hide-scrollbar">
-             {['all', 'pending', 'active', 'paused', 'rejected'].map(f => (
+             {['all', 'pending', 'approved', 'paused', 'rejected'].map(f => (
                <button 
                  key={f}
                  onClick={() => setStatusFilter(f)}
@@ -339,18 +340,20 @@ export default function AdminDriversPage() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/10 transition-all"></div>
                     
                     <div className="flex flex-col sm:flex-row items-center gap-8 relative z-10 w-full">
-                      <div className="w-20 h-20 glass-dark rounded-[2rem] flex items-center justify-center text-3xl font-black text-emerald-500 border border-white/5 shadow-inner group-hover:scale-110 transition-transform">
-                        {driver.full_name?.[0]}
+                      <div className="w-20 h-20 bg-charcoal-900 rounded-[2rem] flex items-center justify-center text-3xl font-black text-emerald-500 border border-white/5 shadow-inner group-hover:scale-110 transition-transform overflow-hidden">
+                        {driver.profile_photo_url ? (
+                           <img src={driver.profile_photo_url} alt={driver.full_name} className="w-full h-full object-cover" />
+                        ) : driver.full_name?.[0] || 'D'}
                       </div>
                       <div className="text-center sm:text-left flex-1 min-w-0">
                         <div className="font-black text-xl text-white group-hover:text-emerald-400 transition-colors flex items-center justify-center sm:justify-start gap-2 font-outfit uppercase tracking-tighter italic">
-                          {driver.full_name}
-                          {driver.is_verified && <Zap size={16} fill="currentColor" className="text-emerald-500" />}
+                          {driver.full_name || 'Incomplete Profile'}
+                          {driver.status === 'approved' && <Zap size={16} fill="currentColor" className="text-emerald-500" />}
                         </div>
                         <div className="text-gray-500 text-[10px] font-bold mt-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 uppercase tracking-[0.2em]">
                           <span className="flex items-center gap-1.5"><Phone size={12} className="text-emerald-500" /> {driver.phone || '00-000-000'}</span>
                           <span className="hidden sm:inline border-r border-white/10 h-3"></span>
-                          <span className="truncate max-w-[200px] flex items-center gap-1.5"><Mail size={12} className="text-emerald-500" /> {driver.email}</span>
+                          <span className="truncate max-w-[200px] flex items-center gap-1.5"><Mail size={12} className="text-emerald-500" /> {driver.users?.email || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
@@ -363,8 +366,8 @@ export default function AdminDriversPage() {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <div className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${statusColors[driver.driver_status || 'pending']}`}>
-                          {driver.driver_status || 'pending'}
+                        <div className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${statusColors[driver.status || 'pending']}`}>
+                          {driver.status || 'pending'}
                         </div>
                         <div className="flex items-center gap-2">
                           <button 
