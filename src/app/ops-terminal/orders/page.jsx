@@ -2,6 +2,8 @@ import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import LiveOrdersFeed from "./LiveOrdersFeed";
 
+export const dynamic = "force-dynamic";
+
 export default async function OpsOrdersPage() {
   // LAYER 2: Server-Side RBAC Enforcement
   const { admin } = await validateAdmin();

@@ -3,6 +3,8 @@ import { createClient } from "@/utils/supabase/server";
 import { Truck, ShieldCheck, DollarSign, Activity, AlertTriangle, Users, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function OpsDashboard() {
   // LAYER 2: Server-side security check
   const { admin } = await validateAdmin();

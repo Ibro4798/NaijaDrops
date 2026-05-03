@@ -4,6 +4,8 @@ import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "l
 import Image from "next/image";
 import DriverActions from "./DriverActions";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDriversPage() {
   const { admin } = await validateAdmin(); // Layer 2 Security
   const supabase = createClient();
