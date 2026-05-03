@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDriversPage() {
   const { admin } = await validateAdmin(); // Layer 2 Security
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: riders } = await supabase
     .from("riders")

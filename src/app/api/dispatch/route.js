@@ -16,7 +16,7 @@ function isWithinPilotZone(lat, lng) {
 export async function POST(req) {
   try {
     const { orderId } = await req.json();
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Fetch Order
     const { data: order } = await supabase

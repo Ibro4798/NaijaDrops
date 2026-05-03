@@ -21,7 +21,7 @@ function calculateRiderScore(rider, distanceKm) {
  * Finds the most optimal rider for a given order.
  */
 export async function getBestRider(orderId) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. Fetch Order Details
   const { data: order, error: orderErr } = await supabase

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function OpsOrdersPage() {
   // LAYER 2: Server-Side RBAC Enforcement
   const { admin } = await validateAdmin();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Initial Data Fetch (Snapshot before real-time takes over)
   const { data: initialOrders } = await supabase

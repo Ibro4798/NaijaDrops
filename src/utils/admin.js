@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
  * Verifies that the authenticated user is an active administrator.
  */
 export async function validateAdmin(requiredRole = 'admin') {
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // 1. Get Auth User
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -34,7 +34,7 @@ export async function validateAdmin(requiredRole = 'admin') {
  * Layer 4: Immutable Audit Logging
  */
 export async function logAdminAction(adminId, action, targetType, targetId, details = {}) {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.from("admin_action_logs").insert({
     admin_id: adminId,
     action,

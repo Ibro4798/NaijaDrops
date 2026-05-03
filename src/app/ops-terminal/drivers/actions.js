@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 export async function approveRider(riderId) {
   try {
     const { admin } = await validateAdmin(); // Layer 2 Security Re-validation
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Update rider status
     const { error } = await supabase
@@ -40,7 +40,7 @@ export async function approveRider(riderId) {
 export async function deactivateRider(riderId) {
   try {
     const { admin } = await validateAdmin(); // Layer 2 Security Re-validation
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Update rider status
     const { error } = await supabase

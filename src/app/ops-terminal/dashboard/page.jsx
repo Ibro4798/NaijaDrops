@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function OpsDashboard() {
   // LAYER 2: Server-side security check
   const { admin } = await validateAdmin();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Fetch Live Stats
   const { data: riders } = await supabase.from("riders").select("count").eq("operational_status", "online");

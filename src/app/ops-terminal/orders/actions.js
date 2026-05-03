@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 export async function forceCancelOrder(orderId, reason = "Ops Override") {
   try {
     const { admin } = await validateAdmin(); // Layer 2 Check
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Update Order State Machine (Force Cancel)
     const { error: orderError } = await supabase
