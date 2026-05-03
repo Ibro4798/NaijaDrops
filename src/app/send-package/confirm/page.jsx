@@ -1,7 +1,11 @@
 "use client";
 
-import { PaystackButton } from "react-paystack";
+import dynamic from 'next/dynamic';
 
+const PaystackButton = dynamic(
+  () => import('react-paystack').then((mod) => mod.PaystackButton),
+  { ssr: false }
+);
 function ConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
