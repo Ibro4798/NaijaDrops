@@ -30,14 +30,18 @@ export default function SelectModePage() {
       // 2. Set Mode in Local Storage (For UI checks)
       localStorage.setItem("nd_active_mode", mode);
 
-      // 3. Ensure User exists in public.users (Identity Sync)
-      const { data: profile } = await supabase.from("users").select("id").eq("id", user.id).single();
-      if (!profile) {
-        await supabase.from("users").insert({
+      // 3. Robust Identity Sync (Crucial for Social Login)
+      const { data: profile, error: profileErr } = await supabase.from("users").select("id").eq("id", user.id).single();
+      
+      if (!profile || profileErr) {
+        // If sync failed or missing, force create now
+        const { error: syncErr } = await supabase.from("users").upsert({
           id: user.id,
-          phone: user.phone || null,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || "New User"
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || "New User",
+          role: 'vendor'
         });
+        if (syncErr) throw new Error("Identity sync failed. Please try logging in again.");
       }
 
       if (mode === "customer") {

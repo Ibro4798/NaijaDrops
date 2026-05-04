@@ -28,39 +28,15 @@ export async function GET(request) {
         return NextResponse.redirect(`${origin}${next}`)
       }
 
-      // 1. Fetch current profile
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      let finalRole = profile?.role;
-
-      // 2. If user exists but has no role, try to extract from metadata (assigned on login page)
-      if (!finalRole) {
-        finalRole = user.user_metadata?.role || 'vendor';
-        
-        // Auto-assign the role in the DB
-        await supabase.from('users').update({ 
-           role: finalRole,
-           full_name: user.user_metadata?.full_name || user.email?.split('@')[0]
-        }).eq('id', user.id);
-
-        // 3. Initialize the specific profile table
-        if (finalRole === 'vendor') {
-           await supabase.from('vendors').upsert({ user_id: user.id, business_name: 'My Store' }, { onConflict: 'user_id' });
-        } else if (finalRole === 'rider') {
-           await supabase.from('riders').upsert({ user_id: user.id, approved: false }, { onConflict: 'user_id' });
-        }
+      // 1. Sync identity (Trigger handles this mostly, but we ensure it here)
+      const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+      
+      if (profile?.role === 'admin') {
+        return NextResponse.redirect(`${origin}/ops-terminal/dashboard`);
       }
 
-      // 4. Redirect to the correct portal instantly
-      if (finalRole === 'vendor') return NextResponse.redirect(`${origin}/dashboard`)
-      if (finalRole === 'rider') return NextResponse.redirect(`${origin}/rider`)
-      if (finalRole === 'admin') return NextResponse.redirect(`${origin}/admin`)
-
-      return NextResponse.redirect(`${origin}/dashboard`)
+      // Always send to select-mode to ensure they pick their role
+      return NextResponse.redirect(`${origin}/select-mode`);
     }
   }
 
