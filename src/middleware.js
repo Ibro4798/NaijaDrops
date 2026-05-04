@@ -56,7 +56,9 @@ export async function middleware(request) {
   if (pathname.startsWith("/driver") || pathname.startsWith("/rider")) {
     if (!user) return NextResponse.redirect(new URL('/auth/login', request.url));
     
-    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    // Allow onboarding to bypass the mode check if authenticated
+    if (pathname === "/driver/onboarding") return response;
+
     if (activeMode !== "rider") {
       return NextResponse.redirect(new URL('/select-mode', request.url));
     }
