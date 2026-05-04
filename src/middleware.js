@@ -59,13 +59,16 @@ export async function middleware(request) {
     // Allow onboarding to bypass the mode check if authenticated
     if (pathname === "/driver/onboarding") return response;
 
-    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    let activeMode = request.cookies.get("nd_active_mode")?.value;
     
-    // Safety Fallback: Check if user has a rider profile if cookie is missing
+    // SELF-HEALING: If cookie is missing or wrong, check DB
     if (activeMode !== "rider") {
        const { data: rider } = await supabase.from("riders").select("id").eq("user_id", user.id).single();
-       if (rider) return response; // Allow if they are a known rider
-       
+       if (rider) {
+          // Heal the cookie and allow access
+          response.cookies.set("nd_active_mode", "rider", { path: '/', maxAge: 31536000 });
+          return response;
+       }
        return NextResponse.redirect(new URL('/select-mode', request.url));
     }
   }
@@ -75,8 +78,15 @@ export async function middleware(request) {
   if (isCustomerRoute) {
     if (!user) return NextResponse.redirect(new URL('/auth/login', request.url));
 
-    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    let activeMode = request.cookies.get("nd_active_mode")?.value;
+    
+    // SELF-HEALING: Check if user is a vendor if cookie is missing
     if (activeMode !== "customer") {
+      const { data: vendor } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+      if (vendor) {
+        response.cookies.set("nd_active_mode", "customer", { path: '/', maxAge: 31536000 });
+        return response;
+      }
       return NextResponse.redirect(new URL('/select-mode', request.url));
     }
   }
