@@ -31,8 +31,17 @@ export default function SelectModePage() {
       localStorage.setItem("nd_active_mode", mode);
 
       if (mode === "customer") {
-        // 3. Update User Default Mode (Safely)
+        // 3. Update User Role
         await supabase.from("users").update({ role: 'vendor' }).eq("id", user.id);
+        
+        // 4. Ensure Vendor Profile exists
+        const { data: vendor } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+        if (!vendor) {
+          await supabase.from("vendors").insert({
+            user_id: user.id,
+            business_name: user.email?.split('@')[0] || "New Vendor"
+          });
+        }
         router.push("/dashboard"); 
       } else if (mode === "rider") {
         // 3. Check if Rider Profile Exists

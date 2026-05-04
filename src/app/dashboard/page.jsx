@@ -95,24 +95,40 @@ export default function DashboardPage() {
   }, []);
 
   async function loadData() {
+    // 1. Get User
     const { data: { user: u } } = await supabase.auth.getUser();
     if (!u) return;
     setUser(u);
 
-    const { data: profile } = await supabase.from("users").select("full_name").eq("id", u.id).single();
-    if (profile?.full_name) {
-      setDisplayName(profile.full_name.split(" ")[0]);
+    // 2. Get Vendor Profile (to get the correct vendor_id)
+    const { data: vendorProfile } = await supabase.from("vendors").select("id").eq("user_id", u.id).single();
+    const vendorId = vendorProfile?.id;
+
+    // 3. Get User Profile Name
+    const { data: profile } = await supabase.from("users").select("name, full_name").eq("id", u.id).single();
+    const rawName = profile?.full_name || profile?.name;
+    if (rawName) {
+      setDisplayName(rawName.split(" ")[0]);
       setIsProfileIncomplete(false);
     } else {
       setIsProfileIncomplete(true);
     }
 
-    const { data: orders } = await supabase
-      .from("orders")
-      .select("id, status, pickup_name, dropoff_name, agreed_price, created_at")
-      .eq("vendor_id", u.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
+    // 4. Get Orders using the correct Vendor ID
+    if (vendorId) {
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id, status, pickup_name, dropoff_name, agreed_price, created_at")
+        .eq("vendor_id", vendorId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (orders) {
+        const active = orders.filter(o => ["pending", "assigned", "picked_up", "in_transit"].includes(o.status));
+        setActiveOrderCount(active.length);
+        setLatestOrder(orders[0] || null);
+      }
+    }
 
     if (orders) {
       const active = orders.filter(o => ["pending", "assigned", "picked_up", "in_transit"].includes(o.status));

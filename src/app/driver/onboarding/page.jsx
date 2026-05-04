@@ -46,7 +46,7 @@ export default function DriverOnboardingPage() {
         setFormData(prev => ({ ...prev, ...rider }));
         // If already approved or pending, check status
         if (rider.status === 'pending' || rider.status === 'approved') {
-           router.replace("/driver/dashboard");
+           router.replace("/rider");
         }
       }
     }
@@ -78,13 +78,13 @@ export default function DriverOnboardingPage() {
       const fileName = `${user.id}/${fieldName}_${Date.now()}.jpg`;
       
       const { data, error: uploadErr } = await supabase.storage
-        .from('onboarding-docs')
+        .from('documents')
         .upload(fileName, compressedFile, { cacheControl: '3600', upsert: true });
 
       if (uploadErr) throw uploadErr;
 
       // 3. Get Public URL
-      const { data: { publicUrl } } = supabase.storage.from('onboarding-docs').getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
       
       setFormData(prev => ({ ...prev, [`${fieldName}_url`]: publicUrl }));
       setUploadStats(prev => ({ ...prev, [fieldName]: 'done' }));
@@ -115,7 +115,7 @@ export default function DriverOnboardingPage() {
       if (updateErr) throw updateErr;
 
       // Success -> Redirect to status page
-      router.push("/driver/dashboard");
+      router.push("/rider");
     } catch (err) {
       setError(err.message);
     } finally {

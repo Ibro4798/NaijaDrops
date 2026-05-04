@@ -54,8 +54,12 @@ function Step3Content() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/auth/login"); return; }
 
+      // 1. Get Vendor Profile ID (Required for Foreign Key)
+      const { data: vendorProfile } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+      if (!vendorProfile) throw new Error("Vendor profile not found. Please go back and select 'Send Packages' again.");
+
       const { data: order, error: err } = await supabase.from("orders").insert({
-        vendor_id: user.id,
+        vendor_id: vendorProfile.id,
         pickup_name: draft.pickup.name,
         pickup_lat: draft.pickup.lat,
         pickup_lng: draft.pickup.lng,

@@ -212,11 +212,19 @@ export default function RiderHome() {
 
   const handleAcceptOrder = async (orderId, price) => {
     setActionLoading(true);
+    // 1. Get Rider Profile ID
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: riderProfile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
     
-    // Direct acceptance (skipping bid table for fast match)
+    if (!riderProfile) {
+       alert("Rider profile not found. Please complete onboarding.");
+       setActionLoading(false);
+       return;
+    }
+
+    // 2. Accept Order using correct Rider UUID
     const { error } = await supabase.from('orders').update({
-      rider_id: user.id,
+      rider_id: riderProfile.id,
       agreed_price: price,
       status: 'assigned'
     }).eq('id', orderId);
