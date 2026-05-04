@@ -28,15 +28,8 @@ export async function GET(request) {
         return NextResponse.redirect(`${origin}${next}`)
       }
 
-      // 1. Sync identity (Trigger handles this mostly, but we ensure it here)
-      const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-      
-      if (profile?.role === 'admin') {
-        return NextResponse.redirect(`${origin}/ops-terminal/dashboard`);
-      }
-
-      // Always send to select-mode to ensure they pick their role
-      return NextResponse.redirect(`${origin}/select-mode`);
+      // ALWAYS send to the resolver
+      return NextResponse.redirect(`${origin}/resolve`);
     }
   }
 

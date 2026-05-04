@@ -115,8 +115,12 @@ export default function DriverOnboardingPage() {
 
       if (updateErr) throw updateErr;
 
-      // Success -> Redirect to status page
-      document.cookie = "nd_active_mode=rider; path=/; max-age=31536000; SameSite=Lax";
+      // SUCCESS: The Rule -> Update User State to Source of Truth
+      await supabase.from("users").update({
+        has_rider_profile: true,
+        active_mode: 'rider'
+      }).eq("id", user.id);
+
       router.push("/rider");
     } catch (err) {
       setError(err.message);
