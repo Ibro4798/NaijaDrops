@@ -11,6 +11,7 @@ export default function SelectModePage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(null);
   const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user));
@@ -22,37 +23,43 @@ export default function SelectModePage() {
       return;
     }
 
-    setLoading(mode);
-    
-    // 1. Set Mode Cookie (For Middleware Guards)
-    document.cookie = `nd_active_mode=${mode}; path=/; max-age=31536000; SameSite=Lax`;
-    
-    // 2. Set Mode in Local Storage (For UI checks)
-    localStorage.setItem("nd_active_mode", mode);
+    try {
+      // 1. Set Mode Cookie (For Middleware Guards)
+      document.cookie = `nd_active_mode=${mode}; path=/; max-age=31536000; SameSite=Lax`;
+      
+      // 2. Set Mode in Local Storage (For UI checks)
+      localStorage.setItem("nd_active_mode", mode);
 
-    if (mode === "customer") {
-      // 3. Update User Default Mode
-      await supabase.from("users").update({ role: 'vendor' }).eq("id", user.id);
-      router.push("/dashboard"); // Redirect to customer dashboard
-    } else if (mode === "rider") {
-      // 3. Check if Rider Profile Exists
-      const { data: rider } = await supabase
-        .from("riders")
-        .select("status")
-        .eq("user_id", user.id)
-        .single();
+      if (mode === "customer") {
+        // 3. Update User Default Mode (Safely)
+        await supabase.from("users").update({ role: 'vendor' }).eq("id", user.id);
+        router.push("/dashboard"); 
+      } else if (mode === "rider") {
+        // 3. Check if Rider Profile Exists
+        const { data: rider, error: fetchError } = await supabase
+          .from("riders")
+          .select("status")
+          .eq("user_id", user.id)
+          .single();
 
-      if (!rider) {
-        // Create initial pending rider row
-        await supabase.from("riders").insert({
-          user_id: user.id,
-          status: 'pending',
-          operational_status: 'offline'
-        });
-        router.push("/driver/onboarding");
-      } else {
-        router.push("/rider"); // Redirect to rider dashboard
+        if (!rider) {
+          // Create initial pending rider row
+          const { error: insertError } = await supabase.from("riders").insert({
+            user_id: user.id,
+            status: 'pending',
+            operational_status: 'offline'
+          });
+          
+          if (insertError) throw insertError;
+          router.push("/driver/onboarding");
+        } else {
+          router.push("/rider"); 
+        }
       }
+    } catch (err) {
+      console.error("Selection Error:", err);
+      setError(err.message);
+      setLoading(null);
     }
   }
 
@@ -66,6 +73,13 @@ export default function SelectModePage() {
       <div className="text-center mb-10 relative z-10">
         <h1 className="text-3xl font-black text-white tracking-tight mb-2">How do you want to use NaijaDrops?</h1>
         <p className="text-charcoal-400 text-sm font-medium">You can always switch modes later in your profile.</p>
+        
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
+            className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-bold uppercase tracking-widest">
+            ⚠️ Connection Error: {error}
+          </motion.div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl relative z-10">

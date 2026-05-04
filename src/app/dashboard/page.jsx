@@ -1,3 +1,35 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Package, 
+  Clock, 
+  ChevronRight, 
+  AlertCircle, 
+  Loader2, 
+  Marker as MarkerIcon,
+  Navigation,
+  Star,
+  ShieldCheck,
+  CheckCircle2,
+  Truck,
+  MapPin
+} from "lucide-react";
+import Map, { Marker } from "react-map-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+const KANO_CENTER = { lat: 12.0022, lng: 8.5920 };
+
+const STATUS_CONFIG = {
+  pending: { label: "Searching", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20", icon: <Clock size={16} /> },
+  assigned: { label: "Rider Found", color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20", icon: <Truck size={16} /> },
+  picked_up: { label: "Picked Up", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", icon: <Package size={16} /> },
+  in_transit: { label: "In Transit", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", icon: <Navigation size={16} /> },
+};
+
 // ─── Profile Completion Modal ────────────────────────────────────────────────
 function ProfileModal({ isOpen, onClose, onSave, currentName }) {
   const [name, setName] = useState(currentName || "");
