@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   Truck,
-  MapPin
+  MapPin,
+  LogOut
 } from "lucide-react";
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -156,6 +157,11 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/auth/login");
+  };
+
   return (
     <div className="h-[100dvh] w-full relative overflow-hidden bg-charcoal-950">
       <ProfileModal 
@@ -202,12 +208,17 @@ export default function DashboardPage() {
               {displayName || "Dashboard"} <span className="text-emerald-500">👋</span>
             </h1>
           </div>
-          {activeOrderCount > 0 && (
-            <div className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{activeOrderCount} Active</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {activeOrderCount > 0 && (
+              <div className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{activeOrderCount} Active</span>
+              </div>
+            )}
+            <button onClick={handleLogout} className="p-2 bg-charcoal-900 border border-white/10 rounded-xl text-charcoal-400 hover:text-red-400 transition-colors">
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </div>
 

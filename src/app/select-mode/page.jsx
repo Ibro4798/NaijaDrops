@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Package, Bike, ArrowRight } from "lucide-react";
+import { Package, Bike, ArrowRight, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useState, useEffect } from "react";
@@ -16,6 +16,11 @@ export default function SelectModePage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user));
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/auth/login");
+  };
 
   async function handleSelection(mode) {
     if (!user) {
@@ -44,7 +49,13 @@ export default function SelectModePage() {
         }
         router.push("/dashboard"); 
       } else {
-        router.push("/rider");
+        // RIDER LOGIC: Check if profile exists
+        const { data: rider } = await supabase.from("riders").select("id").eq("user_id", user.id).single();
+        if (!rider) {
+          router.push("/driver/onboarding");
+        } else {
+          router.push("/rider");
+        }
       }
     } catch (err) {
       console.error("Selection Error:", err);
@@ -54,7 +65,14 @@ export default function SelectModePage() {
   }
 
   return (
-    <main className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center p-6 font-outfit">
+    <main className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center p-6 font-outfit relative">
+      <button 
+        onClick={handleLogout} 
+        className="absolute top-6 right-6 p-3 bg-white/[0.02] border border-white/10 rounded-2xl text-charcoal-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-all"
+      >
+        <LogOut size={20} />
+      </button>
+
       <div className="text-center mb-10">
         <h1 className="text-3xl font-black text-white tracking-tight mb-2">Select Your Portal</h1>
         <p className="text-charcoal-400 text-sm">Switch anytime from your profile settings.</p>

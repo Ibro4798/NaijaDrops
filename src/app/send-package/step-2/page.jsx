@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Package, Bike, Car, Phone, FileText,
-  User, MapPin, ArrowRight, ChevronRight, Bell
+  User, MapPin, ArrowRight, ChevronRight, Bell, Mic, Square, Play, Trash2, Loader2
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 const DRAFT_KEY = "nd_order_draft";
 
@@ -40,10 +41,16 @@ export default function Step2Page() {
   const [size, setSize] = useState("small");
   const [vehicle, setVehicle] = useState("bike");
   const [description, setDescription] = useState("");
-  const [voiceNote, setVoiceNote] = useState("");
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [notifyReceiver, setNotifyReceiver] = useState(false);
+
+  const supabase = createClient();
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const estimatedPrice = calcPrice(draft?.distance_m, vehicle, size);
 
@@ -58,7 +65,7 @@ export default function Step2Page() {
       if (d.size) setSize(d.size);
       if (d.vehicle) setVehicle(d.vehicle);
       if (d.description) setDescription(d.description);
-      if (d.voice_note) setVoiceNote(d.voice_note);
+      if (d.voice_note_url) setVoiceNoteUrl(d.voice_note_url);
       if (d.receiver_name) setReceiverName(d.receiver_name);
       if (d.receiver_phone) setReceiverPhone(d.receiver_phone);
       if (d.notify_receiver !== undefined) setNotifyReceiver(d.notify_receiver);
@@ -69,6 +76,42 @@ export default function Step2Page() {
 
   const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8;
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mediaRecorderRef.current.onstop = async () => {
+        setIsUploadingAudio(true);
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        chunksRef.current = [];
+        
+        // Upload to Supabase Storage
+        const fileName = `voice_note_${Date.now()}.webm`;
+        const { data, error } = await supabase.storage.from("documents").upload(fileName, blob, { contentType: "audio/webm" });
+        
+        if (!error && data) {
+           const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+           setVoiceNoteUrl(publicUrlData.publicUrl);
+        } else {
+           alert("Failed to upload voice note. Make sure the 'documents' bucket exists.");
+        }
+        setIsUploadingAudio(false);
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone access denied or unavailable.");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
   function handleContinue() {
     if (!canContinue) return;
     const updated = {
@@ -76,7 +119,7 @@ export default function Step2Page() {
       size,
       vehicle,
       description: description.trim(),
-      voice_note: voiceNote.trim(),
+      voice_note: voiceNoteUrl, // Save the URL to the draft
       receiver_name: receiverName.trim(),
       receiver_phone: receiverPhone.trim(),
       notify_receiver: notifyReceiver,
@@ -183,15 +226,38 @@ export default function Step2Page() {
               className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
           </div>
 
-          <div className="relative">
-             <FileText className="absolute left-4 top-4 text-charcoal-600" size={15} />
-             <textarea 
-               placeholder="Additional delivery notes (Optional)"
-               value={voiceNote} 
-               onChange={e => setVoiceNote(e.target.value)}
-               rows={2}
-               className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium resize-none"
-             />
+          <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-charcoal-400">
+                 <Mic size={18} />
+               </div>
+               <div>
+                 <div className="text-white text-sm font-bold">Voice Instructions</div>
+                 <div className="text-charcoal-500 text-xs">Record special handling notes</div>
+               </div>
+             </div>
+             
+             {isUploadingAudio ? (
+                <div className="flex items-center text-emerald-500 gap-2 text-xs font-bold px-4 py-2 bg-emerald-500/10 rounded-xl">
+                  <Loader2 size={14} className="animate-spin" /> Uploading...
+                </div>
+             ) : voiceNoteUrl ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { const a = new Audio(voiceNoteUrl); a.play(); }} className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-colors">
+                    <Play size={16} fill="currentColor" />
+                  </button>
+                  <button onClick={() => setVoiceNoteUrl("")} className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+             ) : (
+                <button 
+                  onClick={isRecording ? stopRecording : startRecording} 
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? "bg-red-500 text-white animate-pulse shadow-[0_0_16px_rgba(239,68,68,0.4)]" : "bg-emerald-500 hover:bg-emerald-400 text-charcoal-950"}`}
+                >
+                  {isRecording ? <><Square size={12} fill="currentColor" /> Stop</> : "Record"}
+                </button>
+             )}
           </div>
 
           <div className="relative">
