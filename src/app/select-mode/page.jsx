@@ -55,7 +55,7 @@ export default function SelectModePage() {
           // Create initial pending rider row
           const { error: insertError } = await supabase.from("riders").insert({
             user_id: user.id,
-            status: 'pending',
+            status: 'offline', // Complying with DB check constraint
             operational_status: 'offline'
           });
           
