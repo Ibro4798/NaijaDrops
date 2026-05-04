@@ -59,8 +59,14 @@ export async function middleware(request) {
     // Allow onboarding to bypass the mode check if authenticated
     if (pathname === "/driver/onboarding") return response;
 
+    const activeMode = request.cookies.get("nd_active_mode")?.value;
+    
+    // Safety Fallback: Check if user has a rider profile if cookie is missing
     if (activeMode !== "rider") {
-      return NextResponse.redirect(new URL('/select-mode', request.url));
+       const { data: rider } = await supabase.from("riders").select("id").eq("user_id", user.id).single();
+       if (rider) return response; // Allow if they are a known rider
+       
+       return NextResponse.redirect(new URL('/select-mode', request.url));
     }
   }
 

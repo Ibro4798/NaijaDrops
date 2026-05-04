@@ -46,6 +46,7 @@ export default function DriverOnboardingPage() {
         setFormData(prev => ({ ...prev, ...rider }));
         // If already approved or pending, check status
         if (rider.status === 'pending' || rider.status === 'approved') {
+           document.cookie = "nd_active_mode=rider; path=/; max-age=31536000; SameSite=Lax";
            router.replace("/rider");
         }
       }
@@ -115,6 +116,7 @@ export default function DriverOnboardingPage() {
       if (updateErr) throw updateErr;
 
       // Success -> Redirect to status page
+      document.cookie = "nd_active_mode=rider; path=/; max-age=31536000; SameSite=Lax";
       router.push("/rider");
     } catch (err) {
       setError(err.message);
