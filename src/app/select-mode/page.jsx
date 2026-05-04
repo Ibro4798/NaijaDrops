@@ -30,6 +30,16 @@ export default function SelectModePage() {
       // 2. Set Mode in Local Storage (For UI checks)
       localStorage.setItem("nd_active_mode", mode);
 
+      // 3. Ensure User exists in public.users (Identity Sync)
+      const { data: profile } = await supabase.from("users").select("id").eq("id", user.id).single();
+      if (!profile) {
+        await supabase.from("users").insert({
+          id: user.id,
+          phone: user.phone || null,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || "New User"
+        });
+      }
+
       if (mode === "customer") {
         // 3. Update User Role
         await supabase.from("users").update({ role: 'vendor' }).eq("id", user.id);
