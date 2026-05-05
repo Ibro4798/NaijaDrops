@@ -75,7 +75,7 @@ export default function VendorHistoryPage() {
                     </div>
                     <h2 className="text-xl font-black text-white mb-2">No active records found.</h2>
                     <p className="text-charcoal-500 mb-8 max-w-xs mx-auto text-sm">Initialize your first delivery to start logging operations.</p>
-                    <Link href="/vendor/create-delivery" className="bg-emerald-500 text-charcoal-950 font-black py-4 px-8 rounded-2xl shadow-glow hover:bg-emerald-400 transition-all uppercase tracking-widest text-xs">
+                    <Link href="/send-package/step-1" className="bg-emerald-500 text-charcoal-950 font-black py-4 px-8 rounded-2xl shadow-glow hover:bg-emerald-400 transition-all uppercase tracking-widest text-xs">
                         Dispatch Load
                     </Link>
                 </div>

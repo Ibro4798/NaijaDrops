@@ -27,7 +27,6 @@ export default async function VendorLayout({ children }) {
         <div className="font-outfit font-black text-xl italic tracking-tighter">NaijaDrops <span className="text-emerald-500">Vendor</span></div>
         <div className="flex gap-4 text-sm font-bold">
           <a href="/vendor/dashboard" className="hover:text-emerald-400 transition-colors">Dashboard</a>
-          <a href="/vendor/create-delivery" className="text-emerald-500 hover:text-emerald-400 transition-colors">Create Delivery</a>
           <a href="/vendor/history" className="hover:text-emerald-400 transition-colors">History</a>
         </div>
       </nav>

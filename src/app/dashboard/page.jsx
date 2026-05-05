@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Truck,
   MapPin,
-  LogOut
+  LogOut,
+  User as UserIcon
 } from "lucide-react";
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -35,6 +36,13 @@ const STATUS_CONFIG = {
 function ProfileModal({ isOpen, onClose, onSave, currentName }) {
   const [name, setName] = useState(currentName || "");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(currentName || "");
+      setLoading(false);
+    }
+  }, [isOpen, currentName]);
 
   if (!isOpen) return null;
 
@@ -61,7 +69,14 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
            </div>
            
            <button 
-             onClick={() => { setLoading(true); onSave(name); }}
+             onClick={async () => { 
+               setLoading(true); 
+               try {
+                 await onSave(name); 
+               } finally {
+                 setLoading(false);
+               }
+             }}
              disabled={loading || !name}
              className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-glow disabled:opacity-50"
            >
@@ -215,6 +230,9 @@ export default function DashboardPage() {
                 <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{activeOrderCount} Active</span>
               </div>
             )}
+            <button onClick={() => setIsProfileModalOpen(true)} className="p-2 bg-charcoal-900 border border-white/10 rounded-xl text-charcoal-400 hover:text-emerald-400 transition-colors">
+              <UserIcon size={16} />
+            </button>
             <button onClick={handleLogout} className="p-2 bg-charcoal-900 border border-white/10 rounded-xl text-charcoal-400 hover:text-red-400 transition-colors">
               <LogOut size={16} />
             </button>
