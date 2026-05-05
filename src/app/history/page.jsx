@@ -20,6 +20,6 @@ export default async function HistoryHeadless() {
   } else if (profile?.role === 'rider') {
     redirect('/rider/earnings'); // Riders check history via earnings/transactions
   } else {
-    redirect('/auth/role-select');
+    redirect('/resolve');
   }
 }

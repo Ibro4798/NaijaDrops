@@ -10,16 +10,8 @@ export default async function RiderLayout({ children }) {
     redirect("/auth/login");
   }
 
-  // 1. Enforce Role
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "rider") {
-    redirect("/auth/role-select");
-  }
+  // Access control is strictly enforced by the Bouncer Middleware.
+  if (!user) redirect("/auth/login");
 
   // 2. Fetch Driver Profile & Enrollment Status
   const { data: rider } = await supabase

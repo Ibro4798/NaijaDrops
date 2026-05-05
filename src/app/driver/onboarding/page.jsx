@@ -121,6 +121,9 @@ export default function DriverOnboardingPage() {
         active_mode: 'rider'
       }).eq("id", user.id);
 
+      // SET HINT: Ensure middleware allows instant access to /rider
+      document.cookie = "nd_mode_hint=rider; path=/; max-age=30; SameSite=Lax";
+
       router.push("/rider");
     } catch (err) {
       setError(err.message);

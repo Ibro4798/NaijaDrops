@@ -43,10 +43,16 @@ export async function middleware(request) {
 
   // Get Mode from DB (The Source of Truth)
   const { data: profile } = await supabase.from("users").select("active_mode").eq("id", user.id).single();
-  const activeMode = profile?.active_mode || 'customer';
+  
+  // Use hint as backup to prevent race conditions during mode-switch
+  const modeHint = request.cookies.get("nd_mode_hint")?.value;
+  const activeMode = modeHint || profile?.active_mode || 'customer';
 
   // Enforcement
   if (pathname.startsWith("/rider") || pathname.startsWith("/driver")) {
+    // EXEMPTION: Allow anyone to reach onboarding to register
+    if (pathname === "/driver/onboarding") return response;
+
     if (activeMode !== "rider") {
       return NextResponse.redirect(new URL('/select-mode', request.url));
     }

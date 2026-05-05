@@ -47,6 +47,6 @@ export function getRoleRedirectPath(role) {
     case 'admin':  return '/admin';
     case 'vendor': return '/dashboard';
     case 'rider':  return '/rider';
-    default:       return '/auth/role-select';
+    default:       return '/resolve';
   }
 }

@@ -9,16 +9,9 @@ export default async function VendorLayout({ children }) {
     redirect("/auth/login");
   }
 
-  // Enforce Vendor Role
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "vendor") {
-    redirect("/auth/role-select");
-  }
+  // Access control is strictly enforced by the Bouncer Middleware.
+  // Layout only ensures session presence.
+  if (!user) redirect("/auth/login");
 
   return (
     <div className="flex flex-col min-h-screen bg-charcoal-900 text-white">
