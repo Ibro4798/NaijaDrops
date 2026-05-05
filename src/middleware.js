@@ -41,27 +41,15 @@ export async function middleware(request) {
     return response;
   }
 
-  // Get Mode from DB (The Source of Truth)
-  const { data: profile } = await supabase.from("users").select("active_mode").eq("id", user.id).single();
-  
-  // Use hint as backup to prevent race conditions during mode-switch
-  const modeHint = request.cookies.get("nd_mode_hint")?.value;
-  const activeMode = modeHint || profile?.active_mode || 'customer';
-
   // Enforcement
-  if (pathname.startsWith("/rider") || pathname.startsWith("/driver")) {
-    // EXEMPTION: Allow anyone to reach onboarding to register
-    if (pathname === "/driver/onboarding") return response;
-
-    if (activeMode !== "rider") {
-      return NextResponse.redirect(new URL('/select-mode', request.url));
-    }
+  if (pathname.startsWith("/rider") && pathname !== "/driver/onboarding") {
+     // Rider portal is only for approved riders, but we let the rider layout handle the detailed checks
+     // Just ensuring they are authenticated (which we already did)
   }
 
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/send-package")) {
-    if (activeMode !== "customer") {
-      return NextResponse.redirect(new URL('/select-mode', request.url));
-    }
+  // Everyone is allowed in the dashboard
+  if (pathname.startsWith("/select-mode")) {
+     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return response;

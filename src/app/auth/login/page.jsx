@@ -58,9 +58,9 @@ export default function LoginPage() {
         .from("users").select("role").eq("id", data.user.id).single();
 
       if (profile?.role === "admin") {
-         router.replace("/ops-terminal/dashboard");
+         router.replace("/dashboard");
       } else {
-         router.replace("/select-mode");
+         router.replace("/dashboard");
       }
       return;
     }

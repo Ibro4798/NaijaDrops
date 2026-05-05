@@ -18,7 +18,9 @@ import {
   Truck,
   MapPin,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Menu,
+  X
 } from "lucide-react";
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -47,7 +49,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-charcoal-950/90 backdrop-blur-md" onClick={onClose} />
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
         className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
@@ -88,6 +90,57 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
   );
 }
 
+// ─── Menu Modal ─────────────────────────────────────────────────────────────
+function MenuModal({ isOpen, onClose, onLogout, onProfile, riderStatus }) {
+  const router = useRouter();
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-start justify-end p-6">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+        className="absolute inset-0 bg-charcoal-950/60 backdrop-blur-sm" onClick={onClose} />
+      
+      <motion.div 
+        initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
+        className="relative w-full max-w-[280px] bg-charcoal-900 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+      >
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+           <span className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Menu</span>
+           <button onClick={onClose} className="p-2 text-charcoal-500 hover:text-white transition-colors"><X size={20} /></button>
+        </div>
+
+        <div className="p-4 space-y-2">
+           <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
+                <UserIcon size={20} />
+              </div>
+              <span className="font-bold text-sm">Edit Profile</span>
+           </button>
+
+           <button onClick={() => router.push("/driver/onboarding")} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 transition-all group text-left">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <div className="font-black text-sm uppercase tracking-tight">Become a Driver</div>
+                <div className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Verify & Earn</div>
+              </div>
+           </button>
+
+           <div className="h-px bg-white/5 my-2" />
+
+           <button onClick={onLogout} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-500/10 text-charcoal-400 hover:text-red-400 transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500 group-hover:text-charcoal-950 transition-all">
+                <LogOut size={20} />
+              </div>
+              <span className="font-bold text-sm">Sign Out</span>
+           </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -101,6 +154,7 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState("Good day");
   const [displayName, setDisplayName] = useState("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
 
   useEffect(() => {
@@ -186,6 +240,17 @@ export default function DashboardPage() {
         currentName={displayName}
       />
 
+      <AnimatePresence>
+        {isMenuOpen && (
+          <MenuModal 
+            isOpen={isMenuOpen} 
+            onClose={() => setIsMenuOpen(false)} 
+            onLogout={handleLogout}
+            onProfile={() => setIsProfileModalOpen(true)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Full-screen Mapbox Map */}
       <div className="absolute inset-0 z-0">
         {mapboxToken ? (
@@ -230,11 +295,8 @@ export default function DashboardPage() {
                 <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{activeOrderCount} Active</span>
               </div>
             )}
-            <button onClick={() => setIsProfileModalOpen(true)} className="p-2 bg-charcoal-900 border border-white/10 rounded-xl text-charcoal-400 hover:text-emerald-400 transition-colors">
-              <UserIcon size={16} />
-            </button>
-            <button onClick={handleLogout} className="p-2 bg-charcoal-900 border border-white/10 rounded-xl text-charcoal-400 hover:text-red-400 transition-colors">
-              <LogOut size={16} />
+            <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 bg-charcoal-900 border border-white/10 rounded-2xl text-white flex items-center justify-center hover:bg-white/5 transition-all shadow-xl">
+              <Menu size={24} />
             </button>
           </div>
         </div>

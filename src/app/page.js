@@ -92,43 +92,21 @@ export default function LandingPage() {
           </p>
         </motion.div>
 
-        {/* The Interaction Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto mb-24">
-          {/* SENDER CARD */}
+        {/* Universal Primary CTA */}
+        <div className="flex flex-col items-center gap-6">
           <motion.button
-            whileHover={{ y: -10 }}
-            onClick={() => handleRoleChoice("vendor")}
-            className="group relative bg-[#0a0a0a] border border-white/10 p-10 rounded-[3rem] text-left hover:border-emerald-500/50 transition-all duration-500"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/auth/login")}
+            className="group relative bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 px-12 py-6 rounded-3xl font-black text-xl uppercase tracking-wider shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all flex items-center gap-3"
           >
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all duration-500">
-              <User size={32} />
-            </div>
-            <h3 className="text-3xl font-black text-white mb-4 font-outfit uppercase tracking-tighter">I am a <span className="text-emerald-500">Sender</span></h3>
-            <p className="text-charcoal-500 text-base font-medium leading-relaxed mb-10 group-hover:text-charcoal-400">
-              Personal or business use. Send packages, track in real-time, and manage delivery history.
-            </p>
-            <div className="flex items-center gap-3 text-emerald-500 font-black text-sm uppercase tracking-widest">
-              Get Started <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-            </div>
+            Start Dispatching Packages
+            <ArrowRight size={24} className="group-hover:translate-x-1.5 transition-transform" />
           </motion.button>
-
-          {/* CARRIER CARD */}
-          <motion.button
-            whileHover={{ y: -10 }}
-            onClick={() => handleRoleChoice("rider")}
-            className="group relative bg-[#0a0a0a] border border-white/10 p-10 rounded-[3rem] text-left hover:border-emerald-500/50 transition-all duration-500"
-          >
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all duration-500">
-              <Truck size={32} />
-            </div>
-            <h3 className="text-3xl font-black text-white mb-4 font-outfit uppercase tracking-tighter">I am a <span className="text-emerald-500 italic">Carrier</span></h3>
-            <p className="text-charcoal-500 text-base font-medium leading-relaxed mb-10 group-hover:text-charcoal-400">
-              Own a bike or van? Join our network, accept jobs, and earn on your own schedule.
-            </p>
-            <div className="flex items-center gap-3 text-emerald-500 font-black text-sm uppercase tracking-widest">
-              Join Fleet <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-            </div>
-          </motion.button>
+          
+          <p className="text-charcoal-500 text-sm font-bold uppercase tracking-[0.2em]">
+            Join 1,000+ businesses moving goods in Kano
+          </p>
         </div>
 
         {/* Quick Stats / Trust */}

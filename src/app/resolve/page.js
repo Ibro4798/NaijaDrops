@@ -23,20 +23,12 @@ export default async function ResolvePage() {
     .eq("user_id", user.id)
     .single();
 
-  if (!rider) {
-    // CASE 1: No Rider Profile
-    await supabase.from("users").update({ 
-      active_mode: "customer",
-      has_rider_profile: false 
-    }).eq("id", user.id);
-
-    redirect("/dashboard");
-  } else {
-    // CASE 2: Has Rider Profile
+  if (rider) {
     await supabase.from("users").update({ 
       has_rider_profile: true 
     }).eq("id", user.id);
-
-    redirect("/select-mode");
   }
+
+  // Everyone starts at the dashboard
+  redirect("/dashboard");
 }
