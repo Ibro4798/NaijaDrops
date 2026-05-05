@@ -20,7 +20,10 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
-  X
+  X,
+  Phone,
+  FileText,
+  History as HistoryIcon
 } from "lucide-react";
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -109,15 +112,22 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, riderStatus }) {
            <button onClick={onClose} className="p-2 text-charcoal-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2 overflow-y-auto flex-1">
            <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
                 <UserIcon size={20} />
               </div>
-              <span className="font-bold text-sm">Edit Profile</span>
+              <span className="font-bold text-sm">Identity Profile</span>
            </button>
 
-           <button onClick={() => router.push("/driver/onboarding")} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 transition-all group text-left">
+           <button onClick={() => { router.push("/vendor/history"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
+                <HistoryIcon size={20} />
+              </div>
+              <span className="font-bold text-sm">Order History</span>
+           </button>
+
+           <button onClick={() => { router.push("/driver/onboarding"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 transition-all group text-left">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
                 <ShieldCheck size={20} />
               </div>
@@ -125,6 +135,39 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, riderStatus }) {
                 <div className="font-black text-sm uppercase tracking-tight">Become a Driver</div>
                 <div className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Verify & Earn</div>
               </div>
+           </button>
+
+           <div className="h-px bg-white/5 my-2" />
+
+           <div className="px-4 py-2">
+              <span className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest">Support</span>
+           </div>
+
+           <a href="mailto:yahaya.usama@naijadrops.tech" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-300 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <FileText size={20} />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-sm">Contact Support</div>
+                <div className="text-[10px] opacity-60">yahaya.usama@naijadrops.tech</div>
+              </div>
+           </a>
+
+           <a href="https://wa.me/2349118267433" target="_blank" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-emerald-500/10 text-emerald-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <Phone size={20} />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-sm">WhatsApp Help</div>
+                <div className="text-[10px] opacity-60">09118267433</div>
+              </div>
+           </a>
+
+           <button onClick={() => { router.push("/terms"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <FileText size={20} />
+              </div>
+              <span className="font-bold text-sm text-charcoal-400">Terms & Conditions</span>
            </button>
 
            <div className="h-px bg-white/5 my-2" />
@@ -308,84 +351,21 @@ export default function DashboardPage() {
 
         <div className="relative px-5 pb-8 pt-6 space-y-4">
           
-          {/* Trust Nudge */}
-          {isProfileIncomplete && (
-            <motion.button 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={() => setIsProfileModalOpen(true)}
-              className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center gap-4 text-left hover:bg-blue-500/15 transition-all"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                <AlertCircle size={20} />
-              </div>
-              <div className="flex-1">
-                 <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5">Trust Boost Available</div>
-                 <p className="text-xs text-blue-200/70 font-medium leading-tight">Add your name to match with riders 2x faster.</p>
-              </div>
-              <ChevronRight size={14} className="text-blue-500/50" />
-            </motion.button>
-          )}
+          {/* Trusted UI elements removed as per request for minimal homescreen */}
 
-          {/* Latest order status chip */}
-          <AnimatePresence>
-            {latestOrder && (
-              <motion.button
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => router.push(`/track/${latestOrder.id}`)}
-                className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border backdrop-blur-sm ${STATUS_CONFIG[latestOrder.status]?.bg || "bg-white/5 border-white/10"} transition-all active:scale-[0.98]`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={STATUS_CONFIG[latestOrder.status]?.color || "text-charcoal-400"}>
-                    {STATUS_CONFIG[latestOrder.status]?.icon}
-                  </span>
-                  <div className="text-left">
-                    <div className={`text-xs font-black uppercase tracking-widest ${STATUS_CONFIG[latestOrder.status]?.color || "text-charcoal-400"}`}>
-                      {STATUS_CONFIG[latestOrder.status]?.label || latestOrder.status}
-                    </div>
-                    <div className="text-white text-sm font-bold truncate max-w-[220px]">
-                      → {latestOrder.dropoff_name?.split(",")[0]}
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="text-charcoal-500 shrink-0" size={18} />
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {/* Status chips removed as per request for minimal homescreen */}
 
-          {/* Quick stats row */}
-          {activeOrderCount > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3">
-                <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Active</div>
-                <div className="text-white font-black text-xl">{activeOrderCount}</div>
-              </div>
-              <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl px-4 py-3">
-                <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Est. ETA</div>
-                <div className="text-emerald-400 font-black text-xl">~30m</div>
-              </div>
-            </div>
-          )}
+          {/* Quick stats removed for ultra-minimalist homescreen */}
 
           {/* PRIMARY CTA */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push("/send-package/step-1")}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl flex items-center justify-center gap-3 text-lg uppercase tracking-wide shadow-[0_0_32px_rgba(16,185,129,0.4)] transition-all"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-6 rounded-3xl flex items-center justify-center gap-3 text-xl uppercase tracking-wider shadow-[0_0_32px_rgba(16,185,129,0.4)] transition-all mb-4"
           >
-            <Package size={22} strokeWidth={2.5} />
+            <Package size={24} strokeWidth={2.5} />
             Send Package
           </motion.button>
-
-          {/* Secondary action */}
-          <button
-            onClick={() => router.push("/vendor/history")}
-            className="w-full py-3.5 text-charcoal-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-charcoal-300 transition-colors"
-          >
-            <Clock size={14} />
-            View delivery history
-          </button>
         </div>
       </div>
 
