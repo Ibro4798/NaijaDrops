@@ -41,6 +41,16 @@ export default function SelectModePage() {
       // SET HINT: Tell middleware to trust this mode for 30 seconds while DB propagates
       document.cookie = `nd_mode_hint=${mode}; path=/; max-age=30; SameSite=Lax`;
 
+      if (mode === "customer") {
+        // Ensure Vendor Profile exists
+        const { data: vendor } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+        if (!vendor) {
+          await supabase.from("vendors").insert({
+            user_id: user.id,
+            business_name: user.email?.split('@')[0] || "New Vendor"
+          });
+        }
+        router.push("/dashboard"); 
       } else {
         const { data: rider } = await supabase.from("riders").select("id").eq("user_id", user.id).single();
         if (!rider) {

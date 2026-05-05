@@ -9,6 +9,7 @@ import {
   Loader2, ArrowLeft, ChevronRight
 } from "lucide-react";
 import { getMapboxSuggestions, reverseGeocodeMapbox, getMapboxRoute } from "@/utils/mapbox";
+import { extractFirstUrl } from "@/lib/mapResolver";
 
 const Map = dynamic(() => import("react-map-gl").then(m => m.default), { ssr: false });
 const Marker = dynamic(() => import("react-map-gl").then(m => m.Marker), { ssr: false });
@@ -19,14 +20,7 @@ const DRAFT_KEY = "nd_order_draft";
 const LAST_PICKUP_KEY = "nd_last_pickup";
 const KANO_CENTER = { lat: 11.9964, lng: 8.5200 };
 
-function parseMapLink(text) {
-  // Google Maps: @lat,lng or ?q=lat,lng or /place/.../@lat,lng
-  const match = text.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/) ||
-    text.match(/q=(-?\d+\.?\d*),(-?\d+\.?\d*)/) ||
-    text.match(/ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-  if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
-  return null;
-}
+// parseMapLink is now handled by src/lib/mapResolver.js and the API route
 
 function formatDistance(meters) {
   if (!meters) return null;
@@ -142,24 +136,19 @@ export default function Step1Page() {
   async function handleLinkPaste() {
     if (!linkInput) return;
     
-    // 1. Try local regex first for standard long URLs
-    const coords = parseMapLink(linkInput);
+    // 1. Extract the first valid URL from potentially messy input
+    const extractedUrl = extractFirstUrl(linkInput);
     
-    if (coords) {
-      const name = await reverseGeocodeMapbox(coords.lat, coords.lng, mapboxToken);
-      const point = { name, lat: coords.lat, lng: coords.lng };
-      selectLocation(point, linkTarget);
-      setShowLinkModal(false);
-      setLinkInput("");
+    if (!extractedUrl) {
+      alert("No valid map link found in the text.");
       return;
     }
 
-    // 2. If short link, use server-side resolver
-    setGpsLoading(true); // Reuse spinner for link resolving
+    setGpsLoading(true); 
     try {
-      const resp = await fetch("/api/resolve-map-link", {
+      const resp = await fetch("/api/resolve-link", {
         method: "POST",
-        body: JSON.stringify({ url: linkInput }),
+        body: JSON.stringify({ url: extractedUrl }),
         headers: { "Content-Type": "application/json" }
       });
       const data = await resp.json();
