@@ -242,12 +242,6 @@ export default function DashboardPage() {
         setLatestOrder(orders[0] || null);
       }
     }
-
-    if (orders) {
-      const active = orders.filter(o => ["pending", "assigned", "picked_up", "in_transit"].includes(o.status));
-      setActiveOrderCount(active.length);
-      setLatestOrder(orders[0] || null);
-    }
   }
 
   useEffect(() => {

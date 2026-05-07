@@ -34,6 +34,8 @@ export default function DriverOnboardingPage() {
     profile_photo_url: ""
   });
   const [error, setError] = useState(null);
+  const [existingStatus, setExistingStatus] = useState(null); // 'pending' | 'approved' | 'rejected' | null
+  const [pageLoading, setPageLoading] = useState(true);
 
   // Load existing profile info if any
   useEffect(() => {
@@ -44,12 +46,14 @@ export default function DriverOnboardingPage() {
       const { data: rider } = await supabase.from("riders").select("*").eq("user_id", user.id).single();
       if (rider) {
         setFormData(prev => ({ ...prev, ...rider }));
-        // If already approved or pending, check status
+        // Show status screen instead of redirecting (prevents crash loop)
         if (rider.status === 'pending' || rider.status === 'approved') {
-           document.cookie = "nd_active_mode=rider; path=/; max-age=31536000; SameSite=Lax";
-           router.replace("/rider");
+           setExistingStatus(rider.status);
+        } else if (rider.status === 'rejected') {
+           setExistingStatus('rejected');
         }
       }
+      setPageLoading(false);
     }
     loadData();
   }, []);
@@ -131,6 +135,83 @@ export default function DriverOnboardingPage() {
       setLoading(false);
     }
   };
+
+  // Loading gate
+  if (pageLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-charcoal-950 flex items-center justify-center">
+        <Loader2 className="text-emerald-500 animate-spin" size={32} />
+      </div>
+    );
+  }
+
+  // Application already submitted — show status instead of crashing
+  if (existingStatus) {
+    return (
+      <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
+        {existingStatus === 'pending' && (
+          <>
+            <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-8 relative">
+              <ShieldCheck className="text-emerald-500 animate-pulse" size={40} />
+              <div className="absolute inset-0 w-24 h-24 rounded-full border border-emerald-500/20 animate-ping opacity-30" />
+            </div>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">Application Under Review</h2>
+            <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
+              We've received your documents. Our team in Kano is currently verifying your license and vehicle details. This usually takes 24–48 hours.
+            </p>
+            <div className="w-full max-w-sm bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left mb-8">
+              <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-3">Verification Progress</div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-xs text-white font-bold">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Documents received
+                </div>
+                <div className="flex items-center gap-3 text-xs text-charcoal-500">
+                  <div className="w-1.5 h-1.5 bg-charcoal-700 rounded-full" /> Manual ID verification
+                </div>
+                <div className="flex items-center gap-3 text-xs text-charcoal-500">
+                  <div className="w-1.5 h-1.5 bg-charcoal-700 rounded-full" /> Profile activation
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        {existingStatus === 'approved' && (
+          <>
+            <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-8">
+              <CheckCircle2 className="text-emerald-500" size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You're Verified! 🎉</h2>
+            <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
+              Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
+            </p>
+            <button 
+              onClick={() => router.push("/rider")}
+              className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl uppercase text-sm tracking-widest shadow-[0_0_24px_rgba(16,185,129,0.3)] mb-4"
+            >
+              Open Rider Dashboard
+            </button>
+          </>
+        )}
+        {existingStatus === 'rejected' && (
+          <>
+            <div className="w-24 h-24 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-8">
+              <AlertCircle className="text-red-500" size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">Application Not Approved</h2>
+            <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
+              Unfortunately your application was not approved. Please contact support for more information.
+            </p>
+          </>
+        )}
+        <button 
+          onClick={() => router.push("/dashboard")}
+          className="w-full max-w-sm py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm hover:bg-white/10 transition-all"
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">

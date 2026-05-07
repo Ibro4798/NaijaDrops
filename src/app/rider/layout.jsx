@@ -101,7 +101,7 @@ export default async function RiderLayout({ children }) {
                </div>
             </div>
 
-            <button onClick={() => redirect("/auth/login")} className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-sm">Sign Out</button>
+            <a href="/auth/login" className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-sm block text-center">Sign Out</a>
           </div>
         )}
 
