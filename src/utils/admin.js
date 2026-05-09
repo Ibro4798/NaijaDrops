@@ -22,8 +22,14 @@ export async function validateAdmin(requiredRole = 'admin') {
     throw new Error("Unauthorized Access - High Security Clearance Required");
   }
 
-  // 3. Check specific role requirements
-  if (requiredRole === 'super_admin' && admin.role !== 'super_admin') {
+  // 2b. Domain Check (Hard Constraint)
+  if (!user.email?.endsWith('@naijadrops.tech')) {
+    throw new Error("Unauthorized Access - Corporate Domain Required");
+  }
+
+  // 2c. Identify Super Admin (Hardcoded for now as requested)
+  const isSuperAdmin = user.email === 'ibrahim@naijadrops.tech';
+  if (requiredRole === 'super_admin' && !isSuperAdmin) {
     throw new Error("Forbidden - Super Admin Access Only");
   }
 

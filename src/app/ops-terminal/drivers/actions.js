@@ -63,3 +63,64 @@ export async function deactivateRider(riderId) {
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Invite a new Rider via email
+ */
+export async function inviteRider(formData) {
+  try {
+    const { admin } = await validateAdmin(); // Security Check
+    const { createAdminClient } = await import("@/utils/supabase/admin");
+    const adminSupabase = createAdminClient();
+
+    const email = formData.get("email");
+    const fullName = formData.get("full_name");
+    const vehicleType = formData.get("vehicle_type");
+
+    if (!email || !fullName) throw new Error("Email and Full Name are required");
+
+    // 1. Invite User via Supabase Auth
+    const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: fullName }
+    });
+
+    if (inviteError) throw inviteError;
+    const userId = inviteData.user.id;
+
+    // 2. Create entry in users table
+    const { error: userError } = await adminSupabase
+      .from("users")
+      .upsert({
+        id: userId,
+        email: email,
+        full_name: fullName,
+        has_rider_profile: true,
+        active_mode: 'rider'
+      });
+
+    if (userError) throw userError;
+
+    // 3. Create entry in riders table
+    const { error: riderError } = await adminSupabase
+      .from("riders")
+      .insert({
+        user_id: userId,
+        full_name: fullName,
+        vehicle_type: vehicleType || 'bike',
+        status: 'approved', // Pre-approved as requested
+        operational_status: 'offline'
+      });
+
+    if (riderError) throw riderError;
+
+    // 4. Audit Log
+    await logAdminAction(admin.id, "RIDER_INVITE", "rider", userId, { email, fullName });
+
+    revalidatePath("/ops-terminal/drivers");
+    return { success: true };
+  } catch (err) {
+    console.error("Admin Invite Error:", err);
+    return { success: false, error: err.message };
+  }
+}
+

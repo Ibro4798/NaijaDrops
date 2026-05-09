@@ -27,7 +27,9 @@ export const ALLOWED_HOSTS = [
   "goo.gl",
   "google.com",
   "maps.google.com",
-  "maps.apple.com"
+  "maps.apple.com",
+  "apple.co",
+  "whatsapp.com"
 ];
 
 export function isAllowedHost(url) {
@@ -41,10 +43,14 @@ export function isAllowedHost(url) {
 
 export function extractCoordinates(url) {
   const patterns = [
-    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]sll=(-?\d+\.\d+),(-?\d+\.\d+)/
+    /@(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /[?&]q=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /[?&]ll=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /[?&]sll=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/i,
+    /center=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /[?&]daddr=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i,
+    /[?&]address=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/i
   ];
 
   for (const pattern of patterns) {

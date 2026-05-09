@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "lucide-react";
 import Image from "next/image";
 import DriverActions from "./DriverActions";
+import InviteDriverButton from "./InviteDriverButton";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,12 @@ export default async function AdminDriversPage() {
            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
            <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Managing {riders?.length || 0} Registered Workforce Units</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-600" size={14} />
               <input type="text" placeholder="Search ID / Name" className="bg-charcoal-900 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs focus:border-emerald-500 outline-none" />
            </div>
+           <InviteDriverButton />
         </div>
       </div>
 

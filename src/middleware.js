@@ -28,14 +28,17 @@ export async function middleware(request) {
 
   // Public/Auth routes don't need mode enforcement
   if (!user) {
-    if (pathname.startsWith("/dashboard") || pathname.startsWith("/rider") || pathname.startsWith("/driver") || pathname.startsWith("/select-mode")) {
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/rider") || (pathname.startsWith("/driver") && !pathname.startsWith("/driver/onboarding")) || pathname.startsWith("/select-mode")) {
       return NextResponse.redirect(new URL('/auth/login', request.url));
     }
     return response;
   }
 
-  // Admin isolation (stays deterministic)
-  if (pathname.startsWith("/ops-terminal")) {
+  // Admin isolation (Corporate Domain Enforcement)
+  if (pathname.startsWith("/ops-terminal") || pathname.startsWith("/admin")) {
+    if (!user.email?.endsWith("@naijadrops.tech")) {
+      return new NextResponse(null, { status: 404 });
+    }
     const { data: admin } = await supabase.from("admin_users").select("is_active").eq("id", user.id).single();
     if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
     return response;

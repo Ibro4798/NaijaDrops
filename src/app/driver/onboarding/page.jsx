@@ -119,16 +119,9 @@ export default function DriverOnboardingPage() {
 
       if (updateErr) throw updateErr;
 
-      // SUCCESS: The Rule -> Update User State to Source of Truth
-      await supabase.from("users").update({
-        has_rider_profile: true,
-        active_mode: 'rider'
-      }).eq("id", user.id);
-
-      // SET HINT: Ensure middleware allows instant access to /rider
-      document.cookie = "nd_mode_hint=rider; path=/; max-age=30; SameSite=Lax";
-
-      router.push("/rider");
+      // SUCCESS: Set status to pending and show status screen
+      setExistingStatus('pending');
+      // We do NOT update active_mode to rider yet. Admin approval will do that.
     } catch (err) {
       setError(err.message);
     } finally {
