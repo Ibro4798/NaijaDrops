@@ -44,17 +44,8 @@ export default async function DriverLayout({ children }) {
     redirect('/login');
   }
 
-  // Fetch role
-  const { data: driverData } = await supabase
-    .from('drivers')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (!driverData) {
-    // If not a driver, kick them out of the driver portal
-    redirect('/');
-  }
+  // Pages within the driver portal will handle their own specific routing 
+  // (e.g., redirecting to /driver/onboarding if the profile doesn't exist yet).
 
   return (
     <div className="min-h-[100dvh] bg-charcoal-950 text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden">

@@ -64,10 +64,9 @@ export default async function AdminsPage() {
                   name="email"
                   type="email" 
                   required
-                  placeholder="name@naijadrops.tech"
+                  placeholder="admin@email.com"
                   className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 transition-all"
                 />
-                <p className="text-[8px] text-charcoal-600 font-bold uppercase tracking-widest mt-2 ml-1">Must be @naijadrops.tech domain</p>
               </div>
 
               <button 

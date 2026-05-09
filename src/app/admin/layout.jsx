@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { validateAdmin } from "@/utils/admin";
 
 export default async function AdminLayout({ children }) {
   const supabase = await createClient();
@@ -9,15 +10,11 @@ export default async function AdminLayout({ children }) {
     redirect("/auth/login");
   }
 
-  // Enforce Admin Role
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "admin") {
-    redirect("/"); // Kick non-admins out entirely
+  // Enforce Admin Role using the new central utility
+  try {
+    await validateAdmin();
+  } catch (err) {
+    redirect("/"); // Kick unauthorized users out
   }
 
   return (

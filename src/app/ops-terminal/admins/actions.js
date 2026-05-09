@@ -15,8 +15,8 @@ export async function addAdmin(formData) {
 
     const email = formData.get("email");
 
-    if (!email || !email.endsWith("@naijadrops.tech")) {
-      throw new Error("Invalid admin email. Must be @naijadrops.tech");
+    if (!email) {
+      throw new Error("Email is required");
     }
 
     // Check if already exists

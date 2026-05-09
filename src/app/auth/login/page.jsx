@@ -54,11 +54,8 @@ export default function LoginPage() {
         return;
       }
       // Role-based redirect
-      const { data: profile } = await supabase
-        .from("users").select("role").eq("id", data.user.id).single();
-
-      if (profile?.role === "admin") {
-         router.replace("/dashboard");
+      if (email.toLowerCase().endsWith("@naijadrops.tech")) {
+         router.replace("/admin");
       } else {
          router.replace("/dashboard");
       }

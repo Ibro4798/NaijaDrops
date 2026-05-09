@@ -36,11 +36,16 @@ export async function middleware(request) {
 
   // Admin isolation (Corporate Domain Enforcement)
   if (pathname.startsWith("/ops-terminal") || pathname.startsWith("/admin")) {
-    if (!user.email?.endsWith("@naijadrops.tech")) {
+    const isSuperAdmin = user.email?.toLowerCase() === "ibrahim@naijadrops.tech";
+
+    if (!user.email?.toLowerCase().endsWith("@naijadrops.tech")) {
       return new NextResponse(null, { status: 404 });
     }
-    const { data: admin } = await supabase.from("admin_users").select("is_active").eq("id", user.id).single();
-    if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
+
+    if (!isSuperAdmin) {
+      const { data: admin } = await supabase.from("admin_users").select("is_active").eq("id", user.id).single();
+      if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
+    }
     return response;
   }
 
