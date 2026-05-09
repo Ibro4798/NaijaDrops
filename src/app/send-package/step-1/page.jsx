@@ -53,6 +53,7 @@ export default function Step1Page() {
   const [linkInput, setLinkInput] = useState("");
   const [linkTarget, setLinkTarget] = useState(null); // 'pickup' | 'dropoff'
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkError, setLinkError] = useState(null);
   const searchTimeout = useRef(null);
 
   // Preload last pickup on mount
@@ -145,6 +146,7 @@ export default function Step1Page() {
     }
 
     setGpsLoading(true); 
+    setLinkError(null);
     try {
       const resp = await fetch("/api/resolve-link", {
         method: "POST",
@@ -160,10 +162,10 @@ export default function Step1Page() {
         setShowLinkModal(false);
         setLinkInput("");
       } else {
-        alert(data.error || "Couldn't extract location from that link.");
+        setLinkError(data.error || "Unable to resolve this map link. Please try a different link or search manually.");
       }
     } catch (err) {
-      alert("Failed to resolve map link. Please try the full URL.");
+      setLinkError("Connection failed. Please check your network and try again.");
     } finally {
       setGpsLoading(false);
     }
@@ -376,12 +378,38 @@ export default function Step1Page() {
               className="w-full bg-charcoal-900 border-t border-white/10 rounded-t-[2rem] p-6">
               <h3 className="text-white font-black text-lg mb-1">Paste a Map Link</h3>
               <p className="text-charcoal-500 text-sm mb-4">Works with Google Maps, Apple Maps URLs</p>
-              <textarea value={linkInput} onChange={e => setLinkInput(e.target.value)} rows={3}
-                placeholder="Paste your maps link here..."
-                className="w-full bg-charcoal-800 border border-white/10 rounded-2xl p-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 text-sm font-medium resize-none mb-4" />
+              
+              <div className="relative mb-4">
+                <textarea value={linkInput} onChange={e => { setLinkInput(e.target.value); setLinkError(null); }} rows={3}
+                  disabled={gpsLoading}
+                  placeholder="Paste your maps link here..."
+                  className={`w-full bg-charcoal-800 border ${linkError ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 text-sm font-medium resize-none transition-all`} />
+                
+                {gpsLoading && (
+                  <div className="absolute inset-0 bg-charcoal-900/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="text-emerald-500 animate-spin" size={24} />
+                    <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Resolving coordinates...</span>
+                  </div>
+                )}
+              </div>
+
+              {linkError && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
+                  <AlertCircle className="text-red-500 shrink-0" size={18} />
+                  <p className="text-red-400 text-xs font-bold leading-tight">{linkError}</p>
+                </motion.div>
+              )}
+
               <div className="flex gap-3">
-                <button onClick={() => { setShowLinkModal(false); setLinkInput(""); }} className="flex-1 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-sm">Cancel</button>
-                <button onClick={handleLinkPaste} className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-400 rounded-2xl text-charcoal-950 font-black text-sm">Extract Location</button>
+                <button onClick={() => { setShowLinkModal(false); setLinkInput(""); setLinkError(null); }} 
+                  disabled={gpsLoading}
+                  className="flex-1 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-sm disabled:opacity-50">Cancel</button>
+                <button onClick={handleLinkPaste} 
+                  disabled={gpsLoading || !linkInput.trim()}
+                  className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-400 rounded-2xl text-charcoal-950 font-black text-sm disabled:opacity-50 shadow-glow">
+                  {gpsLoading ? "Extracting..." : "Extract Location"}
+                </button>
               </div>
             </motion.div>
           </motion.div>
