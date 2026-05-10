@@ -112,14 +112,40 @@ export default function DriverDashboard() {
           </div>
         </div>
 
-        <div className="bg-white/[0.02] border border-dashed border-white/10 rounded-[2rem] p-12 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-white/[0.03] rounded-full flex items-center justify-center mb-6">
-            <Briefcase className="text-charcoal-700" size={32} />
-          </div>
-          <h3 className="text-white font-bold text-sm mb-2">No active jobs in your area</h3>
-          <p className="text-charcoal-500 text-[10px] leading-relaxed max-w-[180px]">
-            New orders from Kano vendors will appear here as they come in.
-          </p>
+        <div className="space-y-4">
+          {/* Mock Jobs for Testing */}
+          {[
+            { id: 1, pickup: "Sabon Gari Market", dropoff: "Bayero University", price: "₦2,500", time: "2m ago" },
+            { id: 2, pickup: "Kofar Nassarawa", dropoff: "Hotoro Gidan Kwano", price: "₦1,800", time: "5m ago" },
+            { id: 3, pickup: "Challawa Industrial Estate", dropoff: "Murtala Mohammed Way", price: "₦3,200", time: "8m ago" }
+          ].map(job => (
+            <div key={job.id} className="bg-charcoal-900 border border-white/5 p-5 rounded-3xl group hover:border-emerald-500/50 transition-all active:scale-[0.98]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">Available</div>
+                <div className="text-white font-black italic">{job.price}</div>
+              </div>
+              <div className="space-y-3 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 shadow-glow" />
+                  <div>
+                    <div className="text-[9px] text-charcoal-600 font-black uppercase">Pickup</div>
+                    <div className="text-xs text-white font-bold">{job.pickup}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5" />
+                  <div>
+                    <div className="text-[9px] text-charcoal-600 font-black uppercase">Dropoff</div>
+                    <div className="text-xs text-white font-bold">{job.dropoff}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                <div className="text-[9px] text-charcoal-500 font-bold uppercase">{job.time}</div>
+                <button className="bg-emerald-500 text-charcoal-950 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-glow">Accept Job</button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

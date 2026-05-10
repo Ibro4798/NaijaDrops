@@ -248,8 +248,16 @@ export default function DriverOnboardingPage() {
                   <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="080XXXXXXXX"
                     className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-white placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
                </div>
-               <button onClick={handleNext} disabled={!formData.full_name || !formData.phone}
-                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 mt-8 disabled:opacity-50">
+               <button 
+                  onClick={() => {
+                    if (existingStatus === 'pending') {
+                      alert("Your application is currently under review. Please wait for verification.");
+                    } else {
+                      handleNext();
+                    }
+                  }} 
+                  disabled={!formData.full_name || !formData.phone}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 mt-8 disabled:opacity-50">
                   Continue <ChevronRight size={18} />
                </button>
             </motion.div>

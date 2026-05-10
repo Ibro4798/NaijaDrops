@@ -54,8 +54,9 @@ export default function LoginPage() {
         return;
       }
       // Role-based redirect
+      // Role-based redirect
       if (email.toLowerCase().endsWith("@naijadrops.tech")) {
-         router.replace("/admin");
+         router.replace("/ops-terminal/dashboard");
       } else {
          router.replace("/dashboard");
       }
