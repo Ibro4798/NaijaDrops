@@ -30,25 +30,23 @@ export async function addAdmin(formData) {
       throw new Error("Admin already exists");
     }
 
-    // Insert into admin_users
-    // Note: We don't have the UUID yet if they haven't signed up.
-    // The validateAdmin logic uses .eq("id", user.id), which implies they must have a UUID.
-    // This means we should probably invite them or wait for them to sign up.
-    // But the user just says "add new admins".
-    
-    // If they sign up with that email, we need to link them.
-    // A better way is to store the email and then link it on their first login,
-    // or just use email-based validation in the middleware.
+    // 1. Invite User via Supabase Auth. Supabase handles the SMTP email sending.
+    const { createAdminClient } = await import("@/utils/supabase/admin");
+    const adminSupabase = createAdminClient();
 
-    const { error } = await supabase
-      .from("admin_users")
-      .insert({ 
-        email, 
-        is_active: true,
-        role: 'admin'
-      });
+    const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+      data: { role: 'admin' }
+    });
 
-    if (error) throw error;
+    if (inviteError && !inviteError.message.includes('already registered')) {
+        throw inviteError;
+    }
+
+    // Because of the 'on_auth_user_created' SQL Trigger, the user will AUTOMATICALLY 
+    // be added to public.admin_users as IS_ACTIVE = TRUE.
+    // We do not need to manually upsert into admin_users here anymore!
+
+    // Manual inserts removed. Trigger handles it.
 
     await logAdminAction(currentAdmin.id, "ADMIN_ADDITION", "admin", null, { email });
 

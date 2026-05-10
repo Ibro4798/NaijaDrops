@@ -16,8 +16,8 @@ export async function approveRider(riderId) {
     const { error } = await supabase
       .from("riders")
       .update({ 
-        operational_status: 'offline', // Move from pending to offline (ready)
-        status: 'approved'
+        status: 'offline', // Move to offline (ready)
+        approved: true
       })
       .eq("user_id", riderId);
 
@@ -46,8 +46,8 @@ export async function deactivateRider(riderId) {
     const { error } = await supabase
       .from("riders")
       .update({ 
-        operational_status: 'offline',
-        status: 'paused'
+        status: 'offline',
+        approved: false
       })
       .eq("user_id", riderId);
 
@@ -79,39 +79,20 @@ export async function inviteRider(formData) {
 
     if (!email || !fullName) throw new Error("Email and Full Name are required");
 
-    // 1. Invite User via Supabase Auth
+    // 1. Invite User via Supabase Auth. Supabase handles the SMTP email sending here.
     const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName }
+      data: { full_name: fullName, role: 'rider', vehicle_type: vehicleType || 'bike' }
     });
 
     if (inviteError) throw inviteError;
     const userId = inviteData.user.id;
 
-    // 2. Create entry in users table
-    const { error: userError } = await adminSupabase
-      .from("users")
-      .upsert({
-        id: userId,
-        email: email,
-        full_name: fullName,
-        has_rider_profile: true,
-        active_mode: 'rider'
-      });
+    // Because of the 'on_auth_user_created' SQL Trigger, the user will AUTOMATICALLY 
+    // be added to public.users and public.riders as APPROVED.
+    // We do not need to manually upsert into riders/users here anymore!
 
-    if (userError) throw userError;
+    // Note: Manual inserts are removed because the SQL Trigger handles it instantly
 
-    // 3. Create entry in riders table
-    const { error: riderError } = await adminSupabase
-      .from("riders")
-      .insert({
-        user_id: userId,
-        full_name: fullName,
-        vehicle_type: vehicleType || 'bike',
-        status: 'approved', // Pre-approved as requested
-        operational_status: 'offline'
-      });
-
-    if (riderError) throw riderError;
 
     // 4. Audit Log
     await logAdminAction(admin.id, "RIDER_INVITE", "rider", userId, { email, fullName });
