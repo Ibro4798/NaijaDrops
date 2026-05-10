@@ -49,34 +49,12 @@ export default async function RiderLayout({ children }) {
       <main className="flex-1 w-full max-w-lg mx-auto relative px-5 py-4">
         {/* SOFT-LOCK OVERLAYS (STRICT SPEC RULE #16) */}
         
-        {/* 1. Pending Lock */}
+        {/* 1. Pending Toast (Removed Overlay so they can see feed) */}
         {isPending && (
-          <div className="fixed inset-0 z-[100] bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
-            <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-8 relative">
-               <Clock className="text-emerald-500 animate-pulse" size={40} />
-               <div className="absolute inset-0 w-24 h-24 rounded-full border border-emerald-500/20 animate-ping opacity-30" />
+          <div className="fixed top-20 inset-x-0 z-[100] flex justify-center pointer-events-none">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md px-6 py-3 rounded-full text-emerald-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-glow">
+              <Clock className="animate-pulse" size={14} /> View Only Mode - Verification Pending
             </div>
-            <h2 className="text-2xl font-black text-white mb-4">Application Under Review</h2>
-            <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
-              We've received your documents. Our team in Kano is currently verifying your license and vehicle details.
-            </p>
-            <div className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left mb-8">
-               <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-3">Next Steps</div>
-               <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-xs text-white font-bold">
-                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Manual verification of ID
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-charcoal-500">
-                     <div className="w-1.5 h-1.5 bg-charcoal-700 rounded-full" /> Background check
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-charcoal-500">
-                     <div className="w-1.5 h-1.5 bg-charcoal-700 rounded-full" /> Profile activation
-                  </div>
-               </div>
-            </div>
-            <a href="https://wa.me/234XXXXXXXX" className="flex items-center gap-2 text-emerald-500 font-black text-sm">
-               <PhoneCall size={16} /> Contact Support
-            </a>
           </div>
         )}
 
@@ -106,7 +84,7 @@ export default async function RiderLayout({ children }) {
         )}
 
         {/* 3. Approved Content */}
-        {isApproved && children}
+        {(!isRejected && !isPaused) && children}
       </main>
     </div>
   );

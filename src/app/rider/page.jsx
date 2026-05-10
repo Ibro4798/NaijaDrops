@@ -214,10 +214,10 @@ export default function RiderHome() {
     setActionLoading(true);
     // 1. Get Rider Profile ID
     const { data: { user } } = await supabase.auth.getUser();
-    const { data: riderProfile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
+    const { data: riderProfile } = await supabase.from('riders').select('id, status').eq('user_id', user.id).single();
     
-    if (!riderProfile) {
-       alert("Rider profile not found. Please complete onboarding.");
+    if (riderProfile.status !== 'approved') {
+       alert("You are in View-Only mode. Please wait until your profile is verified to accept jobs.");
        setActionLoading(false);
        return;
     }
@@ -240,6 +240,12 @@ export default function RiderHome() {
     setActionLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     
+    if (profile?.status !== 'approved') {
+       alert("You are in View-Only mode. Please wait until your profile is verified to submit counter offers.");
+       setActionLoading(false);
+       return;
+    }
+
     // Insert into bids table
     const { error } = await supabase.from('bids').insert({
       order_id: orderId,
@@ -364,7 +370,13 @@ export default function RiderHome() {
 
                   <div className="flex gap-3">
                     <button 
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={() => {
+                        if (profile?.status !== 'approved') {
+                          alert("Account Unverified: You can view jobs, but cannot interact until verified by Ops.");
+                          return;
+                        }
+                        setSelectedOrder(order);
+                      }}
                       className="flex-1 py-4.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black rounded-2xl uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-glow"
                     >
                       Review & Negotiate

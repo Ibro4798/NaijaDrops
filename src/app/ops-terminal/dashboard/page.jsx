@@ -2,6 +2,7 @@ import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Truck, ShieldCheck, DollarSign, Activity, AlertTriangle, Users, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import RealtimeAlerts from "./RealtimeAlerts";
 
 export const dynamic = "force-dynamic";
 
@@ -113,16 +114,7 @@ export default async function OpsDashboard() {
 
               <div className="pt-6 border-t border-white/5">
                  <h3 className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-4">Latest Audit Events</h3>
-                 <div className="space-y-3">
-                    <div className="flex justify-between items-center text-[10px]">
-                       <span className="text-charcoal-400">SESSION_INIT</span>
-                       <span className="text-charcoal-600">Just Now</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[10px]">
-                       <span className="text-charcoal-400">RLS_BOOTSTRAP</span>
-                       <span className="text-charcoal-600">2m ago</span>
-                    </div>
-                 </div>
+                 <RealtimeAlerts />
               </div>
            </div>
         </div>
