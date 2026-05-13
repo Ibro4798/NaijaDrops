@@ -43,7 +43,15 @@ export async function middleware(request) {
     }
 
     if (!isSuperAdmin) {
-      const { data: admin } = await supabase.from("admin_users").select("is_active").eq("id", user.id).single();
+      // Use createClient (server) which uses service role key if configured,
+      // avoiding RLS recursion on admin_users table.
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+      const serviceSupabase = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+      const { data: admin } = await serviceSupabase.from("admin_users").select("is_active").eq("id", user.id).single();
       if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
     }
     return response;

@@ -11,10 +11,15 @@ export default async function AdminDriversPage() {
   const { admin } = await validateAdmin(); // Layer 2 Security
   const supabase = await createClient();
 
-  const { data: riders } = await supabase
+  // Fetch all riders - approved boolean is the single source of truth
+  const { data: riders, error } = await supabase
     .from("riders")
-    .select("*, users(full_name, email)")
+    .select("*, users(full_name, email, phone)")
     .order("created_at", { ascending: false });
+
+  // Separate pending from approved for the UI
+  const pendingRiders = riders?.filter(r => !r.approved) || [];
+  const approvedRiders = riders?.filter(r => r.approved) || [];
 
   return (
     <div className="min-h-screen bg-black text-white p-8 font-mono">
@@ -22,7 +27,9 @@ export default async function AdminDriversPage() {
       <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
         <div>
            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
-           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Managing {riders?.length || 0} Registered Workforce Units</p>
+           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
+             {pendingRiders.length} Pending Review · {approvedRiders.length} Active Units
+           </p>
         </div>
         <div className="flex gap-4 items-center">
            <div className="relative">
@@ -49,13 +56,19 @@ export default async function AdminDriversPage() {
 
              {/* Identity Info */}
              <div className="flex-1 min-w-[200px]">
-                <div className="flex items-center gap-2 mb-1">
-                   <h3 className="text-lg font-black tracking-tight">{rider.users?.full_name || "Unknown Identity"}</h3>
-                   <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${rider.operational_status === 'online' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-charcoal-800 text-charcoal-600'}`}>
-                      {rider.operational_status}
-                   </span>
-                </div>
-                <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.users?.email}</div>
+                {/* Approval Status Badge */}
+             <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-black tracking-tight">{rider.users?.full_name || "Unknown Identity"}</h3>
+                <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
+                  rider.approved 
+                    ? 'bg-emerald-500/10 text-emerald-500' 
+                    : 'bg-amber-500/10 text-amber-500'
+                }`}>
+                   {rider.approved ? 'Approved' : 'Pending Review'}
+                </span>
+             </div>
+             <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.users?.email}</div>
+             <div className="text-[10px] text-charcoal-600 font-bold uppercase tracking-widest">{rider.users?.phone || 'No Phone'}</div>
                 <div className="flex items-center gap-3 mt-3">
                    <div className="flex items-center gap-1 text-amber-500 text-xs font-black">
                       <Star size={12} fill="currentColor" /> {rider.rating || "5.0"}
@@ -81,7 +94,7 @@ export default async function AdminDriversPage() {
              </div>
 
              {/* Operational Actions */}
-             <DriverActions riderId={rider.user_id} currentStatus={rider.status} />
+             <DriverActions riderId={rider.user_id} isApproved={rider.approved} />
           </div>
         ))}
 

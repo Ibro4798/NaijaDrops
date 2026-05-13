@@ -15,10 +15,7 @@ export async function approveRider(riderId) {
     // Update rider status
     const { error } = await supabase
       .from("riders")
-      .update({ 
-        status: 'offline', // Move to offline (ready)
-        approved: true
-      })
+      .update({ approved: true })
       .eq("user_id", riderId);
 
     if (error) throw error;
@@ -45,10 +42,7 @@ export async function deactivateRider(riderId) {
     // Update rider status
     const { error } = await supabase
       .from("riders")
-      .update({ 
-        status: 'offline',
-        approved: false
-      })
+      .update({ approved: false })
       .eq("user_id", riderId);
 
     if (error) throw error;

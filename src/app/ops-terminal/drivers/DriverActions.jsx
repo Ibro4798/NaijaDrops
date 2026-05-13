@@ -4,7 +4,7 @@ import { useState } from "react";
 import { approveRider, deactivateRider } from "./actions";
 import { Loader2 } from "lucide-react";
 
-export default function DriverActions({ riderId, currentStatus }) {
+export default function DriverActions({ riderId, isApproved }) {
   const [loading, setLoading] = useState(false);
 
   const handleApprove = async () => {
@@ -31,7 +31,7 @@ export default function DriverActions({ riderId, currentStatus }) {
         </div>
       ) : (
         <>
-          {currentStatus !== 'paused' && (
+          {isApproved && (
             <button 
               onClick={handleDeactivate}
               className="px-5 py-3 rounded-xl bg-charcoal-800 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all"
@@ -39,7 +39,7 @@ export default function DriverActions({ riderId, currentStatus }) {
                Deactivate
             </button>
           )}
-          {currentStatus !== 'approved' && (
+          {!isApproved && (
             <button 
               onClick={handleApprove}
               className="px-5 py-3 rounded-xl bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)]"
