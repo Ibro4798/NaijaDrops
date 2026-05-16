@@ -53,13 +53,9 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      // Role-based redirect
-      // Role-based redirect
-      if (email.toLowerCase().endsWith("@naijadrops.tech")) {
-         router.replace("/ops-terminal/dashboard");
-      } else {
-         router.replace("/dashboard");
-      }
+      
+      // Let the central resolver handle smart routing based on the actual database role
+      router.replace("/resolve");
       return;
     }
 
@@ -75,7 +71,14 @@ export default function LoginPage() {
         },
       });
       if (error) setError(error.message);
-      else setError("Check your email to verify your account, then sign in.");
+      else {
+        if (data.session) {
+            // Auto-login succeeded, go to resolver
+            router.replace("/resolve");
+        } else {
+            setError("Check your email to verify your account, then sign in.");
+        }
+      }
       setLoading(false);
     }
   }

@@ -1,13 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { getUserRole, getRoleRedirectPath } from "@/utils/auth";
 
-/**
- * THE RESOLVER: The Single Entry Point after Auth
- * Logic: 
- * 1. Check if user has a rider profile
- * 2. If no rider -> Set mode to 'customer' -> Go to /dashboard
- * 3. If has rider -> Go to /select-mode
- */
 export default async function ResolvePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -16,19 +10,14 @@ export default async function ResolvePage() {
     redirect("/auth/login");
   }
 
-  // Check riders table for existing profile
-  const { data: rider } = await supabase
-    .from("riders")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
+  // Use the central auth utility to determine role
+  const { role } = await getUserRole(supabase);
 
-  if (rider) {
-    await supabase.from("users").update({ 
-      has_rider_profile: true 
-    }).eq("id", user.id);
+  if (role) {
+    redirect(getRoleRedirectPath(role));
+  } else {
+    // If no role is found (e.g., they didn't specify one during signup or metadata was missed), default to vendor
+    await supabase.from("users").update({ role: 'vendor' }).eq("id", user.id);
+    redirect("/dashboard");
   }
-
-  // Everyone starts at the dashboard
-  redirect("/dashboard");
 }
