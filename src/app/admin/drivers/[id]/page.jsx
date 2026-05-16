@@ -38,18 +38,34 @@ export default function DriverReviewPage() {
   const handleUpdateStatus = async (newStatus, reason = null) => {
     setActionLoading(true);
     try {
+      // 1. Update the rider status
       const updates = { status: newStatus };
       if (reason) updates.rejection_reason = reason;
 
-      const { error } = await supabase
+      const { error: riderErr } = await supabase
         .from('riders')
         .update(updates)
         .eq('id', params.id);
 
-      if (error) throw error;
+      if (riderErr) throw riderErr;
+
+      // 2. If APPROVED: Upgrade the user's role and mode
+      if (newStatus === 'approved') {
+        const { error: userErr } = await supabase
+          .from('users')
+          .update({ 
+            role: 'rider', 
+            active_mode: 'rider' 
+          })
+          .eq('id', driver.user_id);
+        
+        if (userErr) throw userErr;
+
+        // Also initialize them as online in the riders table
+        await supabase.from('riders').update({ operational_status: 'online' }).eq('id', params.id);
+      }
       
       setDriver(prev => ({ ...prev, ...updates }));
-      
       alert(`Driver status updated to: ${newStatus.toUpperCase()}`);
     } catch (err) {
       console.error(err);

@@ -114,8 +114,8 @@ export default function Navbar() {
                 </motion.div>
                 )}
 
-                {/* Driver Wallet */}
-                {profile?.role === 'driver' && (
+                {/* Rider Wallet */}
+                {profile?.role === 'rider' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
                         href="/driver/earnings" 
