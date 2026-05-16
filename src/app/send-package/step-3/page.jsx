@@ -100,13 +100,13 @@ function Step3Content() {
           // Fetch rider profile
           const { data: rider } = await supabase
             .from("riders")
-            .select("*, users(full_name, email)")
+            .select("*, users(name, email)")
             .eq("id", payload.new.rider_id)
             .single();
             
           setMatchedRider({
             id: payload.new.rider_id,
-            name: rider?.users?.full_name || "Driver",
+            name: rider?.users?.name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
             rating: rider?.rating || 5.0,
@@ -170,7 +170,7 @@ function Step3Content() {
         event: "INSERT", schema: "public", table: "bids", filter: `order_id=eq.${orderId}`
       }, async (payload) => {
         const { data: bid } = await supabase.from("bids")
-          .select("*, riders(user_id, vehicle_type, plate_number, avg_rating, users(full_name))")
+          .select("*, riders(user_id, vehicle_type, plate_number, avg_rating, users(name))")
           .eq("id", payload.new.id).single();
         if (bid) setBids(prev => [...prev, bid]);
       })
@@ -196,7 +196,7 @@ function Step3Content() {
 
     setMatchedRider({
       id: bid.rider_id,
-      name: bid.riders?.users?.full_name || "Driver",
+      name: bid.riders?.users?.name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
       rating: bid.riders?.rating || 5.0,

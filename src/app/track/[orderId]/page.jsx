@@ -111,7 +111,7 @@ export default function TrackPage() {
 
   async function fetchOrder() {
     // PUBLIC ACCESS: We use the order ID as a token. RLS should allow select for all.
-    const { data, error } = await supabase.from("orders").select("*, riders(*, users(full_name))").eq("id", orderId).single();
+    const { data, error } = await supabase.from("orders").select("*, riders(*, users(name))").eq("id", orderId).single();
     if (data) {
       setOrder(data);
       setLastStatus(data.status);
@@ -263,7 +263,10 @@ export default function TrackPage() {
                   )}
                </div>
                <div className="flex-1">
-                 <div className="text-white font-black">{rider.users?.full_name || "Assigned Driver"}</div>
+                 <div className="flex items-center gap-2">
+                   <span className="text-white font-black text-xl">{rider.users?.name || "Verified Driver"}</span>
+                   <ShieldCheck size={16} className="text-blue-400" />
+                 </div>
                  <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">
                    {rider.plate_number || "KANO-TRK"} • <span className="text-emerald-500">{rider.rating || '5.0'} ★</span>
                  </div>

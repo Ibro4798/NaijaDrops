@@ -37,17 +37,52 @@ const STATUS_CONFIG = {
   in_transit: { label: "In Transit", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", icon: <Navigation size={16} /> },
 };
 
+import { Camera, Image as ImageIcon } from "lucide-react";
+
 // ─── Profile Completion Modal ────────────────────────────────────────────────
-function ProfileModal({ isOpen, onClose, onSave, currentName }) {
+function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
   const [name, setName] = useState(currentName || "");
+  const [avatar, setAvatar] = useState(currentAvatar || "");
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     if (isOpen) {
       setName(currentName || "");
+      setAvatar(currentAvatar || "");
       setLoading(false);
     }
-  }, [isOpen, currentName]);
+  }, [isOpen, currentName, currentAvatar]);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setAvatar(publicUrl);
+    } catch (error) {
+      alert("Error uploading image: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -56,9 +91,33 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-charcoal-950/90 backdrop-blur-md" onClick={onClose} />
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
         className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+        
         <div className="text-center">
-           <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
-           <p className="text-charcoal-500 text-xs mt-2 uppercase font-bold tracking-widest">Help riders find you faster</p>
+            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
+            <p className="text-charcoal-500 text-xs mt-2 uppercase font-bold tracking-widest">Help riders find you faster</p>
+        </div>
+
+        {/* Avatar Upload */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full bg-charcoal-950 border-2 border-white/10 overflow-hidden flex items-center justify-center shadow-2xl">
+              {avatar ? (
+                <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon size={40} className="text-charcoal-800" />
+              )}
+              {uploading && (
+                <div className="absolute inset-0 bg-charcoal-950/60 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-emerald-500" />
+                </div>
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+              <Camera size={16} className="text-charcoal-950" />
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+            </label>
+          </div>
+          <span className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest">Click to upload photo</span>
         </div>
         
         <div className="space-y-4">
@@ -77,12 +136,12 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
              onClick={async () => { 
                setLoading(true); 
                try {
-                 await onSave(name); 
+                 await onSave(name, avatar); 
                } finally {
                  setLoading(false);
                }
              }}
-             disabled={loading || !name}
+             disabled={loading || uploading || !name}
              className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-glow disabled:opacity-50"
            >
              {loading ? <Loader2 className="animate-spin mx-auto" /> : "Save Profile"}
@@ -94,7 +153,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName }) {
 }
 
 // ─── Menu Modal ─────────────────────────────────────────────────────────────
-function MenuModal({ isOpen, onClose, onLogout, onProfile, riderStatus }) {
+function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
   const router = useRouter();
   if (!isOpen) return null;
 
@@ -114,8 +173,8 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, riderStatus }) {
 
         <div className="p-4 space-y-2 overflow-y-auto flex-1">
            <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
-                <UserIcon size={20} />
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all overflow-hidden">
+                {userAvatar ? <img src={userAvatar} className="w-full h-full object-cover" /> : <UserIcon size={20} />}
               </div>
               <span className="font-bold text-sm">Identity Profile</span>
            </button>
@@ -196,9 +255,9 @@ export default function DashboardPage() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [greeting, setGreeting] = useState("Good day");
   const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -213,19 +272,19 @@ export default function DashboardPage() {
     if (!u) return;
     setUser(u);
 
-    // 2. Get Vendor Profile (to get the correct vendor_id)
+    // 2. Get User Profile Name & Avatar
+    const { data: profile } = await supabase.from("users").select("name, avatar_url").eq("id", u.id).single();
+    if (profile?.name) {
+      setDisplayName(profile.name.split(" ")[0]);
+      setAvatarUrl(profile.avatar_url || "");
+    } else {
+      // Auto-open modal if profile is empty
+      setIsProfileModalOpen(true);
+    }
+
+    // 3. Get Vendor Profile (to get the correct vendor_id)
     const { data: vendorProfile } = await supabase.from("vendors").select("id").eq("user_id", u.id).single();
     const vendorId = vendorProfile?.id;
-
-    // 3. Get User Profile Name
-    const { data: profile } = await supabase.from("users").select("name, full_name").eq("id", u.id).single();
-    const rawName = profile?.full_name || profile?.name;
-    if (rawName) {
-      setDisplayName(rawName.split(" ")[0]);
-      setIsProfileIncomplete(false);
-    } else {
-      setIsProfileIncomplete(true);
-    }
 
     // 4. Get Orders using the correct Vendor ID
     if (vendorId) {
@@ -255,8 +314,12 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const handleUpdateProfile = async (name) => {
-    const { error } = await supabase.from("users").update({ full_name: name }).eq("id", user.id);
+  const handleUpdateProfile = async (name, avatar) => {
+    const { error } = await supabase.from("users").update({ 
+      name: name,
+      avatar_url: avatar 
+    }).eq("id", user.id);
+    
     if (!error) {
        setIsProfileModalOpen(false);
        loadData();
@@ -275,6 +338,7 @@ export default function DashboardPage() {
         onClose={() => setIsProfileModalOpen(false)} 
         onSave={handleUpdateProfile} 
         currentName={displayName}
+        currentAvatar={avatarUrl}
       />
 
       <AnimatePresence>
@@ -284,6 +348,7 @@ export default function DashboardPage() {
             onClose={() => setIsMenuOpen(false)} 
             onLogout={handleLogout}
             onProfile={() => setIsProfileModalOpen(true)}
+            userAvatar={avatarUrl}
           />
         )}
       </AnimatePresence>
@@ -319,21 +384,26 @@ export default function DashboardPage() {
       {/* Top Bar */}
       <div className="absolute top-0 inset-x-0 z-20 px-6 pt-14 pb-4">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-charcoal-400 text-xs font-medium">{greeting}{displayName ? "," : ""}</p>
-            <h1 className="text-white font-black text-2xl tracking-tight font-outfit">
-              {displayName || "Dashboard"} <span className="text-emerald-500">👋</span>
-            </h1>
+          <div className="flex items-center gap-3">
+             <div className="w-12 h-12 rounded-2xl bg-charcoal-900 border border-white/10 overflow-hidden flex items-center justify-center shadow-xl">
+               {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" /> : <UserIcon className="text-charcoal-600" size={20} />}
+             </div>
+             <div>
+               <p className="text-charcoal-400 text-[10px] font-bold uppercase tracking-widest leading-none mb-1">{greeting}</p>
+               <h1 className="text-white font-black text-xl tracking-tight font-outfit leading-none">
+                 {displayName || "Dashboard"}
+               </h1>
+             </div>
           </div>
           <div className="flex items-center gap-3">
             {activeOrderCount > 0 && (
               <div className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{activeOrderCount} Active</span>
+                <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeOrderCount} Active</span>
               </div>
             )}
             <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 bg-charcoal-900 border border-white/10 rounded-2xl text-white flex items-center justify-center hover:bg-white/5 transition-all shadow-xl">
-              <Menu size={24} />
+              <Menu size={20} />
             </button>
           </div>
         </div>
@@ -344,13 +414,6 @@ export default function DashboardPage() {
         <div className="absolute inset-x-0 bottom-0 h-[400px] bg-gradient-to-t from-charcoal-950 via-charcoal-950/95 to-transparent pointer-events-none" />
 
         <div className="relative px-5 pb-8 pt-6 space-y-4">
-          
-          {/* Trusted UI elements removed as per request for minimal homescreen */}
-
-          {/* Status chips removed as per request for minimal homescreen */}
-
-          {/* Quick stats removed for ultra-minimalist homescreen */}
-
           {/* PRIMARY CTA */}
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -379,4 +442,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
