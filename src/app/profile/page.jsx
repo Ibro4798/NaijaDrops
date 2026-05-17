@@ -29,7 +29,7 @@ export default function ProfilePage() {
       setUser(u);
       setRole(r);
       setProfile(p);
-      setFullName(p?.full_name || "");
+      setFullName(p?.name || "");
       setAvatarUrl(p?.avatar_url || "");
       setIsLoading(false);
     }
@@ -40,11 +40,10 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from("users")
         .update({
-          full_name: fullName,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
+          name: fullName,
+          avatar_url: avatarUrl
         })
         .eq("id", user.id);
 
@@ -102,7 +101,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex-1 space-y-2 text-center md:text-left">
-                 <div className="text-white font-black text-2xl tracking-tight">{profile?.full_name || "New Dispatcher"}</div>
+                 <div className="text-white font-black text-2xl tracking-tight">{profile?.name || "New Dispatcher"}</div>
                  <div className="text-charcoal-500 font-bold text-sm tracking-tight">{user?.email}</div>
                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
@@ -119,8 +118,18 @@ export default function ProfilePage() {
                       type="text" 
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Aliyu Ibrahim"
+                      placeholder="Aliyu Ibrahim"
                       className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-white font-bold tracking-tight focus:border-emerald-500 outline-none transition-all"
+                    />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block">Registered Email Address (Locked)</label>
+                    <input 
+                      type="email" 
+                      value={user?.email || ""}
+                      readOnly
+                      disabled
+                      className="w-full bg-white/5 border-2 border-white/5 rounded-2xl px-6 py-4 text-charcoal-400 font-bold tracking-tight outline-none cursor-not-allowed opacity-60"
                     />
                  </div>
                  <div>

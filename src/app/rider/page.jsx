@@ -265,7 +265,7 @@ export default function RiderHome() {
 
   return (
     <div className="space-y-6">
-      {profile && <DriverHeartbeat riderId={profile.user_id} isOnline={isOnline} />}
+      {profile && <DriverHeartbeat riderId={profile.id} isOnline={isOnline} />}
       {profile && <DriverNotifications profile={profile} isOnline={isOnline} />}
 
       {/* Detail Modal */}

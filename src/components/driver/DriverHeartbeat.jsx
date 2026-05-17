@@ -34,7 +34,7 @@ export default function DriverHeartbeat({ riderId, isOnline }) {
                current_lng: lng, 
                last_seen_at: new Date().toISOString() 
             })
-            .eq("user_id", riderId);
+            .eq("id", riderId);
 
           // 2. Insert into spatial history table (for the GiST indexed searches)
           await supabase
