@@ -45,7 +45,7 @@ export async function getBestRider(orderId) {
     .select("*")
     .eq("operational_status", "online")
     .eq("vehicle_type", order.vehicle_type)
-    .gt("last_seen", threeMinutesAgo);
+    .gt("last_seen_at", threeMinutesAgo);
 
   if (riderErr || !eligibleRiders || eligibleRiders.length === 0) {
     return { error: "No riders currently online" };
