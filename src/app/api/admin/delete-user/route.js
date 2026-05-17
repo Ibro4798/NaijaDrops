@@ -26,9 +26,9 @@ export async function POST(request) {
         }
 
         // 2. Explicitly cleanup role tables just in case cascade is not set up
-        await supabaseAdmin.from('admins').delete().eq('id', userId);
-        await supabaseAdmin.from('drivers').delete().eq('id', userId);
-        await supabaseAdmin.from('customers').delete().eq('id', userId);
+        await supabaseAdmin.from('admin_users').delete().eq('id', userId);
+        await supabaseAdmin.from('riders').delete().eq('user_id', userId);
+        await supabaseAdmin.from('vendors').delete().eq('user_id', userId);
 
         return NextResponse.json({ success: true });
 

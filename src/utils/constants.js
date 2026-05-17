@@ -15,8 +15,8 @@ export const ORDER_STATUS = {
 };
 
 export const USER_ROLES = {
-  DRIVER: 'driver',
-  CUSTOMER: 'user',
+  RIDER: 'rider',
+  VENDOR: 'vendor',
   ADMIN: 'admin',
 };
 
