@@ -25,7 +25,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
       // Fetch order details to show current agreed price
       const { data: orderData } = await supabase
         .from('orders')
-        .select('agreed_price, status, user_id, driver_id')
+        .select('agreed_price, status, vendor_id, rider_id')
         .eq('id', orderId)
         .single();
       if (orderData) setOrder(orderData);

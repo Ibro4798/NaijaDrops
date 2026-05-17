@@ -23,10 +23,13 @@ export default function ActiveJobPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const { data: profile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
+      if (!profile) return;
+
       const { data, error } = await supabase
         .from('orders')
         .select('*, riders(*)')
-        .eq('rider_id', user.id)
+        .eq('rider_id', profile.id)
         .in('status', ['assigned', 'picked_up', 'in_transit'])
         .order('updated_at', { ascending: false })
         .limit(1)
