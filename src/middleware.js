@@ -34,26 +34,20 @@ export async function middleware(request) {
     return response;
   }
 
-  // Admin isolation (Corporate Domain Enforcement)
+  // Admin isolation
   if (pathname.startsWith("/ops-terminal") || pathname.startsWith("/admin")) {
-    const isSuperAdmin = user.email?.toLowerCase() === "ibrahim@naijadrops.tech";
-
-    if (!user.email?.toLowerCase().endsWith("@naijadrops.tech")) {
-      return new NextResponse(null, { status: 404 });
-    }
-
-    if (!isSuperAdmin) {
-      // Use createClient (server) which uses service role key if configured,
-      // avoiding RLS recursion on admin_users table.
-      const { createClient: createServiceClient } = await import('@supabase/supabase-js');
-      const serviceSupabase = createServiceClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      );
-      const { data: admin } = await serviceSupabase.from("admin_users").select("is_active").eq("id", user.id).single();
-      if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
-    }
+    const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+    const serviceSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: admin } = await serviceSupabase
+      .from("admin_users")
+      .select("is_active, is_super_admin")
+      .eq("id", user.id)
+      .single();
+    if (!admin || !admin.is_active) return new NextResponse(null, { status: 404 });
     return response;
   }
 

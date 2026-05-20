@@ -25,7 +25,7 @@ export default function LandingPage() {
 
         if (profile?.role === "vendor") router.push("/dashboard");
         else if (profile?.role === "rider") router.push("/rider");
-        else if (profile?.role === "admin") router.push("/admin");
+        else if (profile?.role === "admin") router.push("/ops-terminal/dashboard");
       }
       setChecking(false);
     }

@@ -106,7 +106,7 @@ export default function Navbar() {
                 {profile?.role === 'admin' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
-                        href="/admin" 
+                        href="/ops-terminal/dashboard" 
                         className="hidden sm:flex items-center gap-2 bg-charcoal-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
                     >
                         <Shield size={16} className="text-emerald-400" /> Admin
@@ -118,7 +118,7 @@ export default function Navbar() {
                 {profile?.role === 'rider' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
-                        href="/driver/earnings" 
+                        href="/rider/earnings" 
                         className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-glow"
                     >
                         <Wallet size={16} /> Wallet
@@ -127,7 +127,7 @@ export default function Navbar() {
                 )}
 
                 {/* Active Trip Bubble */}
-                {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && (
+                {profile?.role === 'vendor' && activeOrder && !pathname?.startsWith('/rider') && (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                     <Link 
                         href={
@@ -176,7 +176,7 @@ export default function Navbar() {
 
             {!profile && !isCheckingAuth && (
                 <Link 
-                    href="/login" 
+                    href="/auth/login" 
                     className="bg-charcoal-900 text-white px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-black transition-all shadow-premium"
                 >
                     Login

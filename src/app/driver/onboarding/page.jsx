@@ -115,7 +115,7 @@ export default function DriverOnboardingPage() {
         ...formData,
         status: 'pending', // Strictly set to pending on submission
         documents_submitted_at: new Date().toISOString()
-      });
+      }, { onConflict: 'user_id' });
 
       if (updateErr) throw updateErr;
 

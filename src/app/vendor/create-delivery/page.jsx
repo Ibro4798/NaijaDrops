@@ -156,10 +156,21 @@ export default function CreateDelivery() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
 
+      // Fetch the vendor profile to get the correct primary key UUID (vendors.id)
+      const { data: vendorProfile, error: vendorErr } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (vendorErr || !vendorProfile) {
+        throw new Error("Unable to retrieve vendor profile. Please ensure you are logged in as a vendor.");
+      }
+
       const finalAgreedPrice = fareType === 'offer' ? Number(customOffer) : (fareType === 'express' ? Math.ceil(estimatedPrice * 1.3 / 50) * 50 : estimatedPrice);
 
       const orderData = {
-        vendor_id: user.id,
+        vendor_id: vendorProfile.id,
         pickup_name: pickup.name,
         pickup_lat: pickup.coords.lat,
         pickup_lng: pickup.coords.lng,
@@ -168,8 +179,8 @@ export default function CreateDelivery() {
         dropoff_lng: dropoff.coords.lng,
         item_category: category,
         item_size: size,
-        recipient_name: receiver.name,
-        recipient_phone: receiver.phone,
+        receiver_name: receiver.name,
+        receiver_phone: receiver.phone,
         agreed_price: finalAgreedPrice,
         status: 'pending'
       };

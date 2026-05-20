@@ -100,13 +100,13 @@ function Step3Content() {
           // Fetch rider profile
           const { data: rider } = await supabase
             .from("riders")
-            .select("*, users(name, email)")
+            .select("*, users(full_name, email)")
             .eq("id", payload.new.rider_id)
             .single();
             
           setMatchedRider({
             id: payload.new.rider_id,
-            name: rider?.users?.name || "Driver",
+            name: rider?.users?.full_name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
             rating: rider?.rating || 5.0,
@@ -170,7 +170,7 @@ function Step3Content() {
         event: "INSERT", schema: "public", table: "bids", filter: `order_id=eq.${orderId}`
       }, async (payload) => {
         const { data: bid } = await supabase.from("bids")
-          .select("*, riders(user_id, vehicle_type, plate_number, avg_rating, users(name))")
+          .select("*, riders(user_id, vehicle_type, plate_number, rating, users(full_name))")
           .eq("id", payload.new.id).single();
         if (bid) setBids(prev => [...prev, bid]);
       })
@@ -196,7 +196,7 @@ function Step3Content() {
 
     setMatchedRider({
       id: bid.rider_id,
-      name: bid.riders?.users?.name || "Driver",
+      name: bid.riders?.users?.full_name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
       rating: bid.riders?.rating || 5.0,
@@ -415,7 +415,7 @@ function Step3Content() {
                             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
                             <div>
                               <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
-                              <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.avg_rating || "4.8"}</div>
+                              <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
