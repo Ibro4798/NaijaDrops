@@ -10,7 +10,7 @@ export default async function AdminsPage() {
   const supabase = await createClient();
 
   // Superadmin check (as requested: ibrahim@naijadrops.tech)
-  const isSuperAdmin = user.email === "ibrahim@naijadrops.tech";
+  const isSuperAdmin = admin?.is_super_admin === true;
 
   // Load existing admins
   const { data: admins, error: adminErr } = await supabase
@@ -89,5 +89,6 @@ export default async function AdminsPage() {
     </div>
   );
 }
+
 
 
