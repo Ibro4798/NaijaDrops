@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { validateAdmin } from "@/utils/admin";
 import { Activity, ShieldCheck, DollarSign, Users, AlertOctagon, Package, LayoutDashboard } from "lucide-react";
@@ -82,7 +82,7 @@ export default async function OpsTerminalLayout({ children }) {
 
         <div className="p-6 border-t border-white/5 bg-black/40">
            <div className="text-[10px] text-charcoal-500 font-mono tracking-widest uppercase mb-1">God Mode</div>
-           <div className="text-white text-xs font-bold truncate">ibrahim@naijadrops.tech</div>
+           <div className="text-white text-xs font-bold truncate">{user?.email}</div>
            <a href="/api/auth/signout" className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-4 inline-block hover:underline">Sever Connection</a>
         </div>
       </aside>
@@ -95,3 +95,4 @@ export default async function OpsTerminalLayout({ children }) {
     </div>
   );
 }
+

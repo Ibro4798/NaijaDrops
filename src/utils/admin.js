@@ -1,47 +1,36 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 
 /**
  * Layer 2: Server-Side Admin Validation
- * Verifies that the authenticated user is an active administrator.
+ * Reads super_admin status from the database — no hardcoded emails.
  */
 export async function validateAdmin(requiredRole = 'admin') {
   const supabase = await createClient();
-  
-  // 1. Get Auth User
+
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) throw new Error("Unauthorized Access - Authentication Required");
 
-  // 2a. Domain Check (Hard Constraint)
+  // Domain check — must be @naijadrops.tech
   if (!user.email?.toLowerCase().endsWith('@naijadrops.tech')) {
     throw new Error("Unauthorized Access - Corporate Domain Required");
   }
 
-  // 2b. Identify Super Admin
-  const isSuperAdmin = user.email?.toLowerCase() === 'ibrahim@naijadrops.tech';
+  // Look up admin record from DB — no hardcoded email anywhere
+  const { data: admin, error: dbError } = await supabase
+    .from("admin_users")
+    .select("*")
+    .eq("id", user.id)
+    .single();
 
-  // 2c. Cross-reference with Admin Table (skip for super admin)
-  let adminData = null;
-  if (!isSuperAdmin) {
-    const { data: admin, error: dbError } = await supabase
-      .from("admin_users")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (dbError || !admin || !admin.is_active) {
-      throw new Error("Unauthorized Access - High Security Clearance Required");
-    }
-    adminData = admin;
-  } else {
-    // Mock admin data for the super admin if they don't exist in the DB yet
-    adminData = { id: user.id, email: user.email, role: 'super_admin', is_active: true };
+  if (dbError || !admin || !admin.is_active) {
+    throw new Error("Unauthorized Access - High Security Clearance Required");
   }
 
-  if (requiredRole === 'super_admin' && !isSuperAdmin) {
+  if (requiredRole === 'super_admin' && !admin.is_super_admin) {
     throw new Error("Forbidden - Super Admin Access Only");
   }
 
-  return { user, admin: adminData };
+  return { user, admin };
 }
 
 /**
