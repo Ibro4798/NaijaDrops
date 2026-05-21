@@ -9,7 +9,7 @@ import {
   Loader2, ArrowLeft, ChevronRight
 } from "lucide-react";
 import { getMapboxSuggestions, reverseGeocodeMapbox, getMapboxRoute } from "@/utils/mapbox";
-import { extractFirstUrl } from "@/lib/mapResolver";
+import { extractFirstUrl } from "@/utils/MapResolver";
 
 const Map = dynamic(() => import("react-map-gl").then(m => m.default), { ssr: false });
 const Marker = dynamic(() => import("react-map-gl").then(m => m.Marker), { ssr: false });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { decodeWhatsAppUrl, isAllowedHost, extractCoordinates } from "@/lib/mapResolver";
+import { decodeWhatsAppUrl, isAllowedHost, extractCoordinates } from "@/utils/MapResolver";
 
 /**
  * DETERMINISTIC LINK EXPANDER
