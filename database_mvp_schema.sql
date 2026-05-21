@@ -33,11 +33,20 @@ CREATE TABLE public.vendors (
 CREATE TABLE public.riders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE UNIQUE,
-  status TEXT DEFAULT 'offline' CHECK (status IN ('offline', 'online', 'busy')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'paused', 'rejected')),
+  operational_status TEXT DEFAULT 'offline' CHECK (operational_status IN ('offline', 'online', 'busy')),
   rating NUMERIC(3, 2) DEFAULT 0.00,
   total_deliveries INTEGER DEFAULT 0,
+  full_name TEXT,
+  phone TEXT,
   vehicle_type TEXT,
   plate_number TEXT,
+  id_card_url TEXT,
+  license_url TEXT,
+  vehicle_photo_url TEXT,
+  profile_photo_url TEXT,
+  documents_submitted_at TIMESTAMPTZ,
+  rejection_reason TEXT,
   approved BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

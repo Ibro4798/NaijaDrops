@@ -105,8 +105,7 @@ export default function LandingPage() {
           </motion.button>
           
           <p className="text-charcoal-500 text-sm font-bold uppercase tracking-[0.2em]">
-            Join 1,000+ businesses moving goods in Kano
-          </p>
+            Launching in Kano — Join the pilot waitlist</p>
         </div>
 
         {/* Quick Stats / Trust */}

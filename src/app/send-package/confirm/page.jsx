@@ -31,7 +31,7 @@ function ConfirmContent() {
       if (o.rider_id) {
         const { data: r } = await supabase
           .from("riders")
-          .select("*, users(name, email)")
+          .select("*, users(full_name, email)")
           .eq("user_id", o.rider_id)
           .single();
         setRider(r);
@@ -117,7 +117,7 @@ function ConfirmContent() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-white font-black text-xl">{rider?.users?.name || "Verified Driver"}</span>
+                <span className="text-white font-black text-xl">{rider?.users?.full_name || "Verified Driver"}</span>
                 <ShieldCheck size={16} className="text-blue-400" />
               </div>
               <div className="flex items-center gap-3 mt-1">

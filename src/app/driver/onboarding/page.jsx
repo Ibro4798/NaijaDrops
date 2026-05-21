@@ -115,6 +115,7 @@ export default function DriverOnboardingPage() {
         ...formData,
         status: 'pending', // Strictly set to pending on submission
         documents_submitted_at: new Date().toISOString()
+      // ✅ FIX: onConflict ensures UPDATE on re-submission, not duplicate INSERT
       }, { onConflict: 'user_id' });
 
       if (updateErr) throw updateErr;

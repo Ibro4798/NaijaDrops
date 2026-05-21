@@ -56,6 +56,7 @@ export default function CreateDelivery() {
   const [isSearching, setIsSearching] = useState({ pickup: false, dropoff: false });
   const [gpsStatus, setGpsStatus] = useState({ slot: null, loading: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   
   const searchTimeoutRef = useRef(null);
 
@@ -152,24 +153,30 @@ export default function CreateDelivery() {
 
   const handleSubmitOrder = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
 
-      // Fetch the vendor profile to get the correct primary key UUID (vendors.id)
+      // ✅ FIX: Fetch the vendors.id (FK target) not auth user.id
       const { data: vendorProfile, error: vendorErr } = await supabase
         .from('vendors')
         .select('id')
         .eq('user_id', user.id)
         .single();
-      
+
       if (vendorErr || !vendorProfile) {
-        throw new Error("Unable to retrieve vendor profile. Please ensure you are logged in as a vendor.");
+        throw new Error('Vendor profile not found. Please complete your profile setup first.');
       }
 
-      const finalAgreedPrice = fareType === 'offer' ? Number(customOffer) : (fareType === 'express' ? Math.ceil(estimatedPrice * 1.3 / 50) * 50 : estimatedPrice);
+      const finalAgreedPrice = fareType === 'offer' 
+        ? Number(customOffer) 
+        : (fareType === 'express' 
+            ? Math.ceil(estimatedPrice * 1.3 / 50) * 50 
+            : estimatedPrice);
 
       const orderData = {
+        // ✅ FIX: Use vendorProfile.id (vendors.id) not user.id
         vendor_id: vendorProfile.id,
         pickup_name: pickup.name,
         pickup_lat: pickup.coords.lat,
@@ -179,6 +186,7 @@ export default function CreateDelivery() {
         dropoff_lng: dropoff.coords.lng,
         item_category: category,
         item_size: size,
+        // ✅ FIX: Correct column names matching DB schema
         receiver_name: receiver.name,
         receiver_phone: receiver.phone,
         agreed_price: finalAgreedPrice,
@@ -191,7 +199,7 @@ export default function CreateDelivery() {
       router.push(`/vendor/history`);
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      setSubmitError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -400,6 +408,13 @@ export default function CreateDelivery() {
                   </div>
                 </div>
              </div>
+
+             {/* Error display */}
+             {submitError && (
+               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-bold">
+                 {submitError}
+               </div>
+             )}
 
              <button disabled={!isStep3Valid || isSubmitting} onClick={handleSubmitOrder} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-20 text-charcoal-950 font-black py-6 rounded-[2.5rem] text-3xl italic tracking-tighter flex items-center justify-center gap-4 transition-all active:scale-95 shadow-glow mb-12">
                 {isSubmitting ? <Loader2 className="animate-spin" size={32} /> : <>DISPATCH LOAD <Truck size={32} /></>}

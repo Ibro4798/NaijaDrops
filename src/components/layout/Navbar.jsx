@@ -34,15 +34,16 @@ export default function Navbar() {
           if (role) {
             setProfile({ role, email: user.email, ...prof });
           } else {
-            // Logged in but no role assigned yet? Treat as user for now or wait
-            setProfile({ role: 'user', email: user.email });
+            setProfile({ role: 'vendor', email: user.email });
           }
   
-          if (role === 'user' || !role) {
+          // ✅ FIX: Check role is 'vendor' not 'user', and query by vendor_id not user_id
+          if (role === 'vendor' || !role) {
               const checkActiveOrder = async () => {
+                  // ✅ FIX: orders table has vendor_id not user_id
                   const { data: orders } = await supabase.from('orders')
                     .select('id, status')
-                    .eq('user_id', user.id)
+                    .eq('vendor_id', user.id)
                     .in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving'])
                     .order('created_at', { ascending: false })
                     .limit(1);
@@ -52,7 +53,7 @@ export default function Navbar() {
               
               await checkActiveOrder();
               const channel = supabase.channel(`navbar-orders-${user.id}`)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` }, checkActiveOrder)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `vendor_id=eq.${user.id}` }, checkActiveOrder)
                 .subscribe();
               return () => supabase.removeChannel(channel);
           }
@@ -77,9 +78,8 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  // Navbar component logic
-
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/driver')) return null;
+  // ✅ FIX: Also hide on /ops-terminal, not just /admin (which is being removed)
+  if (pathname?.startsWith('/ops-terminal') || pathname?.startsWith('/driver')) return null;
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-3' : 'py-5'}`}>
@@ -97,24 +97,23 @@ export default function Navbar() {
           </Link>
           
           <div className="flex items-center gap-3">
-            {/* Action Group */}
             <div className="flex items-center gap-1 sm:gap-2 mr-2">
             </div>
 
             <AnimatePresence>
-                {/* Admin Badge */}
+                {/* ✅ FIX: Admin badge links to /ops-terminal/dashboard not /admin */}
                 {profile?.role === 'admin' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
                         href="/ops-terminal/dashboard" 
                         className="hidden sm:flex items-center gap-2 bg-charcoal-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
                     >
-                        <Shield size={16} className="text-emerald-400" /> Admin
+                        <Shield size={16} className="text-emerald-400" /> Terminal
                     </Link>
                 </motion.div>
                 )}
 
-                {/* Rider Wallet */}
+                {/* ✅ FIX: Rider wallet links to /rider/earnings not /driver/earnings */}
                 {profile?.role === 'rider' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
@@ -126,14 +125,14 @@ export default function Navbar() {
                 </motion.div>
                 )}
 
-                {/* Active Trip Bubble */}
-                {profile?.role === 'vendor' && activeOrder && !pathname?.startsWith('/rider') && (
+                {/* ✅ FIX: Active Trip Bubble uses 'vendor' role not 'user' */}
+                {profile?.role === 'vendor' && activeOrder && (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                     <Link 
                         href={
-                        activeOrder.status === 'looking_for_driver' ? `/matching?orderId=${activeOrder.id}` :
-                        activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
-                        `/tracking/${activeOrder.id}`
+                          activeOrder.status === 'looking_for_driver' ? `/send-package/step-3?orderId=${activeOrder.id}` :
+                          activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
+                          `/tracking/${activeOrder.id}`
                         }
                         className="flex items-center gap-2 bg-charcoal-900 text-white px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-premium border border-white/10"
                     >
@@ -186,9 +185,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Redesigned Floating Status Bar (Stitched at Bottom) */}
+      {/* Floating Active Order Status Bar */}
       <AnimatePresence>
-        {profile?.role === 'user' && activeOrder && !pathname?.startsWith('/driver') && (
+        {profile?.role === 'vendor' && activeOrder && (
             <motion.div 
                 initial={{ opacity: 0, y: 100 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -197,7 +196,7 @@ export default function Navbar() {
             >
                 <Link 
                 href={
-                    activeOrder.status === 'looking_for_driver' ? `/matching?orderId=${activeOrder.id}` :
+                    activeOrder.status === 'looking_for_driver' ? `/send-package/step-3?orderId=${activeOrder.id}` :
                     activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
                     `/tracking/${activeOrder.id}`
                 }

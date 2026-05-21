@@ -3,8 +3,6 @@ const nextConfig = {
   // Required for mapbox-gl Web Worker to compile correctly under Next.js/Turbopack
   transpilePackages: ['react-map-gl', 'mapbox-gl', 'framer-motion', 'motion-dom', 'motion-utils'],
 
-
-
   // Compress all responses (gzip/brotli)
   compress: true,
 
@@ -15,17 +13,32 @@ const nextConfig = {
   reactStrictMode: true,
 
   images: {
-    // Domains from which external images can be served via next/image
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: 'unpkg.com' },
       { protocol: 'https', hostname: 'raw.githubusercontent.com' },
     ],
-    // Convert images to WebP format automatically
     formats: ['image/webp', 'image/avif'],
   },
 
-  // Headers for security and caching
+  // ✅ REDIRECTS: Dead pages replaced with Next.js redirects
+  // This means the page files can be deleted — Next.js handles the redirect
+  async redirects() {
+    return [
+      // Legacy route aliases
+      { source: '/login', destination: '/auth/login', permanent: true },
+      { source: '/send', destination: '/send-package/step-1', permanent: true },
+      { source: '/summary', destination: '/vendor/dashboard', permanent: true },
+      { source: '/matching', destination: '/vendor/dashboard', permanent: true },
+      { source: '/welcome', destination: '/', permanent: true },
+      // Duplicate tracking route
+      { source: '/track/:orderId', destination: '/tracking/:orderId', permanent: true },
+      // Old /admin → ops-terminal (admins bookmarking /admin get sent to the right place)
+      { source: '/admin', destination: '/ops-terminal/dashboard', permanent: false },
+      { source: '/admin/:path*', destination: '/ops-terminal/:path*', permanent: false },
+    ];
+  },
+
   async headers() {
     return [
       {
@@ -37,7 +50,6 @@ const nextConfig = {
         ],
       },
       {
-        // Aggressive caching for static assets (fonts, images, etc.)
         source: '/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

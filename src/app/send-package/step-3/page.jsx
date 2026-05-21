@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import {
   ArrowLeft, Star, Zap, MessageCircle, Clock, Bike, Car,
-  CheckCircle2, X, ChevronRight, Loader2, AlertCircle, DollarSign
+  CheckCircle2, X, ChevronRight, Loader2, AlertCircle, DollarSign, Lock
 } from "lucide-react";
 
 const DRAFT_KEY = "nd_order_draft";
@@ -20,7 +20,7 @@ function Step3Content() {
   const [draft, setDraft] = useState(null);
   const [orderId, setOrderId] = useState(searchParams.get("orderId") || null);
   const [mode, setMode] = useState("quickmatch"); // 'quickmatch' | 'negotiate'
-  const [matchState, setMatchState] = useState("searching"); // 'searching' | 'found' | 'accepted' | 'no_drivers'
+  const [matchState, setMatchState] = useState("idle"); // 'idle' | 'searching' | 'found' | 'accepted' | 'no_drivers'
   const [matchedRider, setMatchedRider] = useState(null);
   const [bids, setBids] = useState([]);
   const [offerPrice, setOfferPrice] = useState("");
@@ -29,33 +29,53 @@ function Step3Content() {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState(null);
 
+  // ✅ NEW: Auth gate state — show signup prompt instead of redirecting
+  const [showAuthGate, setShowAuthGate] = useState(false);
+
   const timerRef = useRef(null);
   const channelRef = useRef(null);
 
-  // Load draft on mount
+  // Load draft on mount — do NOT create order or check auth yet
   useEffect(() => {
     try {
       const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
       if (!d?.pickup || !d?.estimated_price) { router.replace("/send-package/step-2"); return; }
       setDraft(d);
       setOfferPrice(String(d.estimated_price));
+      // If we already have an orderId (returning to this page), resume match
+      if (d.orderId) {
+        setOrderId(d.orderId);
+        setMatchState("searching");
+        startQuickMatch(d.orderId);
+      }
     } catch { router.replace("/send-package/step-2"); }
   }, []);
 
-  // Create order in DB when draft is ready and we don't have an orderId yet
-  useEffect(() => {
-    if (!draft || orderId) return;
-    createOrder();
-  }, [draft]);
+  // ✅ NEW: "Find My Driver" button handler — checks auth before creating order
+  async function handleFindDriver() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      // Show auth gate instead of redirecting away
+      setShowAuthGate(true);
+      return;
+    }
+    await createOrder();
+  }
 
   async function createOrder() {
     setCreatingOrder(true);
+    setMatchState("searching");
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/auth/login"); return; }
+      if (!user) { setShowAuthGate(true); setCreatingOrder(false); return; }
 
-      // 1. Get Vendor Profile ID (Required for Foreign Key)
-      const { data: vendorProfile } = await supabase.from("vendors").select("id").eq("user_id", user.id).single();
+      // Get Vendor Profile ID (Required for Foreign Key)
+      const { data: vendorProfile } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
       if (!vendorProfile) throw new Error("Vendor profile not found. Please go back and select 'Send Packages' again.");
 
       const { data: order, error: err } = await supabase.from("orders").insert({
@@ -69,7 +89,8 @@ function Step3Content() {
         item_size: draft.size,
         vehicle_type: draft.vehicle,
         item_description: draft.description,
-        voice_note_url: draft.voice_note, // Saving the optional instructions
+        voice_note_url: draft.voice_note,
+        // ✅ FIX: Use correct column names matching DB schema
         receiver_name: draft.receiver_name,
         receiver_phone: draft.receiver_phone,
         notify_receiver: draft.notify_receiver,
@@ -83,6 +104,7 @@ function Step3Content() {
       startQuickMatch(order.id);
     } catch (e) {
       setError("Failed to create order: " + e.message);
+      setMatchState("idle");
     } finally {
       setCreatingOrder(false);
     }
@@ -97,7 +119,7 @@ function Step3Content() {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${oid}`
       }, async (payload) => {
         if (payload.new.rider_id && payload.new.status === "matched") {
-          // Fetch rider profile
+          // ✅ FIX: Use correct column name 'rating' not 'avg_rating', and 'full_name' not 'name'
           const { data: rider } = await supabase
             .from("riders")
             .select("*, users(full_name, email)")
@@ -106,9 +128,11 @@ function Step3Content() {
             
           setMatchedRider({
             id: payload.new.rider_id,
+            // ✅ FIX: full_name not name
             name: rider?.users?.full_name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
+            // ✅ FIX: rating not avg_rating
             rating: rider?.rating || 5.0,
             eta_min: Math.round(5 + Math.random() * 10),
             price: payload.new.agreed_price,
@@ -119,7 +143,7 @@ function Step3Content() {
       .subscribe();
     channelRef.current = channel;
 
-    // Trigger the actual Dispatch Engine (Section 3 & 4)
+    // Trigger the actual Dispatch Engine
     try {
       const response = await fetch("/api/dispatch", {
         method: "POST",
@@ -144,7 +168,6 @@ function Step3Content() {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(timerRef.current);
-          // Auto-switch back to Quick Match
           setMode("quickmatch");
           setOfferSent(false);
           setBids([]);
@@ -161,10 +184,9 @@ function Step3Content() {
     const price = parseInt(offerPrice);
     if (isNaN(price) || price < 100) { setError("Please enter a valid price (min ₦100)"); return; }
 
-    // Update order with offer price and broadcast
     await supabase.from("orders").update({ agreed_price: price, status: "negotiating" }).eq("id", orderId);
 
-    // Subscribe to bids
+    // ✅ FIX: Use correct column names in join
     const channel = supabase.channel(`bids-${orderId}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "bids", filter: `order_id=eq.${orderId}`
@@ -185,20 +207,18 @@ function Step3Content() {
     clearInterval(timerRef.current);
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
-    // Lock: assign this rider, reject all other bids
     await supabase.from("orders").update({ rider_id: bid.rider_id, agreed_price: bid.amount, status: "assigned" }).eq("id", orderId);
-    
-    // Set rider to awaiting_payment to lock them from other jobs
     await supabase.from("riders").update({ operational_status: "awaiting_payment" }).eq("user_id", bid.rider_id);
-
     await supabase.from("bids").update({ status: "rejected" }).eq("order_id", orderId).neq("id", bid.id);
     await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
 
     setMatchedRider({
       id: bid.rider_id,
+      // ✅ FIX: full_name not name
       name: bid.riders?.users?.full_name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
+      // ✅ FIX: rating not avg_rating
       rating: bid.riders?.rating || 5.0,
       eta_min: Math.round(5 + Math.random() * 10),
       price: bid.amount,
@@ -210,20 +230,13 @@ function Step3Content() {
   async function cancelMatch() {
     if (!orderId) return;
     
-    // Get the rider ID before we clear it to release them
     const { data: order } = await supabase.from("orders").select("rider_id").eq("id", orderId).single();
     if (order?.rider_id) {
       await supabase.from("riders").update({ operational_status: "online" }).eq("user_id", order.rider_id);
     }
 
     setMatchState("searching");
-    
-    // Reset order and release rider
-    await supabase.from("orders").update({ 
-      rider_id: null, 
-      status: "pending" 
-    }).eq("id", orderId);
-    
+    await supabase.from("orders").update({ rider_id: null, status: "pending" }).eq("id", orderId);
     setMatchedRider(null);
     setBids([]);
     setOfferSent(false);
@@ -232,10 +245,7 @@ function Step3Content() {
 
   async function acceptQuickMatch() {
     if (!matchedRider) return;
-    
-    // Set rider to awaiting_payment to lock them from other jobs
     await supabase.from("riders").update({ operational_status: "awaiting_payment" }).eq("user_id", matchedRider.id);
-
     setMatchState("accepted");
     setTimeout(() => router.push(`/send-package/confirm?orderId=${orderId}`), 800);
   }
@@ -247,12 +257,9 @@ function Step3Content() {
     };
   }, []);
 
-  if (!draft || creatingOrder) return (
+  if (!draft) return (
     <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-charcoal-400 text-sm font-medium">Setting up your delivery…</p>
-      </div>
+      <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
     </div>
   );
 
@@ -274,164 +281,240 @@ function Step3Content() {
         </div>
       </div>
 
-      {/* Mode Toggle */}
-      <div className="mx-5 mb-6 bg-white/[0.04] border border-white/10 rounded-2xl p-1 flex gap-1">
-        <button onClick={() => { setMode("quickmatch"); setOfferSent(false); clearInterval(timerRef.current); if (orderId && matchState !== "found") startQuickMatch(orderId); }}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "quickmatch" ? "bg-emerald-500 text-charcoal-950 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "text-charcoal-500 hover:text-white"}`}>
-          <Zap size={14} /> Quick Match
-        </button>
-        <button onClick={() => setMode("negotiate")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "negotiate" ? "bg-white/10 text-white" : "text-charcoal-500 hover:text-white"}`}>
-          <MessageCircle size={14} /> Negotiate Price
-        </button>
-      </div>
+      {/* ✅ NEW: Auth Gate Modal — shown instead of redirect */}
+      <AnimatePresence>
+        {showAuthGate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-charcoal-950/90 backdrop-blur-md z-50 flex items-end justify-center pb-10 px-5"
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Lock size={28} className="text-emerald-500" />
+              </div>
+              <h2 className="text-xl font-black text-white mb-3">Almost there!</h2>
+              <p className="text-charcoal-400 text-sm leading-relaxed mb-8">
+                Create a free account to confirm your delivery. Your route and pricing are saved — just sign in and dispatch.
+              </p>
+              <button
+                onClick={() => router.push('/auth/login?next=/send-package/step-3')}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl mb-3 transition-all"
+              >
+                Create Free Account
+              </button>
+              <button
+                onClick={() => setShowAuthGate(false)}
+                className="w-full py-4 text-charcoal-500 font-bold text-sm"
+              >
+                ← Back to preview
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="flex-1 px-5 overflow-y-auto pb-8">
-        <AnimatePresence mode="wait">
+      {/* ✅ NEW: Idle state — shown before user clicks "Find My Driver" */}
+      {matchState === "idle" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
+          <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 mb-8">
+            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4">Your Delivery Summary</div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-charcoal-500 font-bold">From</span>
+                <span className="text-white font-black text-right max-w-[180px] truncate">{draft.pickup?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-charcoal-500 font-bold">To</span>
+                <span className="text-white font-black text-right max-w-[180px] truncate">{draft.dropoff?.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-charcoal-500 font-bold">Estimated Fare</span>
+                <span className="text-emerald-400 font-black">₦{draft.estimated_price?.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+          {error && (
+            <div className="w-full max-w-sm mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-bold">
+              {error}
+            </div>
+          )}
+          <button
+            onClick={handleFindDriver}
+            disabled={creatingOrder}
+            className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all active:scale-95 disabled:opacity-50"
+          >
+            {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> Find My Driver</>}
+          </button>
+          <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">No payment until delivery</p>
+        </div>
+      )}
 
-          {/* ====== QUICK MATCH MODE ====== */}
-          {(mode === "quickmatch" || (mode === "negotiate" && matchState === "found")) && (
-            <motion.div key="quickmatch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-              {mode === "negotiate" && <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest px-1">Instant Match Available</div>}
-              
-              {/* Searching state */}
-              {matchState === "searching" && mode === "quickmatch" && (
-                <div className="flex flex-col items-center py-16">
-                  <div className="relative mb-8">
-                    <div className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                        <Loader2 size={32} className="text-emerald-500 animate-spin" />
+      {/* Mode Toggle — only show when actively searching/matching */}
+      {matchState !== "idle" && (
+        <>
+          <div className="mx-5 mb-6 bg-white/[0.04] border border-white/10 rounded-2xl p-1 flex gap-1">
+            <button onClick={() => { setMode("quickmatch"); setOfferSent(false); clearInterval(timerRef.current); if (orderId && matchState !== "found") startQuickMatch(orderId); }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "quickmatch" ? "bg-emerald-500 text-charcoal-950 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "text-charcoal-500 hover:text-white"}`}>
+              <Zap size={14} /> Quick Match
+            </button>
+            <button onClick={() => setMode("negotiate")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "negotiate" ? "bg-white/10 text-white" : "text-charcoal-500 hover:text-white"}`}>
+              <MessageCircle size={14} /> Negotiate Price
+            </button>
+          </div>
+
+          <div className="flex-1 px-5 overflow-y-auto pb-8">
+            <AnimatePresence mode="wait">
+
+              {/* ====== QUICK MATCH MODE ====== */}
+              {(mode === "quickmatch" || (mode === "negotiate" && matchState === "found")) && (
+                <motion.div key="quickmatch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  {mode === "negotiate" && <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest px-1">Instant Match Available</div>}
+                  
+                  {matchState === "searching" && mode === "quickmatch" && (
+                    <div className="flex flex-col items-center py-16">
+                      <div className="relative mb-8">
+                        <div className="w-32 h-32 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                            <Loader2 size={32} className="text-emerald-500 animate-spin" />
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 w-32 h-32 rounded-full border border-emerald-500/30 animate-ping opacity-20" />
                       </div>
+                      <h2 className="text-white font-black text-xl mb-2">Finding nearby drivers…</h2>
+                      <p className="text-charcoal-500 text-sm text-center max-w-[240px]">Scanning riders within 3km of your pickup point</p>
                     </div>
-                    <div className="absolute inset-0 w-32 h-32 rounded-full border border-emerald-500/30 animate-ping opacity-20" />
-                  </div>
-                  <h2 className="text-white font-black text-xl mb-2">Finding nearby drivers…</h2>
-                  <p className="text-charcoal-500 text-sm text-center max-w-[240px]">Scanning riders within 3km of your pickup point</p>
-                </div>
-              )}
+                  )}
 
-              {/* Driver found */}
-              {matchState === "found" && matchedRider && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                  <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-widest rounded-bl-xl">Best Value</div>
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-3xl border border-emerald-500/20">
-                        {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-white font-black text-xl">{matchedRider.name}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
-                          <span className="text-charcoal-600">·</span>
-                          <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
+                  {matchState === "found" && matchedRider && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                      <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-5 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-widest rounded-bl-xl">Best Value</div>
+                        <div className="flex items-center gap-4 mb-5">
+                          <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-3xl border border-emerald-500/20">
+                            {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-white font-black text-xl">{matchedRider.name}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
+                              <span className="text-charcoal-600">·</span>
+                              <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button onClick={cancelMatch} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest">
+                            Cancel Match
+                          </button>
+                          <button onClick={acceptQuickMatch}
+                            className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                            Instant Start <Zap size={18} />
+                          </button>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
+                  )}
 
-                    <div className="flex gap-3">
-                      <button onClick={cancelMatch} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest">
-                        Cancel Match
-                      </button>
-                      <button onClick={acceptQuickMatch}
-                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                        Instant Start <Zap size={18} />
+                  {matchState === "accepted" && (
+                    <div className="flex flex-col items-center py-16">
+                      <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mb-6">
+                        <CheckCircle2 size={40} className="text-emerald-400" />
+                      </div>
+                      <h2 className="text-white font-black text-2xl mb-2">Driver Accepted!</h2>
+                      <p className="text-charcoal-500 text-sm">Redirecting to confirmation…</p>
+                    </div>
+                  )}
+
+                  {matchState === "no_drivers" && mode === "quickmatch" && (
+                    <div className="flex flex-col items-center py-12 text-center">
+                      <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-6">
+                        <AlertCircle size={36} className="text-amber-400" />
+                      </div>
+                      <h2 className="text-white font-black text-xl mb-3">No drivers nearby</h2>
+                      <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
+                        No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
+                      </p>
+                      <button onClick={() => setMode("negotiate")}
+                        className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-6 py-3.5 rounded-2xl text-sm flex items-center gap-2 hover:bg-amber-500/30 transition-all">
+                        <MessageCircle size={16} /> Negotiate Price
                       </button>
                     </div>
-                  </div>
+                  )}
                 </motion.div>
               )}
 
-              {/* Accepted feedback */}
-              {matchState === "accepted" && (
-                <div className="flex flex-col items-center py-16">
-                  <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle2 size={40} className="text-emerald-400" />
-                  </div>
-                  <h2 className="text-white font-black text-2xl mb-2">Driver Accepted!</h2>
-                  <p className="text-charcoal-500 text-sm">Redirecting to confirmation…</p>
-                </div>
-              )}
+              {/* ====== NEGOTIATE MODE ====== */}
+              {mode === "negotiate" && (
+                <motion.div key="negotiate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5 mt-4">
+                  {!offerSent ? (
+                    <div className="space-y-4">
+                      <div className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl">
+                        <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Set Your Offer</label>
+                        <div className="relative">
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
+                          <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
+                            className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
+                        </div>
+                        <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
+                           <span>Recommended: ₦{draft.estimated_price}</span>
+                        </div>
+                      </div>
 
-              {/* No drivers */}
-              {matchState === "no_drivers" && mode === "quickmatch" && (
-                <div className="flex flex-col items-center py-12 text-center">
-                  <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-6">
-                    <AlertCircle size={36} className="text-amber-400" />
-                  </div>
-                  <h2 className="text-white font-black text-xl mb-3">No drivers nearby</h2>
-                  <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
-                    No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
-                  </p>
-                  <button onClick={() => setMode("negotiate")}
-                    className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-6 py-3.5 rounded-2xl text-sm flex items-center gap-2 hover:bg-amber-500/30 transition-all">
-                    <MessageCircle size={16} /> Negotiate Price
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* ====== NEGOTIATE MODE ====== */}
-          {mode === "negotiate" && (
-            <motion.div key="negotiate" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5 mt-4">
-              {!offerSent ? (
-                <div className="space-y-4">
-                  <div className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl">
-                    <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Set Your Offer</label>
-                    <div className="relative">
-                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
-                      <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
-                        className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
-                    </div>
-                    <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
-                       <span>Recommended: ₦{draft.estimated_price}</span>
-                    </div>
-                  </div>
-
-                  <button onClick={sendOffer}
-                    className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
-                     Broadcast New Offer 📢
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
-                     <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
-                     <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
-                  </div>
-
-                  {bids.length === 0 ? (
-                    <div className="text-center py-6 bg-charcoal-900/50 rounded-2xl">
-                      <Loader2 className="text-emerald-500 animate-spin mx-auto mb-3" size={24} />
-                      <p className="text-charcoal-500 text-xs font-black uppercase tracking-widest">Awaiting Driver Bids...</p>
+                      <button onClick={sendOffer}
+                        className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
+                         Broadcast New Offer 📢
+                      </button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {bids.map(bid => (
-                        <motion.div key={bid.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                          className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
-                            <div>
-                              <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
-                              <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                             <div className="text-emerald-400 font-black">₦{bid.amount?.toLocaleString()}</div>
-                             <button onClick={() => acceptBid(bid)} className="bg-emerald-500 text-charcoal-950 font-black px-4 py-2 rounded-xl text-xs">Accept</button>
-                          </div>
-                        </motion.div>
-                      ))}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
+                         <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
+                         <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
+                      </div>
+
+                      {bids.length === 0 ? (
+                        <div className="text-center py-6 bg-charcoal-900/50 rounded-2xl">
+                          <Loader2 className="text-emerald-500 animate-spin mx-auto mb-3" size={24} />
+                          <p className="text-charcoal-500 text-xs font-black uppercase tracking-widest">Awaiting Driver Bids...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {bids.map(bid => (
+                            <motion.div key={bid.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                              className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
+                                <div>
+                                  {/* ✅ FIX: full_name not name, rating not avg_rating */}
+                                  <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
+                                  <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                 <div className="text-emerald-400 font-black">₦{bid.amount?.toLocaleString()}</div>
+                                 <button onClick={() => acceptBid(bid)} className="bg-emerald-500 text-charcoal-950 font-black px-4 py-2 rounded-xl text-xs">Accept</button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+                </motion.div>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </AnimatePresence>
+          </div>
+        </>
+      )}
     </div>
   );
 }

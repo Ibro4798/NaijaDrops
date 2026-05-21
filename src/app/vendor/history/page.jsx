@@ -21,10 +21,23 @@ export default function VendorHistoryPage() {
                     return;
                 }
 
+                // Fetch vendor ID first
+                const { data: vendorProfile } = await supabase
+                    .from('vendors')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (!vendorProfile) {
+                    setOrders([]);
+                    setLoading(false);
+                    return;
+                }
+
                 const { data, error } = await supabase
                     .from('orders')
                     .select('*, riders!rider_id(user_id, vehicle_type)')
-                    .eq('vendor_id', user.id)
+                    .eq('vendor_id', vendorProfile.id)
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
