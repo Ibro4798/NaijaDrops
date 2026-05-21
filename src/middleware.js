@@ -24,7 +24,7 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ── Unauthenticated users ──────────────────────────────────────────────────
+  // Unauthenticated users
   if (!user) {
     const protectedPaths = [
       "/dashboard",
@@ -39,27 +39,12 @@ export async function middleware(request) {
     return response;
   }
 
-  // ── Ops Terminal — validate against admin_users table (no hardcoded email) ──
+  // Ops Terminal � simple email domain check for pilot phase
   if (pathname.startsWith("/ops-terminal")) {
-    const { createClient } = await import("@supabase/supabase-js");
-    const serviceSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-
-    const { data: admin } = await serviceSupabase
-      .from("admin_users")
-      .select("is_active, is_super_admin")
-      .eq("id", user.id)
-      .single();
-
-    // Not an admin — return 404 so the route is invisible, not just blocked
-    if (!admin || !admin.is_active) {
+    const isAdmin = user.email?.toLowerCase().endsWith("@naijadrops.tech");
+    if (!isAdmin) {
       return new NextResponse(null, { status: 404 });
     }
-
-    return response;
   }
 
   return response;
