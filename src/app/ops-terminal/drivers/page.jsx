@@ -1,5 +1,6 @@
 ﻿import { validateAdmin, logAdminAction } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "lucide-react";
 import Image from "next/image";
 import DriverActions from "./DriverActions";
@@ -10,9 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminDriversPage() {
   const { admin } = await validateAdmin(); // Layer 2 Security
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
 
   // Fetch all riders - approved boolean is the single source of truth
-  const { data: riders, error } = await supabase
+  const { data: riders, error } = await adminSupabase
     .from("riders")
     .select("*, users(full_name, email, phone)")
     .order("created_at", { ascending: false });
@@ -109,4 +111,5 @@ export default async function AdminDriversPage() {
     </div>
   );
 }
+
 
