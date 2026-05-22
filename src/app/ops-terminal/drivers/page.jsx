@@ -1,4 +1,4 @@
-ï»¿import { validateAdmin, logAdminAction } from "@/utils/admin";
+import { validateAdmin, logAdminAction } from "@/utils/admin";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "lucide-react";
 import Image from "next/image";
@@ -35,7 +35,7 @@ export default async function AdminDriversPage() {
         <div>
            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
            <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
-             {pendingRiders.length} Pending Review Â· {approvedRiders.length} Active Units
+             {pendingRiders.length} Pending Review · {approvedRiders.length} Active Units
            </p>
         </div>
         <div className="flex gap-4 items-center">
@@ -80,7 +80,7 @@ export default async function AdminDriversPage() {
                    <div className="flex items-center gap-1 text-amber-500 text-xs font-black">
                       <Star size={12} fill="currentColor" /> {rider.rating || "5.0"}
                    </div>
-                   <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} â€¢ {rider.plate_number || 'No Plate'}</div>
+                   <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} • {rider.plate_number || 'No Plate'}</div>
                 </div>
              </div>
 
@@ -116,3 +116,4 @@ export default async function AdminDriversPage() {
     </div>
   );
 }
+
