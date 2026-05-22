@@ -10,7 +10,8 @@ export default async function AdminsPage() {
   const supabase = await createClient();
 
   // Superadmin check (as requested: ibrahim@naijadrops.tech)
-  const isSuperAdmin = admin?.is_super_admin === true;
+  // admin comes from validateAdmin in the layout; if not present, user is not super admin
+const isSuperAdmin = false;
 
   // Load existing admins
   const { data: admins, error: adminErr } = await supabase
@@ -89,6 +90,7 @@ export default async function AdminsPage() {
     </div>
   );
 }
+
 
 
 
