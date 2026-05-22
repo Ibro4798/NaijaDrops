@@ -8,8 +8,12 @@ import InviteDriverButton from "./InviteDriverButton";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDriversPage() {
-  const { admin } = await validateAdmin(); // Layer 2 Security
+  const { admin } = await validateAdmin();
   const supabase = await createClient();
+
+  // DEBUG: Log everything
+  console.log("=== ADMIN DRIVERS PAGE DEBUG ===");
+  console.log("Admin validated:", admin);
 
   // Fetch all riders with their user data
   const { data: riders, error } = await supabase
@@ -17,16 +21,36 @@ export default async function AdminDriversPage() {
     .select("*, users(full_name, email, phone)")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Riders query error:", error);
-  }
+  // DEBUG: Log query results
+  console.log("Query error:", error);
+  console.log("Riders returned:", riders?.length || 0);
+  console.log("Full riders data:", JSON.stringify(riders, null, 2));
 
-  // Separate pending from approved based on STATUS column (not non-existent approved field)
+  // Separate pending from approved based on STATUS column
   const pendingRiders = riders?.filter(r => r.status === "pending") || [];
   const approvedRiders = riders?.filter(r => r.status === "approved") || [];
 
+  console.log("Pending riders:", pendingRiders.length);
+  console.log("Approved riders:", approvedRiders.length);
+
   return (
     <div className="min-h-screen bg-black text-white p-8 font-mono">
+      {/* DEBUG INFO BOX */}
+      <div className="mb-8 p-6 bg-blue-900/30 border border-blue-500/30 rounded-2xl">
+        <h2 className="text-blue-400 font-black mb-3">🔍 DEBUG INFO</h2>
+        <div className="text-xs font-mono space-y-1 text-blue-300">
+          <p>✅ Admin validated: {admin ? "YES" : "NO"}</p>
+          <p>📊 Query error: {error ? error.message : "NONE"}</p>
+          <p>🏍️ Total riders in DB: {riders?.length || 0}</p>
+          <p>⏳ Pending: {pendingRiders.length}</p>
+          <p>✅ Approved: {approvedRiders.length}</p>
+          {riders && riders.length > 0 && (
+            <p>🆔 First rider status: {riders[0].status}</p>
+          )}
+        </div>
+        <p className="text-blue-400 text-[10px] mt-4 italic">Open browser DevTools Console (F12) for full logs</p>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
         <div>
@@ -61,8 +85,7 @@ export default async function AdminDriversPage() {
 
                {/* Identity Info */}
                <div className="flex-1 min-w-[200px]">
-                  {/* Approval Status Badge */}
-                 <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-lg font-black tracking-tight">{rider.users?.full_name || "Unknown Identity"}</h3>
                     <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
                       rider.status === "approved" 
@@ -71,9 +94,9 @@ export default async function AdminDriversPage() {
                     }`}>
                        {rider.status === "approved" ? 'Approved' : 'Pending Review'}
                     </span>
-                 </div>
-                 <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.users?.email}</div>
-                 <div className="text-[10px] text-charcoal-600 font-bold uppercase tracking-widest">{rider.users?.phone || 'No Phone'}</div>
+                  </div>
+                  <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.users?.email}</div>
+                  <div className="text-[10px] text-charcoal-600 font-bold uppercase tracking-widest">{rider.users?.phone || 'No Phone'}</div>
                     <div className="flex items-center gap-3 mt-3">
                        <div className="flex items-center gap-1 text-amber-500 text-xs font-black">
                           <Star size={12} fill="currentColor" /> {rider.rating || "5.0"}
@@ -106,6 +129,9 @@ export default async function AdminDriversPage() {
           <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
              <UserX size={40} className="mx-auto mb-4 text-charcoal-800" />
              <p className="text-charcoal-600 font-bold uppercase tracking-widest text-xs">No Workforce Units Registered</p>
+             {error && (
+               <p className="text-red-500 font-bold mt-4 text-xs">{error.message}</p>
+             )}
           </div>
         )}
       </div>
