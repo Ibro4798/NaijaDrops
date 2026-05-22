@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+ï»¿import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
 export async function middleware(request) {
@@ -24,7 +24,6 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Unauthenticated users
   if (!user) {
     const protectedPaths = [
       "/dashboard",
@@ -39,7 +38,6 @@ export async function middleware(request) {
     return response;
   }
 
-  // Ops Terminal — simple email domain check for pilot phase
   if (pathname.startsWith("/ops-terminal")) {
     const isAdmin = user.email?.toLowerCase().endsWith("@naijadrops.tech");
     if (!isAdmin) {
