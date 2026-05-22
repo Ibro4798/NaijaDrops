@@ -1,5 +1,4 @@
 ﻿import { validateAdmin, logAdminAction } from "@/utils/admin";
-import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "lucide-react";
 import Image from "next/image";
@@ -9,15 +8,21 @@ import InviteDriverButton from "./InviteDriverButton";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDriversPage() {
-  const { admin } = await validateAdmin(); // Layer 2 Security
-  const supabase = await createClient();
+  // Layer 1: Validate admin access (this throws if not authorized)
+  const { admin } = await validateAdmin();
+
+  // Layer 2: Use admin client to bypass RLS entirely
   const adminSupabase = createAdminClient();
 
-  // Fetch all riders - approved boolean is the single source of truth
+  // Fetch all riders using the admin/service role key
   const { data: riders, error } = await adminSupabase
     .from("riders")
-    .select("*, users(full_name, email, phone)")
+    .select("*")
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching riders:", error);
+  }
 
   // Separate pending from approved for the UI
   const pendingRiders = riders?.filter(r => !r.approved) || [];
@@ -30,7 +35,7 @@ export default async function AdminDriversPage() {
         <div>
            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
            <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
-             {pendingRiders.length} Pending Review Â· {approvedRiders.length} Active Units
+             {pendingRiders.length} Pending Review · {approvedRiders.length} Active Units
            </p>
         </div>
         <div className="flex gap-4 items-center">
@@ -46,7 +51,7 @@ export default async function AdminDriversPage() {
       <div className="grid grid-cols-1 gap-4">
         {riders?.map((rider) => (
           <div key={rider.user_id} className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-6 flex flex-wrap lg:flex-nowrap items-center gap-8 hover:border-white/10 transition-all">
-             
+
              {/* Profile Photo */}
              <div className="w-16 h-16 rounded-2xl bg-charcoal-800 border border-white/5 overflow-hidden flex-shrink-0">
                 {rider.profile_photo_url ? (
@@ -62,35 +67,35 @@ export default async function AdminDriversPage() {
              <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-lg font-black tracking-tight">{rider.full_name || "Unknown Identity"}</h3>
                 <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                  rider.approved 
-                    ? 'bg-emerald-500/10 text-emerald-500' 
+                  rider.approved
+                    ? 'bg-emerald-500/10 text-emerald-500'
                     : 'bg-amber-500/10 text-amber-500'
                 }`}>
                    {rider.approved ? 'Approved' : 'Pending Review'}
                 </span>
              </div>
-             <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.email}</div>
-             <div className="text-[10px] text-charcoal-600 font-bold uppercase tracking-widest">{rider.phone || 'No Phone'}</div>
+             <div className="text-[10px] text-charcoal-500 font-bold uppercase tracking-widest">{rider.phone || 'No Phone'}</div>
+             <div className="text-[10px] text-charcoal-600 font-bold uppercase tracking-widest">{rider.status || 'unknown'}</div>
                 <div className="flex items-center gap-3 mt-3">
                    <div className="flex items-center gap-1 text-amber-500 text-xs font-black">
                       <Star size={12} fill="currentColor" /> {rider.rating || "5.0"}
                    </div>
-                   <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} â€¢ {rider.plate_number || 'No Plate'}</div>
+                   <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} • {rider.plate_number || 'No Plate'}</div>
                 </div>
              </div>
 
              {/* Document Status */}
              <div className="flex gap-4">
-                {rider.driver_license_url && (
-                  <a href={rider.driver_license_url} target="_blank" className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                {rider.license_url && (
+                  <a href={rider.license_url} target="_blank" className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
                     <FileText size={18} className="text-charcoal-500 group-hover:text-white" />
                     <span className="text-[8px] font-black text-charcoal-600 mt-2 uppercase">License</span>
                   </a>
                 )}
-                {rider.government_id_url && (
-                  <a href={rider.government_id_url} target="_blank" className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                {rider.id_card_url && (
+                  <a href={rider.id_card_url} target="_blank" className="flex flex-col items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
                     <ShieldCheck size={18} className="text-charcoal-500 group-hover:text-white" />
-                    <span className="text-[8px] font-black text-charcoal-600 mt-2 uppercase">Gov ID</span>
+                    <span className="text-[8px] font-black text-charcoal-600 mt-2 uppercase">ID Card</span>
                   </a>
                 )}
              </div>
@@ -111,5 +116,3 @@ export default async function AdminDriversPage() {
     </div>
   );
 }
-
-
