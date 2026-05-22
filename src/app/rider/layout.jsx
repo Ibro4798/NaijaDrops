@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Clock, ShieldAlert, AlertTriangle, PhoneCall } from "lucide-react";
 
@@ -16,7 +16,7 @@ export default async function RiderLayout({ children }) {
   // 2. Fetch Driver Profile & Enrollment Status
   const { data: rider } = await supabase
     .from("riders")
-    .select("status, rejection_reason, users(name)")
+    .select("status, rejection_reason, users(full_name)")
     .eq("user_id", user.id)
     .single();
 

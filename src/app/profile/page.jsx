@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -78,7 +78,7 @@ export default function ProfilePage() {
            {role === 'driver' && (
              <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl flex items-center gap-2">
                 <Star size={16} className="text-emerald-500" fill="currentColor" />
-                <span className="text-white font-black text-sm italic">{profile?.avg_rating || "5.0"}</span>
+                <span className="text-white font-black text-sm italic">{profile?.rating || "5.0"}</span>
              </div>
            )}
         </header>
