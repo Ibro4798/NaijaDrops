@@ -10,7 +10,7 @@ export default function ApprovalSuccessPage() {
             <CheckCircle2 size={48} className="text-emerald-400" />
           </div>
         </div>
-        <h1 className="text-4xl font-black mb-4">You'"'"'re Verified! 🎉</h1>
+        <h1 className="text-4xl font-black mb-4">You're Verified! 🎉</h1>
         <p className="text-gray-400 text-lg mb-8">
           Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
         </p>
@@ -25,7 +25,7 @@ export default function ApprovalSuccessPage() {
             href="/ops-terminal/drivers"
             className="block w-full bg-white/10 hover:bg-white/20 text-white font-black py-4 rounded-2xl uppercase tracking-wider transition-all text-center"
           >
-            ← Back to Dashboard
+            Back to Dashboard
           </a>
         </div>
       </div>
