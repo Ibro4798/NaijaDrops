@@ -1,6 +1,7 @@
-ï»¿import { validateAdmin, logAdminAction } from "@/utils/admin";
+import { validateAdmin, logAdminAction } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { UserCheck, UserX, FileText, Star, ShieldCheck, Search, Filter } from "lucide-react";
+import Link from 'next/link';
 import Image from "next/image";
 import DriverActions from "./DriverActions";
 import InviteDriverButton from "./InviteDriverButton";
@@ -28,7 +29,7 @@ export default async function AdminDriversPage() {
         <div>
            <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
            <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
-             {pendingRiders.length} Pending Review Â· {approvedRiders.length} Active Units
+             {pendingRiders.length} Pending Review · {approvedRiders.length} Active Units
            </p>
         </div>
         <div className="flex gap-4 items-center">
@@ -44,7 +45,7 @@ export default async function AdminDriversPage() {
       <div className="grid grid-cols-1 gap-4">
         {riders && riders.length > 0 ? (
           riders.map((rider) => (
-            <div key={rider.user_id} className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-6 flex flex-wrap lg:flex-nowrap items-center gap-8 hover:border-white/10 transition-all">
+            <Link href={`/ops-terminal/drivers/${rider.user_id}`} className="block"><div className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-6 flex flex-wrap lg:flex-nowrap items-center gap-8 hover:border-white/10 transition-all">
                
                {/* Profile Photo */}
                <div className="w-16 h-16 rounded-2xl bg-charcoal-800 border border-white/5 overflow-hidden flex-shrink-0">
@@ -73,7 +74,7 @@ export default async function AdminDriversPage() {
                        <div className="flex items-center gap-1 text-amber-500 text-xs font-black">
                           <Star size={12} fill="currentColor" /> {rider.rating || "5.0"}
                        </div>
-                       <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} â€¢ {rider.plate_number || 'No Plate'}</div>
+                       <div className="text-[10px] text-charcoal-600 uppercase font-black">{rider.vehicle_type} • {rider.plate_number || 'No Plate'}</div>
                     </div>
                </div>
 
@@ -107,3 +108,4 @@ export default async function AdminDriversPage() {
     </div>
   );
 }
+
