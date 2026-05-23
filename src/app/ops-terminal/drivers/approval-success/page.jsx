@@ -15,16 +15,10 @@ export default function ApprovalSuccessPage() {
           Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
         </p>
         <div className="space-y-4">
-          
-            href="/rider/dashboard"
-            className="block w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-2xl uppercase tracking-wider transition-all text-center"
-          >
+          <a href="/rider/dashboard" className="block w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-2xl uppercase tracking-wider transition-all text-center">
             Open Rider Dashboard
           </a>
-          
-            href="/ops-terminal/drivers"
-            className="block w-full bg-white/10 hover:bg-white/20 text-white font-black py-4 rounded-2xl uppercase tracking-wider transition-all text-center"
-          >
+          <a href="/ops-terminal/drivers" className="block w-full bg-white/10 hover:bg-white/20 text-white font-black py-4 rounded-2xl uppercase tracking-wider transition-all text-center">
             Back to Dashboard
           </a>
         </div>
