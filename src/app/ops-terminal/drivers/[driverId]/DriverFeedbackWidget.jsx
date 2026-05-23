@@ -40,7 +40,7 @@ export default function DriverFeedbackWidget({ driverId, riderName, currentStatu
   const approveDriver = async () => {
     setIsUpdatingStatus(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("riders").update({ status: "approved", approved: true }).eq("user_id", driverId);
+    const res = await fetch("/api/admin/approve-driver", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ driverId }) }); if (!res.ok) throw new Error("Approval failed");
     await supabase.from("admin_action_logs").insert({
       admin_id: user.id,
       user_id: driverId,
