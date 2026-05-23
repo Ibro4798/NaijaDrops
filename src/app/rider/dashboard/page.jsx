@@ -37,9 +37,17 @@ export default function RiderDashboard() {
           return;
         }
 
-        // Check if approved
+        // If rider doesn't exist at all, go to onboarding
+        if (!riderData) {
+          router.push("/driver/onboarding");
+          return;
+        }
+
+        // IMPORTANT: Do NOT redirect if not approved - show a message instead
+        // This prevents the redirect loop when approval-success page sends them here
         if (!riderData?.approved) {
-          router.push("/rider/onboarding");
+          setError("Your profile is not yet approved. Check back soon!");
+          setLoading(false);
           return;
         }
 
@@ -128,16 +136,17 @@ export default function RiderDashboard() {
     );
   }
 
-  if (error) {
+  if (error && !rider) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+        <div className="text-center max-w-sm">
+          <p className="text-red-500 mb-4 text-lg font-bold">{error}</p>
+          <p className="text-charcoal-400 mb-6">Please contact support or try again later.</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-emerald-500 text-black px-6 py-2 rounded-lg font-bold"
+            className="bg-emerald-500 text-black px-8 py-3 rounded-lg font-bold uppercase"
           >
-            Try Again
+            Reload
           </button>
         </div>
       </div>
