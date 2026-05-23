@@ -40,13 +40,13 @@ export default function DriverFeedbackWidget({ driverId, riderName, currentStatu
   const approveDriver = async () => {
     setIsUpdatingStatus(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("riders").update({ status: "approved" }).eq("user_id", driverId);
+    await supabase.from("riders").update({ status: "approved", approved: true }).eq("user_id", driverId);
     await supabase.from("admin_action_logs").insert({
       admin_id: user.id,
       user_id: driverId,
       table_name: "riders",
       action: "approve",
-      changes: { status: "approved" },
+      changes: { status: "approved", approved: true },
     });
     setIsUpdatingStatus(false);
     window.location.reload();
