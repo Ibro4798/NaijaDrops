@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -115,7 +115,7 @@ export default function DriverOnboardingPage() {
         ...formData,
         status: 'pending', // Strictly set to pending on submission
         documents_submitted_at: new Date().toISOString()
-      // ✅ FIX: onConflict ensures UPDATE on re-submission, not duplicate INSERT
+      // âœ… FIX: onConflict ensures UPDATE on re-submission, not duplicate INSERT
       }, { onConflict: 'user_id' });
 
       if (updateErr) throw updateErr;
@@ -139,7 +139,7 @@ export default function DriverOnboardingPage() {
     );
   }
 
-  // Application already submitted — show status instead of crashing
+  // Application already submitted â€” show status instead of crashing
   if (existingStatus) {
     return (
       <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
@@ -151,7 +151,7 @@ export default function DriverOnboardingPage() {
             </div>
             <h2 className="text-2xl font-black text-white mb-4 font-outfit">Application Under Review</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
-              We've received your documents. Our team in Kano is currently verifying your license and vehicle details. This usually takes 24–48 hours.
+              We've received your documents. Our team in Kano is currently verifying your license and vehicle details. This usually takes 24â€“48 hours.
             </p>
             <div className="w-full max-w-sm bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left mb-8">
               <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-3">Verification Progress</div>
@@ -174,12 +174,12 @@ export default function DriverOnboardingPage() {
             <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-8">
               <CheckCircle2 className="text-emerald-500" size={40} />
             </div>
-            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You're Verified! 🎉</h2>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You're Verified! ðŸŽ‰</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
               Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
             </p>
             <button 
-              onClick={() => router.push("/rider")}
+              onClick={() => router.push("/rider/dashboard")}
               className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl uppercase text-sm tracking-widest shadow-[0_0_24px_rgba(16,185,129,0.3)] mb-4"
             >
               Open Rider Dashboard
@@ -201,7 +201,7 @@ export default function DriverOnboardingPage() {
           onClick={() => router.push("/dashboard")}
           className="w-full max-w-sm py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm hover:bg-white/10 transition-all"
         >
-          ← Back to Dashboard
+          â† Back to Dashboard
         </button>
       </div>
     );
@@ -269,13 +269,13 @@ export default function DriverOnboardingPage() {
                <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'bike' }))}
                     className={`p-5 rounded-2xl border transition-all text-left ${formData.vehicle_type === 'bike' ? "bg-emerald-500/10 border-emerald-500" : "bg-white/[0.03] border-white/10"}`}>
-                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'bike' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>🏍️</div>
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'bike' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>ðŸï¸</div>
                      <div className={`font-black text-sm ${formData.vehicle_type === 'bike' ? "text-emerald-500" : "text-white"}`}>Motorcycle</div>
                      <div className="text-charcoal-500 text-[10px] mt-1">Recommended for Kano</div>
                   </button>
                   <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'car' }))}
                     className={`p-5 rounded-2xl border transition-all text-left ${formData.vehicle_type === 'car' ? "bg-emerald-500/10 border-emerald-500" : "bg-white/[0.03] border-white/10"}`}>
-                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>🚗</div>
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>ðŸš—</div>
                      <div className={`font-black text-sm ${formData.vehicle_type === 'car' ? "text-emerald-500" : "text-white"}`}>Mini Car</div>
                      <div className="text-charcoal-500 text-[10px] mt-1">Faster for big parcels</div>
                   </button>
@@ -347,3 +347,4 @@ export default function DriverOnboardingPage() {
     </div>
   );
 }
+
