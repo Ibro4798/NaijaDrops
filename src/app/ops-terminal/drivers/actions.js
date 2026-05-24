@@ -15,7 +15,7 @@ export async function approveRider(riderId) {
     // Update rider status
     const { error } = await supabase
       .from("riders")
-      .update({ approved: true })
+      .update({ approved: true, status: "approved" })
       .eq("user_id", riderId);
 
     if (error) throw error;
@@ -42,7 +42,7 @@ export async function deactivateRider(riderId) {
     // Update rider status
     const { error } = await supabase
       .from("riders")
-      .update({ approved: false })
+      .update({ approved: false, status: "pending" })
       .eq("user_id", riderId);
 
     if (error) throw error;

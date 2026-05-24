@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -45,7 +45,7 @@ export default function RiderDashboard() {
 
         // IMPORTANT: Do NOT redirect if not approved - show a message instead
         // This prevents the redirect loop when approval-success page sends them here
-        if (!riderData?.approved) {
+        if (riderData?.status !== "approved") {
           setError("Your profile is not yet approved. Check back soon!");
           setLoading(false);
           return;
@@ -184,7 +184,7 @@ export default function RiderDashboard() {
               <p className="text-charcoal-500 text-[10px] uppercase font-bold tracking-widest mb-2">
                 Total Earnings
               </p>
-              <p className="text-2xl font-black">₦0</p>
+              <p className="text-2xl font-black">?0</p>
             </div>
             <DollarSign className="text-emerald-500" size={32} />
           </div>

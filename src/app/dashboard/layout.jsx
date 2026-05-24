@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }) {
     .single();
 
   if (profile?.role === 'rider') redirect('/rider');
-  if (profile?.role === 'admin') redirect('/admin');
+  if (profile?.role === 'admin') redirect('/ops-terminal/dashboard');
 
   return <>{children}</>;
 }
