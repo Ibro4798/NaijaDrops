@@ -179,7 +179,7 @@ export default function DriverOnboardingPage() {
               Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
             </p>
             <button 
-              onClick={() => router.push("/rider/dashboard")}
+              onClick={() => router.push("/driver/dashboard")}
               className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl uppercase text-sm tracking-widest shadow-[0_0_24px_rgba(16,185,129,0.3)] mb-4"
             >
               Open Rider Dashboard
