@@ -93,7 +93,7 @@ export default function Contact() {
                 <div className="bg-white/10 p-2 rounded-xl border border-white/10 mt-1"><Clock size={16} /></div>
                 <div>
                     <div className="font-bold text-white">Daily Operations</div>
-                    <div className="text-charcoal-400 text-sm font-medium">8:00 AM — 9:00 PM</div>
+                    <div className="text-charcoal-400 text-sm font-medium">8:00 AM â€” 9:00 PM</div>
                 </div>
               </div>
               

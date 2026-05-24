@@ -29,13 +29,13 @@ function Step3Content() {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ NEW: Auth gate state — show signup prompt instead of redirecting
+  // âœ… NEW: Auth gate state â€” show signup prompt instead of redirecting
   const [showAuthGate, setShowAuthGate] = useState(false);
 
   const timerRef = useRef(null);
   const channelRef = useRef(null);
 
-  // Load draft on mount — do NOT create order or check auth yet
+  // Load draft on mount â€” do NOT create order or check auth yet
   useEffect(() => {
     try {
       const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
@@ -51,7 +51,7 @@ function Step3Content() {
     } catch { router.replace("/send-package/step-2"); }
   }, []);
 
-  // ✅ NEW: "Find My Driver" button handler — checks auth before creating order
+  // âœ… NEW: "Find My Driver" button handler â€” checks auth before creating order
   async function handleFindDriver() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -90,9 +90,9 @@ function Step3Content() {
         vehicle_type: draft.vehicle,
         item_description: draft.description,
         voice_note_url: draft.voice_note,
-        // ✅ FIX: Use correct column names matching DB schema
-        receiver_name: draft.receiver_name,
-        receiver_phone: draft.receiver_phone,
+        // âœ… FIX: Use correct column names matching DB schema
+        recipient_name: draft.recipient_name,
+        recipient_phone: draft.recipient_phone,
         notify_receiver: draft.notify_receiver,
         agreed_price: draft.estimated_price,
         status: "pending",
@@ -119,7 +119,7 @@ function Step3Content() {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${oid}`
       }, async (payload) => {
         if (payload.new.rider_id && payload.new.status === "matched") {
-          // ✅ FIX: Use correct column name 'rating' not 'avg_rating', and 'full_name' not 'name'
+          // âœ… FIX: Use correct column name 'rating' not 'avg_rating', and 'full_name' not 'name'
           const { data: rider } = await supabase
             .from("riders")
             .select("*, users(full_name, email)")
@@ -128,11 +128,11 @@ function Step3Content() {
             
           setMatchedRider({
             id: payload.new.rider_id,
-            // ✅ FIX: full_name not name
+            // âœ… FIX: full_name not name
             name: rider?.users?.full_name || "Driver",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
-            // ✅ FIX: rating not avg_rating
+            // âœ… FIX: rating not avg_rating
             rating: rider?.rating || 5.0,
             eta_min: Math.round(5 + Math.random() * 10),
             price: payload.new.agreed_price,
@@ -182,11 +182,11 @@ function Step3Content() {
   async function sendOffer() {
     if (!offerPrice || !orderId) return;
     const price = parseInt(offerPrice);
-    if (isNaN(price) || price < 100) { setError("Please enter a valid price (min ₦100)"); return; }
+    if (isNaN(price) || price < 100) { setError("Please enter a valid price (min â‚¦100)"); return; }
 
     await supabase.from("orders").update({ agreed_price: price, status: "negotiating" }).eq("id", orderId);
 
-    // ✅ FIX: Use correct column names in join
+    // âœ… FIX: Use correct column names in join
     const channel = supabase.channel(`bids-${orderId}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "bids", filter: `order_id=eq.${orderId}`
@@ -214,11 +214,11 @@ function Step3Content() {
 
     setMatchedRider({
       id: bid.rider_id,
-      // ✅ FIX: full_name not name
+      // âœ… FIX: full_name not name
       name: bid.riders?.users?.full_name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
-      // ✅ FIX: rating not avg_rating
+      // âœ… FIX: rating not avg_rating
       rating: bid.riders?.rating || 5.0,
       eta_min: Math.round(5 + Math.random() * 10),
       price: bid.amount,
@@ -281,7 +281,7 @@ function Step3Content() {
         </div>
       </div>
 
-      {/* ✅ NEW: Auth Gate Modal — shown instead of redirect */}
+      {/* âœ… NEW: Auth Gate Modal â€” shown instead of redirect */}
       <AnimatePresence>
         {showAuthGate && (
           <motion.div
@@ -301,7 +301,7 @@ function Step3Content() {
               </div>
               <h2 className="text-xl font-black text-white mb-3">Almost there!</h2>
               <p className="text-charcoal-400 text-sm leading-relaxed mb-8">
-                Create a free account to confirm your delivery. Your route and pricing are saved — just sign in and dispatch.
+                Create a free account to confirm your delivery. Your route and pricing are saved â€” just sign in and dispatch.
               </p>
               <button
                 onClick={() => router.push('/auth/login?next=/send-package/step-3')}
@@ -313,14 +313,14 @@ function Step3Content() {
                 onClick={() => setShowAuthGate(false)}
                 className="w-full py-4 text-charcoal-500 font-bold text-sm"
               >
-                ← Back to preview
+                â† Back to preview
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ✅ NEW: Idle state — shown before user clicks "Find My Driver" */}
+      {/* âœ… NEW: Idle state â€” shown before user clicks "Find My Driver" */}
       {matchState === "idle" && (
         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
           <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 mb-8">
@@ -336,7 +336,7 @@ function Step3Content() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-charcoal-500 font-bold">Estimated Fare</span>
-                <span className="text-emerald-400 font-black">₦{draft.estimated_price?.toLocaleString()}</span>
+                <span className="text-emerald-400 font-black">â‚¦{draft.estimated_price?.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -356,7 +356,7 @@ function Step3Content() {
         </div>
       )}
 
-      {/* Mode Toggle — only show when actively searching/matching */}
+      {/* Mode Toggle â€” only show when actively searching/matching */}
       {matchState !== "idle" && (
         <>
           <div className="mx-5 mb-6 bg-white/[0.04] border border-white/10 rounded-2xl p-1 flex gap-1">
@@ -388,7 +388,7 @@ function Step3Content() {
                         </div>
                         <div className="absolute inset-0 w-32 h-32 rounded-full border border-emerald-500/30 animate-ping opacity-20" />
                       </div>
-                      <h2 className="text-white font-black text-xl mb-2">Finding nearby drivers…</h2>
+                      <h2 className="text-white font-black text-xl mb-2">Finding nearby driversâ€¦</h2>
                       <p className="text-charcoal-500 text-sm text-center max-w-[240px]">Scanning riders within 3km of your pickup point</p>
                     </div>
                   )}
@@ -399,14 +399,14 @@ function Step3Content() {
                         <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-widest rounded-bl-xl">Best Value</div>
                         <div className="flex items-center gap-4 mb-5">
                           <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-3xl border border-emerald-500/20">
-                            {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
+                            {matchedRider.vehicle_type === "car" ? "ðŸš—" : "ðŸï¸"}
                           </div>
                           <div className="flex-1">
                             <div className="text-white font-black text-xl">{matchedRider.name}</div>
                             <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
-                              <span className="text-charcoal-600">·</span>
-                              <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
+                              <div className="flex items-center gap-1 text-amber-400 font-black text-xs">â­ {matchedRider.rating}</div>
+                              <span className="text-charcoal-600">Â·</span>
+                              <span className="text-white font-black text-lg">â‚¦{matchedRider.price?.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -430,7 +430,7 @@ function Step3Content() {
                         <CheckCircle2 size={40} className="text-emerald-400" />
                       </div>
                       <h2 className="text-white font-black text-2xl mb-2">Driver Accepted!</h2>
-                      <p className="text-charcoal-500 text-sm">Redirecting to confirmation…</p>
+                      <p className="text-charcoal-500 text-sm">Redirecting to confirmationâ€¦</p>
                     </div>
                   )}
 
@@ -441,7 +441,7 @@ function Step3Content() {
                       </div>
                       <h2 className="text-white font-black text-xl mb-3">No drivers nearby</h2>
                       <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
-                        No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
+                        No immediate match found at â‚¦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
                       </p>
                       <button onClick={() => setMode("negotiate")}
                         className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-6 py-3.5 rounded-2xl text-sm flex items-center gap-2 hover:bg-amber-500/30 transition-all">
@@ -460,25 +460,25 @@ function Step3Content() {
                       <div className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl">
                         <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Set Your Offer</label>
                         <div className="relative">
-                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">â‚¦</span>
                           <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
                             className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
                         </div>
                         <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
-                           <span>Recommended: ₦{draft.estimated_price}</span>
+                           <span>Recommended: â‚¦{draft.estimated_price}</span>
                         </div>
                       </div>
 
                       <button onClick={sendOffer}
                         className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
-                         Broadcast New Offer 📢
+                         Broadcast New Offer ðŸ“¢
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
                          <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
-                         <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
+                         <div className="text-white font-black text-xl">â‚¦{parseInt(offerPrice).toLocaleString()}</div>
                       </div>
 
                       {bids.length === 0 ? (
@@ -492,15 +492,15 @@ function Step3Content() {
                             <motion.div key={bid.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                               className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">ðŸï¸</div>
                                 <div>
-                                  {/* ✅ FIX: full_name not name, rating not avg_rating */}
+                                  {/* âœ… FIX: full_name not name, rating not avg_rating */}
                                   <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
-                                  <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
+                                  <div className="text-amber-400 font-bold text-[10px]">â­ {bid.riders?.rating || "4.8"}</div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
-                                 <div className="text-emerald-400 font-black">₦{bid.amount?.toLocaleString()}</div>
+                                 <div className="text-emerald-400 font-black">â‚¦{bid.amount?.toLocaleString()}</div>
                                  <button onClick={() => acceptBid(bid)} className="bg-emerald-500 text-charcoal-950 font-black px-4 py-2 rounded-xl text-xs">Accept</button>
                               </div>
                             </motion.div>

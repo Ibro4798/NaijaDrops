@@ -1,19 +1,25 @@
-"use client";
+import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
 
-import { useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+export default async function HistoryHeadless() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export default function OrderHistoryDetailHeadless() {
-  const router = useRouter();
-  const { orderId } = useParams();
+  if (!user) {
+    redirect('/auth/login');
+  }
 
-  useEffect(() => {
-    if (orderId) {
-      router.replace(`/tracking/${orderId}`);
-    } else {
-      router.replace('/history');
-    }
-  }, [orderId, router]);
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  return null;
+  if (profile?.role === 'vendor') {
+    redirect('/vendor/history');
+  } else if (profile?.role === 'rider') {
+    redirect('/rider/earnings'); // Riders check history via earnings/transactions
+  } else {
+    redirect('/resolve');
+  }
 }

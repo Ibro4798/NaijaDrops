@@ -81,7 +81,7 @@ export default function RiderDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-black mb-2">Status: {rider?.full_name}</h2>
-              <p className="text-charcoal-400">Rating: ⭐ {rider?.rating || "5.0"}</p>
+              <p className="text-charcoal-400">Rating: â­ {rider?.rating || "5.0"}</p>
             </div>
             <button
               onClick={toggleOnlineStatus}
@@ -91,7 +91,7 @@ export default function RiderDashboard() {
                   : "bg-charcoal-700 text-white border border-white/10"
               }`}
             >
-              {isOnline ? "🟢 Go Offline" : "⚫ Go Online"}
+              {isOnline ? "ðŸŸ¢ Go Offline" : "âš« Go Online"}
             </button>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function RiderDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-black text-emerald-400">₦{job.agreed_price}</p>
+                    <p className="text-3xl font-black text-emerald-400">â‚¦{job.agreed_price}</p>
                     <p className="text-charcoal-500 text-sm">{job.item_category}</p>
                   </div>
                 </div>

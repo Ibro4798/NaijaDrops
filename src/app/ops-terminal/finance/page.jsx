@@ -49,10 +49,10 @@ export default async function OpsFinancePage() {
   });
 
   const kpis = [
-    { label: "Live Escrow Balance", value: `₦${currentEscrow.toLocaleString()}`, icon: <Wallet className="text-purple-500" />, trend: "Locked Funds" },
-    { label: "Platform Revenue", value: `₦${platformCut.toLocaleString()}`, icon: <DollarSign className="text-emerald-500" />, trend: "20% Take Rate" },
-    { label: "Gross Merchandise Value", value: `₦${totalRevenue.toLocaleString()}`, icon: <Activity className="text-blue-500" />, trend: "Total Processed" },
-    { label: "Pending Payouts", value: `₦${totalPayoutPending.toLocaleString()}`, icon: <CreditCard className="text-amber-500" />, trend: "Rider Liabilities" }
+    { label: "Live Escrow Balance", value: `â‚¦${currentEscrow.toLocaleString()}`, icon: <Wallet className="text-purple-500" />, trend: "Locked Funds" },
+    { label: "Platform Revenue", value: `â‚¦${platformCut.toLocaleString()}`, icon: <DollarSign className="text-emerald-500" />, trend: "20% Take Rate" },
+    { label: "Gross Merchandise Value", value: `â‚¦${totalRevenue.toLocaleString()}`, icon: <Activity className="text-blue-500" />, trend: "Total Processed" },
+    { label: "Pending Payouts", value: `â‚¦${totalPayoutPending.toLocaleString()}`, icon: <CreditCard className="text-amber-500" />, trend: "Rider Liabilities" }
   ];
 
   return (

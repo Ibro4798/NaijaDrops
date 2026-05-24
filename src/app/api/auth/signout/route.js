@@ -39,7 +39,7 @@ export async function POST() {
     }
   }
 
-  // Redirect to the portal chooser — NOT directly to login
+  // Redirect to the portal chooser â€” NOT directly to login
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   return NextResponse.redirect(new URL('/welcome', baseUrl), {
     status: 302,

@@ -6,7 +6,7 @@ import { MessageSquare, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-// ─── Toast Notification Component ──────────────────────────────────────────
+// â”€â”€â”€ Toast Notification Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ChatToast({ notification, onClose, onTap }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 6000);
@@ -54,7 +54,7 @@ function ChatToast({ notification, onClose, onTap }) {
   );
 }
 
-// ─── Global Listener Component ──────────────────────────────────────────────
+// â”€â”€â”€ Global Listener Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function ChatNotificationListener() {
   const supabase = createClient();
   const router = useRouter();

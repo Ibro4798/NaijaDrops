@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request) {
-    // Requires SUPABASE_SERVICE_ROLE_KEY — this runs on the server only.
+    // Requires SUPABASE_SERVICE_ROLE_KEY â€” this runs on the server only.
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY,

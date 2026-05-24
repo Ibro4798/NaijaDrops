@@ -78,7 +78,7 @@ export default function SelectModePage() {
       <div className="text-center mb-10">
         <h1 className="text-3xl font-black text-white tracking-tight mb-2">Select Your Portal</h1>
         <p className="text-charcoal-400 text-sm">Switch anytime from your profile settings.</p>
-        {error && <p className="mt-4 text-red-400 font-bold uppercase tracking-widest text-xs">⚠️ {error}</p>}
+        {error && <p className="mt-4 text-red-400 font-bold uppercase tracking-widest text-xs">âš ï¸ {error}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">

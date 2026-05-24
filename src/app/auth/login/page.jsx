@@ -154,7 +154,7 @@ export default function LoginPage() {
                 </p>
                 <button onClick={() => { setMode("login"); setResetSent(false); }}
                   className="text-emerald-500 text-xs font-black uppercase tracking-widest hover:text-emerald-400 transition-colors">
-                  ← Back to sign in
+                  â† Back to sign in
                 </button>
               </motion.div>
             ) : (
@@ -247,7 +247,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6 text-charcoal-700 text-[10px] font-bold uppercase tracking-[0.2em]">
-          Secure · Encrypted · Kano-Ready
+          Secure Â· Encrypted Â· Kano-Ready
         </p>
       </motion.div>
     </main>

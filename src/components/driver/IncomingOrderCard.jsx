@@ -23,7 +23,7 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
                  <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow"></div>
                  <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
               </div>
-              <div className="text-5xl font-black text-white font-outfit tracking-tighter italic">₦{order.agreed_price?.toLocaleString()}</div>
+              <div className="text-5xl font-black text-white font-outfit tracking-tighter italic">â‚¦{order.agreed_price?.toLocaleString()}</div>
            </div>
            
            <button 

@@ -1,4 +1,4 @@
-﻿import { createAdminClient } from "@/utils/supabase/admin";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { validateAdmin } from "@/utils/admin";
 import { NextResponse } from "next/server";
 

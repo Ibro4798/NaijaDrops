@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * Layer 2: Server-Side Admin Validation

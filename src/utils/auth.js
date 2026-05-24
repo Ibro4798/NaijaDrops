@@ -1,5 +1,5 @@
 /**
- * NaijaDrops — Centralized Auth Utility (MVP Refined)
+ * NaijaDrops â€” Centralized Auth Utility (MVP Refined)
  * ================================================
  * ONE place for role detection using the UNIFIED users table.
  * 

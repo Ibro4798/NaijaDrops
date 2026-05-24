@@ -1,4 +1,4 @@
-﻿import { validateAdmin } from "@/utils/admin";
+import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Loader2, UserPlus, ShieldCheck, Mail } from "lucide-react";
 import { addAdmin } from "./actions";

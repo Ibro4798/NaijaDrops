@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Clock, ShieldAlert, AlertTriangle, PhoneCall } from "lucide-react";
 

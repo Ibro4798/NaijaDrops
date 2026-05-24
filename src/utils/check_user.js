@@ -15,25 +15,25 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkUserStatus(email) {
-  console.log(`\n🔍 Checking status for: ${email}\n`);
+  console.log(`\nðŸ” Checking status for: ${email}\n`);
 
   try {
     // 1. Check inside Admins
     const { data: admin } = await supabase.from('admins').select('*').eq('email', email).maybeSingle();
-    console.log(`[Admin Table]: ${admin ? '✅ Found (ID: ' + admin.id + ')' : '❌ Not Found'}`);
+    console.log(`[Admin Table]: ${admin ? 'âœ… Found (ID: ' + admin.id + ')' : 'âŒ Not Found'}`);
 
     // 2. Check inside Drivers
     const { data: driver } = await supabase.from('drivers').select('*').eq('email', email).maybeSingle();
-    console.log(`[Driver Table]: ${driver ? '✅ Found (ID: ' + driver.id + ')' : '❌ Not Found'}`);
+    console.log(`[Driver Table]: ${driver ? 'âœ… Found (ID: ' + driver.id + ')' : 'âŒ Not Found'}`);
 
     // 3. Check inside Customers
     const { data: customer } = await supabase.from('customers').select('*').eq('email', email).maybeSingle();
-    console.log(`[Customer Table]: ${customer ? '✅ Found (ID: ' + customer.id + ')' : '❌ Not Found'}`);
+    console.log(`[Customer Table]: ${customer ? 'âœ… Found (ID: ' + customer.id + ')' : 'âŒ Not Found'}`);
 
     if (!admin && !driver && !customer) {
-      console.log(`\n⚠️ Warning: User not found in any role table. Redirection will default to Customer.`);
+      console.log(`\nâš ï¸ Warning: User not found in any role table. Redirection will default to Customer.`);
     } else {
-      console.log(`\n✨ Redirection Priority: ${admin ? 'Admin Dashboard' : driver ? 'Driver Console' : 'Customer Shop'}`);
+      console.log(`\nâœ¨ Redirection Priority: ${admin ? 'Admin Dashboard' : driver ? 'Driver Console' : 'Customer Shop'}`);
     }
 
   } catch (err) {

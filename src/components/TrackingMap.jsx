@@ -175,7 +175,7 @@ export default function TrackingMap({ driverLocation, dropoffLocation, demandDat
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', 
                       border: '2px solid #10b981'
                     }}>
-                      <div style={{ fontSize: '16px' }}>🚙</div>
+                      <div style={{ fontSize: '16px' }}>ðŸš™</div>
                     </div>
                     {routeDuration && (
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-charcoal-900 border border-emerald-500 rounded-full px-2.5 py-0.5 whitespace-nowrap shadow-xl">

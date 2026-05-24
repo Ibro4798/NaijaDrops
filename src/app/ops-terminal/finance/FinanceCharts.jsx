@@ -10,10 +10,10 @@ export default function FinanceCharts({ data }) {
           <p className="text-[10px] font-black uppercase tracking-widest text-charcoal-500 mb-2">{label}</p>
           <div className="space-y-1">
             <p className="text-sm font-bold text-blue-500">
-              GMV: ₦{payload[0]?.value?.toLocaleString()}
+              GMV: â‚¦{payload[0]?.value?.toLocaleString()}
             </p>
             <p className="text-sm font-bold text-emerald-500">
-              Revenue: ₦{payload[1]?.value?.toLocaleString()}
+              Revenue: â‚¦{payload[1]?.value?.toLocaleString()}
             </p>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function FinanceCharts({ data }) {
           tickLine={false} 
           axisLine={false}
           tick={{ fill: '#737373', fontWeight: 900 }}
-          tickFormatter={(value) => `₦${value.toLocaleString()}`}
+          tickFormatter={(value) => `â‚¦${value.toLocaleString()}`}
           dx={-10}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#ffffff', strokeOpacity: 0.1, strokeWidth: 1 }} />

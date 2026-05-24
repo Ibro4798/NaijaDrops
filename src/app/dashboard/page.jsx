@@ -39,7 +39,7 @@ const STATUS_CONFIG = {
 
 import { Camera, Image as ImageIcon } from "lucide-react";
 
-// ─── Profile Completion Modal ────────────────────────────────────────────────
+// â”€â”€â”€ Profile Completion Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
   const [name, setName] = useState(currentName || "");
   const [avatar, setAvatar] = useState(currentAvatar || "");
@@ -152,7 +152,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
   );
 }
 
-// ─── Menu Modal ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Menu Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
   const router = useRouter();
   if (!isOpen) return null;
@@ -373,7 +373,7 @@ export default function DashboardPage() {
           </Map>
         ) : (
           <div className="w-full h-full bg-charcoal-900 flex items-center justify-center">
-            <div className="text-charcoal-600 text-sm font-medium">Map loading…</div>
+            <div className="text-charcoal-600 text-sm font-medium">Map loadingâ€¦</div>
           </div>
         )}
       </div>
@@ -435,7 +435,7 @@ export default function DashboardPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none"
         >
           <div className="bg-charcoal-950/60 backdrop-blur-sm border border-emerald-500/20 rounded-full px-4 py-1.5">
-            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">🟢 Kano Pilot Zone Active</span>
+            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">ðŸŸ¢ Kano Pilot Zone Active</span>
           </div>
         </motion.div>
       )}

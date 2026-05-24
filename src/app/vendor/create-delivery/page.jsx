@@ -158,7 +158,7 @@ export default function CreateDelivery() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
 
-      // ✅ FIX: Fetch the vendors.id (FK target) not auth user.id
+      // âœ… FIX: Fetch the vendors.id (FK target) not auth user.id
       const { data: vendorProfile, error: vendorErr } = await supabase
         .from('vendors')
         .select('id')
@@ -176,7 +176,7 @@ export default function CreateDelivery() {
             : estimatedPrice);
 
       const orderData = {
-        // ✅ FIX: Use vendorProfile.id (vendors.id) not user.id
+        // âœ… FIX: Use vendorProfile.id (vendors.id) not user.id
         vendor_id: vendorProfile.id,
         pickup_name: pickup.name,
         pickup_lat: pickup.coords.lat,
@@ -186,9 +186,9 @@ export default function CreateDelivery() {
         dropoff_lng: dropoff.coords.lng,
         item_category: category,
         item_size: size,
-        // ✅ FIX: Correct column names matching DB schema
-        receiver_name: receiver.name,
-        receiver_phone: receiver.phone,
+        // âœ… FIX: Correct column names matching DB schema
+        recipient_name: receiver.name,
+        recipient_phone: receiver.phone,
         agreed_price: finalAgreedPrice,
         status: 'pending'
       };
@@ -324,7 +324,7 @@ export default function CreateDelivery() {
                   </div>
                   <div className="text-right">
                     <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Estimated Fare</div>
-                    <div className="text-4xl font-black text-emerald-400 italic tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
+                    <div className="text-4xl font-black text-emerald-400 italic tracking-tighter">â‚¦{estimatedPrice.toLocaleString()}</div>
                   </div>
                 </div>
                 <button onClick={() => setStep(2)} className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl flex items-center justify-center gap-2 text-xl italic transition-all active:scale-95 shadow-glow">
@@ -365,7 +365,7 @@ export default function CreateDelivery() {
                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mb-6 block">Vehicle Priority</label>
                    <button onClick={() => setVehicleType('bike')} className={`w-full p-5 rounded-2xl border-2 flex items-center justify-between transition-all ${vehicleType === 'bike' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 bg-white/5 opacity-50'}`}>
                       <div className="text-left">
-                        <div className="text-3xl mb-1">🏍️</div>
+                        <div className="text-3xl mb-1">ðŸï¸</div>
                         <div className="text-sm font-black text-white uppercase tracking-widest">Motorbike</div>
                       </div>
                       {vehicleType === 'bike' && <Check className="text-emerald-500" strokeWidth={4} />}
@@ -376,7 +376,7 @@ export default function CreateDelivery() {
              <div className="bg-charcoal-900/50 p-8 rounded-[3rem] border border-white/5 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-1 italic">Mission Fare</div>
-                  <div className="text-5xl font-black text-white italic tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
+                  <div className="text-5xl font-black text-white italic tracking-tighter">â‚¦{estimatedPrice.toLocaleString()}</div>
                 </div>
                 <button disabled={!isStep2Valid} onClick={() => setStep(3)} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-20 text-charcoal-950 px-10 py-5 rounded-2xl font-black text-xl italic transition-all active:scale-95 h-fit">
                    Finalize <ChevronRight className="inline ml-1" />
@@ -399,11 +399,11 @@ export default function CreateDelivery() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button onClick={() => setFareType('standard')} className={`p-6 rounded-2xl border transition-all text-left ${fareType === 'standard' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 opacity-50'}`}>
                       <div className="font-black text-white uppercase text-xs tracking-widest mb-1 italic">Standard</div>
-                      <div className="text-2xl font-black text-white tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
+                      <div className="text-2xl font-black text-white tracking-tighter">â‚¦{estimatedPrice.toLocaleString()}</div>
                     </button>
                     <button onClick={() => setFareType('express')} className={`p-6 rounded-2xl border transition-all text-left ${fareType === 'express' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 opacity-50'}`}>
                       <div className="font-black text-emerald-500 uppercase text-xs tracking-widest mb-1 italic">Express (+30%)</div>
-                      <div className="text-2xl font-black text-white tracking-tighter">₦{(Math.ceil(estimatedPrice*1.3/50)*50).toLocaleString()}</div>
+                      <div className="text-2xl font-black text-white tracking-tighter">â‚¦{(Math.ceil(estimatedPrice*1.3/50)*50).toLocaleString()}</div>
                     </button>
                   </div>
                 </div>

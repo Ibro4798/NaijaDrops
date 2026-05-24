@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -129,7 +129,7 @@ export default function RiderJobsPage() {
                   <p className="text-charcoal-500 text-sm mb-3">{job.item_description}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-black text-emerald-500">₦{job.agreed_price || 0}</p>
+                  <p className="text-2xl font-black text-emerald-500">?{job.agreed_price || 0}</p>
                   <p className="text-[10px] text-charcoal-600 uppercase">Amount</p>
                 </div>
               </div>

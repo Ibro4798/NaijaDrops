@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { validateAdmin } from "@/utils/admin";
 import { Activity, ShieldCheck, DollarSign, Users, AlertOctagon, Package, LayoutDashboard } from "lucide-react";

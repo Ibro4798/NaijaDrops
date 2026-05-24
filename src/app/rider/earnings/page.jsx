@@ -86,7 +86,7 @@ export default function RiderEarnings() {
             </div>
             
             <div className="mb-10">
-               <span className="text-2xl font-black text-emerald-500 mr-2 italic">₦</span>
+               <span className="text-2xl font-black text-emerald-500 mr-2 italic">â‚¦</span>
                <span className="text-7xl font-black text-white tracking-tighter italic font-outfit leading-none">
                   {earningsData.total.toLocaleString()}
                </span>
@@ -95,11 +95,11 @@ export default function RiderEarnings() {
             <div className="grid grid-cols-2 gap-4 mb-8">
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1 italic">Pending Clear</div>
-                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.pending.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">â‚¦{earningsData.pending.toLocaleString()}</div>
                </div>
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1 italic">Weekly Yield</div>
-                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.weekly.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">â‚¦{earningsData.weekly.toLocaleString()}</div>
                </div>
             </div>
 
@@ -127,11 +127,11 @@ export default function RiderEarnings() {
                      </div>
                      <div>
                         <div className="text-sm font-black text-white uppercase tracking-tight">Mission Settlement</div>
-                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} • ID: {tx.id.slice(0, 6)}</div>
+                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} â€¢ ID: {tx.id.slice(0, 6)}</div>
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.85).toLocaleString()}</div>
+                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+â‚¦{Math.floor(tx.agreed_price * 0.85).toLocaleString()}</div>
                      <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic flex items-center justify-end gap-1">
                         Cleared <Sparkles size={10} />
                      </div>

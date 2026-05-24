@@ -21,7 +21,7 @@ export default function DriverNotifications({ profile, isOnline }) {
         filter: `status=eq.pending`
       }, payload => {
         if (payload.new.vehicle_type === profile.vehicle_type) {
-          triggerPing(`New Order: ${payload.new.item_category}`, `Proposed Fare: ₦${payload.new.estimated_price?.toLocaleString()}`);
+          triggerPing(`New Order: ${payload.new.item_category}`, `Proposed Fare: â‚¦${payload.new.estimated_price?.toLocaleString()}`);
         }
       })
       .on('postgres_changes', {

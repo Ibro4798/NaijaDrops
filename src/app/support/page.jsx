@@ -15,7 +15,7 @@ export default function SupportPage() {
           Support
         </h1>
         <p className="text-charcoal-400 text-base mb-10 leading-relaxed">
-          NaijaDrops is in active pilot in Kano. If you have a question, issue, or feedback — reach us directly.
+          NaijaDrops is in active pilot in Kano. If you have a question, issue, or feedback â€” reach us directly.
         </p>
 
         <div className="space-y-4">
@@ -30,7 +30,7 @@ export default function SupportPage() {
             </div>
             <div>
               <div className="text-white font-black text-sm">WhatsApp Support</div>
-              <div className="text-charcoal-500 text-xs font-medium">Fastest response — usually under 1 hour</div>
+              <div className="text-charcoal-500 text-xs font-medium">Fastest response â€” usually under 1 hour</div>
             </div>
           </a>
 
@@ -49,7 +49,7 @@ export default function SupportPage() {
         </div>
 
         <p className="text-charcoal-600 text-xs font-medium mt-10 text-center">
-          Operating hours: Mon–Sat, 8am–8pm WAT
+          Operating hours: Monâ€“Sat, 8amâ€“8pm WAT
         </p>
       </div>
     </div>

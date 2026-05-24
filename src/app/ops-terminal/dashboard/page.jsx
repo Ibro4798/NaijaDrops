@@ -19,7 +19,7 @@ export default async function OpsDashboard() {
 
   const stats = [
     { label: "Active Fleet", value: riders?.[0]?.count || 0, icon: <Truck className="text-emerald-500" />, trend: "Riders on Grid" },
-    { label: "Live Escrow", value: `₦${totalEscrow.toLocaleString()}`, icon: <DollarSign className="text-blue-500" />, trend: "Authorized Holds" },
+    { label: "Live Escrow", value: `â‚¦${totalEscrow.toLocaleString()}`, icon: <DollarSign className="text-blue-500" />, trend: "Authorized Holds" },
     { label: "Ops Traffic", value: activeOrders?.[0]?.count || 0, icon: <Activity className="text-amber-500" />, trend: "In-Flight Dispatches" },
     { label: "System Health", value: "Optimal", icon: <ShieldCheck className="text-emerald-500" />, trend: "No Latency" },
   ];
@@ -34,7 +34,7 @@ export default async function OpsDashboard() {
               Terminal Access Verified
            </div>
            <h1 className="text-4xl font-black italic tracking-tighter uppercase">NaijaDrops / Ops-Terminal</h1>
-           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Administrator: {admin.full_name} • Role: {admin.role}</p>
+           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Administrator: {admin.full_name} â€¢ Role: {admin.role}</p>
         </div>
         <div className="text-right">
            <div className="text-[10px] text-charcoal-600 uppercase font-black tracking-widest mb-1">Node Status</div>

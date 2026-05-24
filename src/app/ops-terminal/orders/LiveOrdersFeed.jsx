@@ -141,7 +141,7 @@ export default function LiveOrdersFeed({ initialOrders }) {
                     </div>
                  </div>
                  <div className="text-[10px] font-black text-emerald-500 tracking-tighter">
-                    ₦{order.agreed_price?.toLocaleString()}
+                    â‚¦{order.agreed_price?.toLocaleString()}
                  </div>
               </div>
             </motion.div>

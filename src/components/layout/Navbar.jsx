@@ -37,10 +37,10 @@ export default function Navbar() {
             setProfile({ role: 'vendor', email: user.email });
           }
   
-          // ✅ FIX: Check role is 'vendor' not 'user', and query by vendor_id not user_id
+          // âœ… FIX: Check role is 'vendor' not 'user', and query by vendor_id not user_id
           if (role === 'vendor' || !role) {
               const checkActiveOrder = async () => {
-                  // ✅ FIX: orders table has vendor_id not user_id
+                  // âœ… FIX: orders table has vendor_id not user_id
                   const { data: orders } = await supabase.from('orders')
                     .select('id, status')
                     .eq('vendor_id', user.id)
@@ -78,7 +78,7 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  // ✅ FIX: Also hide on /ops-terminal, not just /admin (which is being removed)
+  // âœ… FIX: Also hide on /ops-terminal, not just /admin (which is being removed)
   if (pathname?.startsWith('/ops-terminal') || pathname?.startsWith('/driver')) return null;
 
   return (
@@ -101,7 +101,7 @@ export default function Navbar() {
             </div>
 
             <AnimatePresence>
-                {/* ✅ FIX: Admin badge links to /ops-terminal/dashboard not /admin */}
+                {/* âœ… FIX: Admin badge links to /ops-terminal/dashboard not /admin */}
                 {profile?.role === 'admin' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
@@ -113,7 +113,7 @@ export default function Navbar() {
                 </motion.div>
                 )}
 
-                {/* ✅ FIX: Rider wallet links to /rider/earnings not /driver/earnings */}
+                {/* âœ… FIX: Rider wallet links to /rider/earnings not /driver/earnings */}
                 {profile?.role === 'rider' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
@@ -125,7 +125,7 @@ export default function Navbar() {
                 </motion.div>
                 )}
 
-                {/* ✅ FIX: Active Trip Bubble uses 'vendor' role not 'user' */}
+                {/* âœ… FIX: Active Trip Bubble uses 'vendor' role not 'user' */}
                 {profile?.role === 'vendor' && activeOrder && (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                     <Link 

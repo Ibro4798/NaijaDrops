@@ -17,7 +17,7 @@ export default function RealtimeAlerts() {
          addAlert({
             id: payload.new.id,
             type: 'fraud',
-            message: `Escrow Voided: ₦${payload.new.agreed_price}`,
+            message: `Escrow Voided: â‚¦${payload.new.agreed_price}`,
             time: new Date().toLocaleTimeString()
          });
       })

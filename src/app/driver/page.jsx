@@ -98,7 +98,7 @@ export default function DriverDashboard() {
         </div>
         <div className="bg-charcoal-900 border border-white/10 rounded-3xl p-5">
           <div className="text-charcoal-500 text-[10px] font-black uppercase tracking-widest mb-1">Earnings</div>
-          <div className="text-2xl font-black text-emerald-500 font-outfit italic">₦0</div>
+          <div className="text-2xl font-black text-emerald-500 font-outfit italic">â‚¦0</div>
         </div>
       </div>
 
@@ -115,9 +115,9 @@ export default function DriverDashboard() {
         <div className="space-y-4">
           {/* Mock Jobs for Testing */}
           {[
-            { id: 1, pickup: "Sabon Gari Market", dropoff: "Bayero University", price: "₦2,500", time: "2m ago" },
-            { id: 2, pickup: "Kofar Nassarawa", dropoff: "Hotoro Gidan Kwano", price: "₦1,800", time: "5m ago" },
-            { id: 3, pickup: "Challawa Industrial Estate", dropoff: "Murtala Mohammed Way", price: "₦3,200", time: "8m ago" }
+            { id: 1, pickup: "Sabon Gari Market", dropoff: "Bayero University", price: "â‚¦2,500", time: "2m ago" },
+            { id: 2, pickup: "Kofar Nassarawa", dropoff: "Hotoro Gidan Kwano", price: "â‚¦1,800", time: "5m ago" },
+            { id: 3, pickup: "Challawa Industrial Estate", dropoff: "Murtala Mohammed Way", price: "â‚¦3,200", time: "8m ago" }
           ].map(job => (
             <div key={job.id} className="bg-charcoal-900 border border-white/5 p-5 rounded-3xl group hover:border-emerald-500/50 transition-all active:scale-[0.98]">
               <div className="flex justify-between items-start mb-4">

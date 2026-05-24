@@ -4,7 +4,7 @@ import { MapPin, Zap, Wifi, Globe } from 'lucide-react';
 
 export default function AccuracyMeter({ accuracy, source = 'gps' }) {
   /**
-   * Accuracy: distance in meters (±)
+   * Accuracy: distance in meters (Â±)
    * Source: 'gps' | 'wifi' | 'ip' | 'demo'
    */
 
@@ -63,7 +63,7 @@ export default function AccuracyMeter({ accuracy, source = 'gps' }) {
       <div className="flex-1">
         <p className={`text-sm font-bold ${color}`}>{trust} Accuracy</p>
         {accuracy !== null && accuracy !== undefined && (
-          <p className="text-xs text-gray-600">±{Math.round(accuracy)}m</p>
+          <p className="text-xs text-gray-600">Â±{Math.round(accuracy)}m</p>
         )}
       </div>
     </div>

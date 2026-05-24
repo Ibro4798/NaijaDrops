@@ -113,7 +113,7 @@ function ConfirmContent() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-3xl">
-              {order?.vehicle_type === "car" ? "🚗" : "🏍️"}
+              {order?.vehicle_type === "car" ? "ðŸš—" : "ðŸï¸"}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ function ConfirmContent() {
                   <Star size={12} fill="currentColor" />
                   <span className="text-xs font-black">{rider?.rating || "5.0"}</span>
                 </div>
-                <span className="text-charcoal-600 text-xs">·</span>
+                <span className="text-charcoal-600 text-xs">Â·</span>
                 <span className="text-charcoal-400 text-xs capitalize font-medium">{order?.vehicle_type || "motorcycle"}</span>
               </div>
             </div>
@@ -138,7 +138,7 @@ function ConfirmContent() {
               <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">ETA to pickup</div>
             </div>
             <div className="bg-white/[0.03] rounded-2xl p-3">
-              <div className="text-emerald-400 font-black text-xl mb-1">₦{order?.agreed_price?.toLocaleString()}</div>
+              <div className="text-emerald-400 font-black text-xl mb-1">â‚¦{order?.agreed_price?.toLocaleString()}</div>
               <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">Escrow Hold</div>
             </div>
           </div>
@@ -177,7 +177,7 @@ function ConfirmContent() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Authorization Amount</div>
-              <div className="text-emerald-400 font-black text-4xl">₦{order?.agreed_price?.toLocaleString()}</div>
+              <div className="text-emerald-400 font-black text-4xl">â‚¦{order?.agreed_price?.toLocaleString()}</div>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-emerald-500/10 flex items-center gap-3">

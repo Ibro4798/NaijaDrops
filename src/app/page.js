@@ -81,7 +81,7 @@ export default function LandingPage() {
            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-            <Globe size={12} className="animate-pulse" /> Precision Logistics · Kano, NG
+            <Globe size={12} className="animate-pulse" /> Precision Logistics Â· Kano, NG
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[1] mb-6 font-outfit">
             Logistics that moves <br/> 
@@ -105,7 +105,7 @@ export default function LandingPage() {
           </motion.button>
           
           <p className="text-charcoal-500 text-sm font-bold uppercase tracking-[0.2em]">
-            Launching in Kano — Join the pilot waitlist</p>
+            Launching in Kano â€” Join the pilot waitlist</p>
         </div>
 
         {/* Quick Stats / Trust */}
@@ -137,7 +137,7 @@ export default function LandingPage() {
       {/* Simple Footer */}
       <footer className="relative z-10 border-t border-white/5 py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-charcoal-600 text-sm">© 2026 NaijaDrops Technologies. All rights reserved.</div>
+          <div className="text-charcoal-600 text-sm">Â© 2026 NaijaDrops Technologies. All rights reserved.</div>
           <div className="flex gap-6 text-xs font-bold uppercase tracking-widest text-charcoal-500">
              <a href="/terms" className="hover:text-white">Terms</a>
              <a href="/privacy" className="hover:text-white">Privacy</a>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -141,7 +141,7 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-white leading-tight mb-2">{order.dropoff_name}</div>
-               <div className="text-sm font-bold text-emerald-500/70">{order.receiver_name} â€¢ {order.receiver_phone}</div>
+               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} â€¢ {order.recipient_phone}</div>
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function ActiveJobPage() {
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">Call Vendor</span>
            </a>
-           <a href={`tel:${order.receiver_phone}`} className="flex flex-col items-center justify-center gap-3 py-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white/10 transition-all active:scale-95">
+           <a href={`tel:${order.recipient_phone}`} className="flex flex-col items-center justify-center gap-3 py-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white/10 transition-all active:scale-95">
               <div className="w-12 h-12 bg-charcoal-900 rounded-2xl flex items-center justify-center text-blue-500 border border-white/5">
                 <MessageSquare size={24} />
               </div>

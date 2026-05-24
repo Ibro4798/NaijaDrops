@@ -25,7 +25,7 @@ export default async function AdminDriversPage() {
         <div>
           <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
-            {pendingRiders.length} Pending Review · {approvedRiders.length} Active Units
+            {pendingRiders.length} Pending Review Â· {approvedRiders.length} Active Units
           </p>
         </div>
         <InviteDriverButton />

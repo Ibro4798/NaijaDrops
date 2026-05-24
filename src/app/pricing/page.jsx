@@ -90,8 +90,8 @@ export default function Pricing() {
         dropoff_lng: orderData.dropoff.coords.lng,
         item_category: orderData.category,
         item_size: orderData.size,
-        receiver_name: orderData.receiver.name,
-        receiver_phone: orderData.receiver.phone,
+        recipient_name: orderData.receiver.name,
+        recipient_phone: orderData.receiver.phone,
         fare_type: fareType,
         agreed_price: finalCost,
         status: 'looking_for_driver',
@@ -158,10 +158,10 @@ export default function Pricing() {
                 </div>
                 <span className="font-bold text-charcoal-900">Standard Delivery</span>
               </div>
-              <span className="font-extrabold text-lg text-emerald-800">₦{costs.standard}</span>
+              <span className="font-extrabold text-lg text-emerald-800">â‚¦{costs.standard}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7 uppercase tracking-wider">
-               {orderData.vehicleType || 'bike'} • Driver accepts within ~5 mins. {distance > 0 && `(${distance} km)`}
+               {orderData.vehicleType || 'bike'} â€¢ Driver accepts within ~5 mins. {distance > 0 && `(${distance} km)`}
             </div>
           </label>
 
@@ -176,7 +176,7 @@ export default function Pricing() {
                 </div>
                 <span className="font-bold text-charcoal-900">Priority Express</span>
               </div>
-              <span className="font-extrabold text-lg text-charcoal-900">₦{costs.express}</span>
+              <span className="font-extrabold text-lg text-charcoal-900">â‚¦{costs.express}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7">Matched instantly. Priority routing.</div>
           </label>
@@ -192,13 +192,13 @@ export default function Pricing() {
             </div>
             <div className="pl-7">
               <div className="relative flex items-center">
-                <span className="absolute left-4 font-bold text-charcoal-400">₦</span>
+                <span className="absolute left-4 font-bold text-charcoal-400">â‚¦</span>
                 <input 
                   type="number" 
                   disabled={fareType !== 'offer'}
                   value={customOffer}
                   onChange={(e) => setCustomOffer(e.target.value)}
-                  placeholder={`Suggest ~₦${costs.standard}`}
+                  placeholder={`Suggest ~â‚¦${costs.standard}`}
                   className="w-full bg-white border border-gray-300 rounded-xl py-3 pl-8 pr-4 font-bold text-charcoal-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-charcoal-900 disabled:opacity-50 disabled:bg-gray-50"
                   step="10"
                 />
