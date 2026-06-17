@@ -10,16 +10,12 @@ export async function validateAdmin(requiredRole = 'admin') {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) throw new Error("Unauthorized Access - Authentication Required");
 
-  // Domain check — must be @naijadrops.tech
-  if (!user.email?.toLowerCase().endsWith('@naijadrops.tech')) {
-    throw new Error("Unauthorized Access - Corporate Domain Required");
-  }
-
   // Look up admin record from DB — no hardcoded email anywhere
   const { data: admin, error: dbError } = await supabase
-    .from("admin_users")
+    .from("users")
     .select("*")
     .eq("id", user.id)
+    .in("role", ['admin', 'super_admin'])
     .single();
 
   if (dbError || !admin || !admin.is_active) {

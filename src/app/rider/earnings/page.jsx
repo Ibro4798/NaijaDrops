@@ -30,11 +30,11 @@ export default function RiderEarnings() {
         const { data: rider } = await supabase.from('riders').select('*').eq('user_id', user.id).single();
         setProfile(rider);
 
-        // Fetch completed orders
+        // Fetch completed orders using the rider's sub-profile ID (not user.id)
         const { data: orders, error } = await supabase
             .from('orders')
             .select('*')
-            .eq('rider_id', user.id)
+            .eq('rider_id', rider?.id)   // orders.rider_id → riders.id (not users.id)
             .eq('status', 'delivered')
             .order('created_at', { ascending: false });
 

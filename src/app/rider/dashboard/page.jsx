@@ -32,7 +32,7 @@ export default function RiderDashboard() {
     const { data: jobs } = await supabase
       .from("orders")
       .select("*")
-      .eq("status", "looking_for_driver")
+      .eq("status", "pending")
       .limit(10);
 
     setAvailableJobs(jobs || []);

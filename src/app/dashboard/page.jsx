@@ -186,12 +186,12 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
               <span className="font-bold text-sm">Order History</span>
            </button>
 
-           <button onClick={() => { router.push("/driver/onboarding"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 transition-all group text-left">
+           <button onClick={() => { router.push("/rider/onboarding"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 transition-all group text-left">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <div className="font-black text-sm uppercase tracking-tight">Become a Driver</div>
+                <div className="font-black text-sm uppercase tracking-tight">Become a Rider</div>
                 <div className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Verify & Earn</div>
               </div>
            </button>

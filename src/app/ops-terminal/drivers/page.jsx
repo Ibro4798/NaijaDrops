@@ -23,7 +23,7 @@ export default async function AdminDriversPage() {
     <div className="min-h-screen bg-black text-white p-8 font-mono">
       <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
         <div>
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Drivers</h1>
+          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Registry / Riders</h1>
           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">
             {pendingRiders.length} Pending Review Â· {approvedRiders.length} Active Units
           </p>

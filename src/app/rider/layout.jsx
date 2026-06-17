@@ -21,8 +21,8 @@ export default async function RiderLayout({ children }) {
     .single();
 
   // Redirect to onboarding if they haven't submitted anything yet
-  if (!rider || (!rider.users?.name && rider.status !== 'rejected')) {
-    redirect("/driver/onboarding");
+  if (!rider) {
+    redirect("/rider/onboarding");
   }
 
   const isApproved = rider.status === "approved";
@@ -38,7 +38,7 @@ export default async function RiderLayout({ children }) {
         <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-charcoal-500">
            {isApproved && (
              <>
-               <a href="/rider/home" className="hover:text-emerald-400">Feed</a>
+               <a href="/rider" className="hover:text-emerald-400">Feed</a>
                <a href="/rider/active-job" className="hover:text-emerald-400">Active</a>
                <a href="/rider/earnings" className="hover:text-emerald-400">Money</a>
              </>

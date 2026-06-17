@@ -75,7 +75,7 @@ export default function ProfilePage() {
               <h1 className="text-4xl font-black text-white tracking-tighter italic font-outfit">Control Center</h1>
               <p className="text-charcoal-500 font-bold text-[10px] uppercase tracking-widest mt-1">Identity & Security Interface</p>
            </div>
-           {role === 'driver' && (
+           {role === 'rider' && (
              <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl flex items-center gap-2">
                 <Star size={16} className="text-emerald-500" fill="currentColor" />
                 <span className="text-white font-black text-sm italic">{profile?.rating || "5.0"}</span>
@@ -163,14 +163,14 @@ export default function ProfilePage() {
            </div>
         </section>
 
-        {role === 'driver' && (
+        {role === 'rider' && (
           <section className="bg-emerald-500/5 border border-emerald-500/10 rounded-[3rem] p-10">
              <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-glow">
                    <Shield size={24} />
                 </div>
                 <div>
-                   <h3 className="text-white font-black text-xl italic tracking-tight">Driver Manifest</h3>
+                   <h3 className="text-white font-black text-xl italic tracking-tight">Rider Manifest</h3>
                    <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Authorized Personnel Only</p>
                 </div>
              </div>

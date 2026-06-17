@@ -24,7 +24,7 @@ export async function POST(request) {
             user_metadata: {
                 full_name: fullName,
                 phone: phone || null,
-                role: 'driver'
+                role: 'rider'
             },
         });
 
@@ -34,21 +34,28 @@ export async function POST(request) {
 
         const userId = createData.user.id;
 
-        // Step 2: Upsert the driver row
-        await supabaseAdmin.from('drivers').upsert({
+        // Step 2: Insert into public.users then public.riders
+        await supabaseAdmin.from('users').upsert({
             id: userId,
-            full_name: fullName,
             email,
+            role: 'rider',
+            full_name: fullName,
+            name: fullName,
+        }, { onConflict: 'id' });
+
+        await supabaseAdmin.from('riders').upsert({
+            user_id: userId,
+            full_name: fullName,
             phone: phone || null,
-            driver_status: 'pending',
-        });
+            status: 'pending',
+        }, { onConflict: 'user_id' });
 
         // Step 3: Generate a one-time password reset link that the driver uses to set their own password
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'recovery',
             email,
             options: {
-                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://naijadrops.tech'}/driver`,
+                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://naijadrops.tech'}/rider/onboarding`,
             },
         });
 
@@ -58,7 +65,7 @@ export async function POST(request) {
                 success: true, 
                 userId,
                 inviteLink: null,
-                warning: 'Driver created but invite link generation failed. You can send a password reset email manually.' 
+                warning: 'Rider created but invite link generation failed. You can send a password reset email manually.' 
             });
         }
 

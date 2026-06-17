@@ -39,7 +39,8 @@ export async function middleware(request) {
   }
 
   if (pathname.startsWith("/ops-terminal")) {
-    const isAdmin = user.email?.toLowerCase().endsWith("@naijadrops.tech");
+    const { data: profile } = await supabase.from('users').select('role, is_active').eq('id', user.id).single();
+    const isAdmin = profile?.is_active && (profile?.role === 'admin' || profile?.role === 'super_admin');
     if (!isAdmin) {
       return new NextResponse(null, { status: 404 });
     }

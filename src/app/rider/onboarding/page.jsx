@@ -179,7 +179,7 @@ export default function DriverOnboardingPage() {
               Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
             </p>
             <button 
-              onClick={() => router.push("/driver/dashboard")}
+              onClick={() => router.push("/rider")}
               className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl uppercase text-sm tracking-widest shadow-[0_0_24px_rgba(16,185,129,0.3)] mb-4"
             >
               Open Rider Dashboard
@@ -216,7 +216,7 @@ export default function DriverOnboardingPage() {
                <ArrowLeft size={18} />
             </button>
             <div>
-               <h1 className="text-xl font-black text-white tracking-tight">Driver Onboarding</h1>
+               <h1 className="text-xl font-black text-white tracking-tight">Rider Onboarding</h1>
                <p className="text-charcoal-500 text-xs font-medium">Verify your profile to start earning</p>
             </div>
          </div>

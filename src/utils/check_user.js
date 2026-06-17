@@ -15,25 +15,29 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkUserStatus(email) {
-  console.log(`\nðŸ” Checking status for: ${email}\n`);
+  console.log(`\nðŸ”  Checking status for: ${email}\n`);
 
   try {
-    // 1. Check inside Admins
-    const { data: admin } = await supabase.from('admins').select('*').eq('email', email).maybeSingle();
-    console.log(`[Admin Table]: ${admin ? 'âœ… Found (ID: ' + admin.id + ')' : 'âŒ Not Found'}`);
+    // 1. Check inside Users (Unified)
+    const { data: user } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    console.log(`[Unified Users Table]: ${user ? 'âœ… Found (ID: ' + user.id + ', Role: ' + user.role + ')' : 'â Œ Not Found'}`);
 
-    // 2. Check inside Drivers
-    const { data: driver } = await supabase.from('drivers').select('*').eq('email', email).maybeSingle();
-    console.log(`[Driver Table]: ${driver ? 'âœ… Found (ID: ' + driver.id + ')' : 'âŒ Not Found'}`);
-
-    // 3. Check inside Customers
-    const { data: customer } = await supabase.from('customers').select('*').eq('email', email).maybeSingle();
-    console.log(`[Customer Table]: ${customer ? 'âœ… Found (ID: ' + customer.id + ')' : 'âŒ Not Found'}`);
-
-    if (!admin && !driver && !customer) {
-      console.log(`\nâš ï¸ Warning: User not found in any role table. Redirection will default to Customer.`);
+    if (user) {
+      if (user.role === 'admin' || user.role === 'super_admin') {
+        console.log(`\nâœ¨ Redirection Priority: Ops Terminal (Admin)`);
+      } else if (user.role === 'rider') {
+        const { data: rider } = await supabase.from('riders').select('*').eq('user_id', user.id).maybeSingle();
+        console.log(`[Riders Sub-Profile]: ${rider ? 'âœ… Found (ID: ' + rider.id + ')' : 'â Œ Not Found'}`);
+        console.log(`\nâœ¨ Redirection Priority: Rider Dashboard`);
+      } else if (user.role === 'vendor') {
+        const { data: vendor } = await supabase.from('vendors').select('*').eq('user_id', user.id).maybeSingle();
+        console.log(`[Vendors Sub-Profile]: ${vendor ? 'âœ… Found (ID: ' + vendor.id + ')' : 'â Œ Not Found'}`);
+        console.log(`\nâœ¨ Redirection Priority: Vendor Dashboard`);
+      } else {
+        console.log(`\nâš ï¸  Warning: User has an unknown role: ${user.role}`);
+      }
     } else {
-      console.log(`\nâœ¨ Redirection Priority: ${admin ? 'Admin Dashboard' : driver ? 'Driver Console' : 'Customer Shop'}`);
+      console.log(`\nâš ï¸  Warning: User not found in the system.`);
     }
 
   } catch (err) {

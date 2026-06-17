@@ -38,7 +38,7 @@ export default function InviteDriverButton() {
         className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black px-6 py-2 rounded-xl text-xs uppercase tracking-widest transition-all"
       >
         <UserPlus size={16} />
-        Invite Driver
+        Invite Rider
       </button>
 
       {isOpen && (
@@ -47,7 +47,7 @@ export default function InviteDriverButton() {
           
           <div className="relative w-full max-w-md bg-charcoal-900 border border-white/10 rounded-3xl p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-               <h2 className="text-xl font-black italic tracking-tighter uppercase">Invite New Driver</h2>
+               <h2 className="text-xl font-black italic tracking-tighter uppercase">Invite New Rider</h2>
                <button onClick={() => setIsOpen(false)} className="text-charcoal-500 hover:text-white"><X size={20} /></button>
             </div>
 
@@ -58,7 +58,7 @@ export default function InviteDriverButton() {
                   name="full_name"
                   type="text" 
                   required
-                  placeholder="Driver's Legal Name"
+                  placeholder="Rider's Legal Name"
                   className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -69,7 +69,7 @@ export default function InviteDriverButton() {
                   name="email"
                   type="email" 
                   required
-                  placeholder="driver@example.com"
+                  placeholder="rider@example.com"
                   className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -87,7 +87,7 @@ export default function InviteDriverButton() {
               </div>
 
               {error && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center">{error}</p>}
-              {success && <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest text-center">Invitation Sent! Driver Pre-Approved.</p>}
+              {success && <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest text-center">Invitation Sent! Rider Pre-Enrolled.</p>}
 
               <button 
                 type="submit"
