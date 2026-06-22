@@ -214,7 +214,7 @@ function PaymentContent() {
                                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
                                 <div className="text-center mb-8">
                                     <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-[0.4em] mb-2">Synchronized Fare</div>
-                                    <div className="text-6xl font-black text-charcoal-900 tracking-tighter italic">â‚¦{orderData.agreed_price?.toLocaleString()}</div>
+                                    <div className="text-6xl font-black text-charcoal-900 tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
                                 </div>
                                 <div className="bg-charcoal-950/5 rounded-3xl p-6 space-y-4 border border-black/5">
                                     <div className="flex justify-between items-center">
@@ -333,7 +333,7 @@ function PaymentContent() {
                             <div className="p-8 text-center">
                                 <div className="mb-10">
                                     <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest mb-2">Protocol Fee</div>
-                                    <div className="text-5xl font-black text-charcoal-900 tracking-tighter italic">â‚¦{orderData.agreed_price?.toLocaleString()}</div>
+                                    <div className="text-5xl font-black text-charcoal-900 tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
                                 </div>
                                 
                                 <div className="bg-white border-8 border-emerald-50 rounded-[3rem] p-10 mx-auto w-60 h-60 mb-10 flex items-center justify-center shadow-inner relative overflow-hidden group">

@@ -32,7 +32,7 @@ const SIZES = [
 
 const VEHICLES = [
   { id: "bike", label: "Motorcycle", sub: "Faster & cheaper", emoji: "ðŸï¸", badge: "Popular" },
-  { id: "car", label: "Car", sub: "Bigger & safer", emoji: "ðŸš—", badge: "Secure" },
+  { id: "car", label: "Car", sub: "Bigger & safer", emoji: "🚗", badge: "Secure" },
 ];
 
 export default function Step2Page() {
@@ -164,7 +164,7 @@ export default function Step2Page() {
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Price Estimate</div>
           <AnimatePresence mode="wait">
             <motion.div key={`${vehicle}-${size}-${estimatedPrice}`} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-emerald-400 font-black text-2xl">
-              {estimatedPrice ? `â‚¦${estimatedPrice.toLocaleString()}` : "â€”"}
+              {estimatedPrice ? `₦${estimatedPrice.toLocaleString()}` : "â€”"}
             </motion.div>
           </AnimatePresence>
         </div>

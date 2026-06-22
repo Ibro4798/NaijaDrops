@@ -182,7 +182,7 @@ function Step3Content() {
   async function sendOffer() {
     if (!offerPrice || !orderId) return;
     const price = parseInt(offerPrice);
-    if (isNaN(price) || price < 100) { setError("Please enter a valid price (min â‚¦100)"); return; }
+    if (isNaN(price) || price < 100) { setError("Please enter a valid price (min ₦100)"); return; }
 
     await supabase.from("orders").update({ agreed_price: price, status: "negotiating" }).eq("id", orderId);
 
@@ -336,7 +336,7 @@ function Step3Content() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-charcoal-500 font-bold">Estimated Fare</span>
-                <span className="text-emerald-400 font-black">â‚¦{draft.estimated_price?.toLocaleString()}</span>
+                <span className="text-emerald-400 font-black">₦{draft.estimated_price?.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -350,7 +350,7 @@ function Step3Content() {
             disabled={creatingOrder}
             className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all active:scale-95 disabled:opacity-50"
           >
-            {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> Find My Driver</>}
+            {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> Find My Rider</>}
           </button>
           <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">No payment until delivery</p>
         </div>
@@ -388,7 +388,7 @@ function Step3Content() {
                         </div>
                         <div className="absolute inset-0 w-32 h-32 rounded-full border border-emerald-500/30 animate-ping opacity-20" />
                       </div>
-                      <h2 className="text-white font-black text-xl mb-2">Finding nearby driversâ€¦</h2>
+                      <h2 className="text-white font-black text-xl mb-2">Finding nearby riders...</h2>
                       <p className="text-charcoal-500 text-sm text-center max-w-[240px]">Scanning riders within 3km of your pickup point</p>
                     </div>
                   )}
@@ -399,14 +399,14 @@ function Step3Content() {
                         <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500 text-charcoal-950 font-black text-[10px] uppercase tracking-widest rounded-bl-xl">Best Value</div>
                         <div className="flex items-center gap-4 mb-5">
                           <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-3xl border border-emerald-500/20">
-                            {matchedRider.vehicle_type === "car" ? "ðŸš—" : "ðŸï¸"}
+                            {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
                           </div>
                           <div className="flex-1">
                             <div className="text-white font-black text-xl">{matchedRider.name}</div>
                             <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1 text-amber-400 font-black text-xs">â­ {matchedRider.rating}</div>
-                              <span className="text-charcoal-600">Â·</span>
-                              <span className="text-white font-black text-lg">â‚¦{matchedRider.price?.toLocaleString()}</span>
+                              <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
+                              <span className="text-charcoal-600">·</span>
+                              <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -429,8 +429,8 @@ function Step3Content() {
                       <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mb-6">
                         <CheckCircle2 size={40} className="text-emerald-400" />
                       </div>
-                      <h2 className="text-white font-black text-2xl mb-2">Driver Accepted!</h2>
-                      <p className="text-charcoal-500 text-sm">Redirecting to confirmationâ€¦</p>
+                      <h2 className="text-white font-black text-2xl mb-2">Rider Accepted!</h2>
+                      <p className="text-charcoal-500 text-sm">Redirecting to confirmation...</p>
                     </div>
                   )}
 
@@ -439,9 +439,9 @@ function Step3Content() {
                       <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-6">
                         <AlertCircle size={36} className="text-amber-400" />
                       </div>
-                      <h2 className="text-white font-black text-xl mb-3">No drivers nearby</h2>
+                      <h2 className="text-white font-black text-xl mb-3">No riders nearby</h2>
                       <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
-                        No immediate match found at â‚¦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
+                        No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
                       </p>
                       <button onClick={() => setMode("negotiate")}
                         className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-6 py-3.5 rounded-2xl text-sm flex items-center gap-2 hover:bg-amber-500/30 transition-all">
@@ -460,25 +460,25 @@ function Step3Content() {
                       <div className="bg-white/[0.03] border border-white/5 p-5 rounded-3xl">
                         <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Set Your Offer</label>
                         <div className="relative">
-                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">â‚¦</span>
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
                           <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
                             className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
                         </div>
                         <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
-                           <span>Recommended: â‚¦{draft.estimated_price}</span>
+                           <span>Recommended: ₦{draft.estimated_price}</span>
                         </div>
                       </div>
 
                       <button onClick={sendOffer}
                         className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
-                         Broadcast New Offer ðŸ“¢
+                         Broadcast New Offer 📢
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
                          <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
-                         <div className="text-white font-black text-xl">â‚¦{parseInt(offerPrice).toLocaleString()}</div>
+                         <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
                       </div>
 
                       {bids.length === 0 ? (
@@ -492,15 +492,15 @@ function Step3Content() {
                             <motion.div key={bid.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                               className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">ðŸï¸</div>
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
                                 <div>
-                                  {/* âœ… FIX: full_name not name, rating not avg_rating */}
-                                  <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Driver"}</div>
-                                  <div className="text-amber-400 font-bold text-[10px]">â­ {bid.riders?.rating || "4.8"}</div>
+                                  {/* ✅ FIX: full_name not name, rating not avg_rating */}
+                                  <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Rider"}</div>
+                                  <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
-                                 <div className="text-emerald-400 font-black">â‚¦{bid.amount?.toLocaleString()}</div>
+                                 <div className="text-emerald-400 font-black">₦{bid.amount?.toLocaleString()}</div>
                                  <button onClick={() => acceptBid(bid)} className="bg-emerald-500 text-charcoal-950 font-black px-4 py-2 rounded-xl text-xs">Accept</button>
                               </div>
                             </motion.div>

@@ -41,6 +41,7 @@ export default async function RiderLayout({ children }) {
                <a href="/rider" className="hover:text-emerald-400">Feed</a>
                <a href="/rider/active-job" className="hover:text-emerald-400">Active</a>
                <a href="/rider/earnings" className="hover:text-emerald-400">Money</a>
+               <a href="/profile" className="hover:text-emerald-400">Profile</a>
              </>
            )}
         </div>

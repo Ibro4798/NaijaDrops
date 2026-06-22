@@ -275,7 +275,7 @@ export default function DriverOnboardingPage() {
                   </button>
                   <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'car' }))}
                     className={`p-5 rounded-2xl border transition-all text-left ${formData.vehicle_type === 'car' ? "bg-emerald-500/10 border-emerald-500" : "bg-white/[0.03] border-white/10"}`}>
-                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>ðŸš—</div>
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>🚗</div>
                      <div className={`font-black text-sm ${formData.vehicle_type === 'car' ? "text-emerald-500" : "text-white"}`}>Mini Car</div>
                      <div className="text-charcoal-500 text-[10px] mt-1">Faster for big parcels</div>
                   </button>

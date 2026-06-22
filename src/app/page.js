@@ -81,7 +81,7 @@ export default function LandingPage() {
            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-            <Globe size={12} className="animate-pulse" /> Precision Logistics Â· Kano, NG
+            <Globe size={12} className="animate-pulse" /> Precision Logistics · Kano, NG
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[1] mb-6 font-outfit">
             Logistics that moves <br/> 

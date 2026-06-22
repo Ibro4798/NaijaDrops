@@ -373,7 +373,7 @@ export default function DashboardPage() {
           </Map>
         ) : (
           <div className="w-full h-full bg-charcoal-900 flex items-center justify-center">
-            <div className="text-charcoal-600 text-sm font-medium">Map loadingâ€¦</div>
+            <div className="text-charcoal-600 text-sm font-medium">Map loading...</div>
           </div>
         )}
       </div>

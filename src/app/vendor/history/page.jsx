@@ -104,7 +104,7 @@ export default function VendorHistoryPage() {
                                 <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${getStatusStyle(order.status)}`}>
                                     {order.status}
                                 </div>
-                                <div className="mt-2 text-2xl font-black text-white italic tracking-tighter">â‚¦{order.agreed_price?.toLocaleString()}</div>
+                                <div className="mt-2 text-2xl font-black text-white italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
                             </div>
 
                             <div className="flex items-start gap-4 mb-6">

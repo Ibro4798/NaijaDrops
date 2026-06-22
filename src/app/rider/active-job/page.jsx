@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 
 const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false });
 
-import SlideToConfirm from '@/components/driver/SlideToConfirm';
+import SlideToConfirm from '@/components/rider/SlideToConfirm';
 
 export default function ActiveJobPage() {
   const router = useRouter();

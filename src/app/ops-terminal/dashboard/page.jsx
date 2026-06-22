@@ -19,7 +19,7 @@ export default async function OpsDashboard() {
 
   const stats = [
     { label: "Active Fleet", value: riders?.[0]?.count || 0, icon: <Truck className="text-emerald-500" />, trend: "Riders on Grid" },
-    { label: "Live Escrow", value: `â‚¦${totalEscrow.toLocaleString()}`, icon: <DollarSign className="text-blue-500" />, trend: "Authorized Holds" },
+    { label: "Live Escrow", value: `₦${totalEscrow.toLocaleString()}`, icon: <DollarSign className="text-blue-500" />, trend: "Authorized Holds" },
     { label: "Ops Traffic", value: activeOrders?.[0]?.count || 0, icon: <Activity className="text-amber-500" />, trend: "In-Flight Dispatches" },
     { label: "System Health", value: "Optimal", icon: <ShieldCheck className="text-emerald-500" />, trend: "No Latency" },
   ];

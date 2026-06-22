@@ -247,7 +247,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6 text-charcoal-700 text-[10px] font-bold uppercase tracking-[0.2em]">
-          Secure Â· Encrypted Â· Kano-Ready
+          Secure · Encrypted · Kano-Ready
         </p>
       </motion.div>
     </main>

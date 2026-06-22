@@ -158,7 +158,7 @@ export default function Pricing() {
                 </div>
                 <span className="font-bold text-charcoal-900">Standard Delivery</span>
               </div>
-              <span className="font-extrabold text-lg text-emerald-800">â‚¦{costs.standard}</span>
+              <span className="font-extrabold text-lg text-emerald-800">₦{costs.standard}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7 uppercase tracking-wider">
                {orderData.vehicleType || 'bike'} â€¢ Driver accepts within ~5 mins. {distance > 0 && `(${distance} km)`}
@@ -176,7 +176,7 @@ export default function Pricing() {
                 </div>
                 <span className="font-bold text-charcoal-900">Priority Express</span>
               </div>
-              <span className="font-extrabold text-lg text-charcoal-900">â‚¦{costs.express}</span>
+              <span className="font-extrabold text-lg text-charcoal-900">₦{costs.express}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7">Matched instantly. Priority routing.</div>
           </label>
@@ -192,13 +192,13 @@ export default function Pricing() {
             </div>
             <div className="pl-7">
               <div className="relative flex items-center">
-                <span className="absolute left-4 font-bold text-charcoal-400">â‚¦</span>
+                <span className="absolute left-4 font-bold text-charcoal-400">₦</span>
                 <input 
                   type="number" 
                   disabled={fareType !== 'offer'}
                   value={customOffer}
                   onChange={(e) => setCustomOffer(e.target.value)}
-                  placeholder={`Suggest ~â‚¦${costs.standard}`}
+                  placeholder={`Suggest ~₦${costs.standard}`}
                   className="w-full bg-white border border-gray-300 rounded-xl py-3 pl-8 pr-4 font-bold text-charcoal-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-charcoal-900 disabled:opacity-50 disabled:bg-gray-50"
                   step="10"
                 />

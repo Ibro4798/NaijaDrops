@@ -116,7 +116,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
   const handleUpdatePrice = async () => {
     const priceNum = Number(newPrice);
     if (!priceNum || priceNum < 100) {
-      setError('Price must be at least â‚¦100');
+      setError('Price must be at least ₦100');
       return;
     }
 
@@ -134,7 +134,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
       await supabase.from('messages').insert({
         order_id: orderId,
         sender_id: currentUserId,
-        text: `ðŸ’° Price updated to â‚¦${priceNum.toLocaleString()} (agreed via chat)`,
+        text: `💰 Price updated to ₦${priceNum.toLocaleString()} (agreed via chat)`,
         type: 'system'
       });
 
@@ -177,7 +177,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
               className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${canNegotiatePrice ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 active:scale-95' : 'bg-white/5 border-white/5 text-gray-500 cursor-default'}`}
               title={canNegotiatePrice ? "Tap to negotiate price" : "Order complete"}
             >
-              <span className="font-black text-xs">â‚¦{order.agreed_price?.toLocaleString()}</span>
+              <span className="font-black text-xs">₦{order.agreed_price?.toLocaleString()}</span>
               {canNegotiatePrice && <ChevronDown size={14} className={`transition-transform ${showPriceNegotiate ? 'rotate-180' : ''}`} />}
             </button>
           )}
@@ -200,7 +200,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Propose New Agreed Price</p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">â‚¦</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">₦</span>
                   <input
                     type="number"
                     value={newPrice}

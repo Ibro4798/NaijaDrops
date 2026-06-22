@@ -119,7 +119,7 @@ export default function RiderDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-black text-emerald-400">â‚¦{job.agreed_price}</p>
+                    <p className="text-3xl font-black text-emerald-400">₦{job.agreed_price}</p>
                     <p className="text-charcoal-500 text-sm">{job.item_category}</p>
                   </div>
                 </div>

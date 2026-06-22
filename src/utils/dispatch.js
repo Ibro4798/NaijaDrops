@@ -51,24 +51,31 @@ export async function getBestRider(orderId) {
     return { error: "No riders currently online" };
   }
 
-  // 3. Rank Riders (Section 3.3)
-  const rankedRiders = eligibleRiders.map(rider => {
-    // Simple Haversine approximation for distance
-    const dist = calculateDistance(
-      order.pickup_lat, order.pickup_lng, 
-      rider.current_lat, rider.current_lng
-    );
-    return {
-      ...rider,
-      distance: dist,
-      totalScore: calculateRiderScore(rider, dist)
-    };
-  });
+  // Progressive Search Rings: 3km -> 5km -> 10km
+  const searchRadii = [3, 5, 10];
+  
+  for (const radius of searchRadii) {
+    const ridersInRadius = eligibleRiders.map(rider => {
+      // Simple Haversine approximation for distance
+      const dist = calculateDistance(
+        order.pickup_lat, order.pickup_lng, 
+        rider.current_lat, rider.current_lng
+      );
+      return {
+        ...rider,
+        distance: dist,
+        totalScore: calculateRiderScore(rider, dist)
+      };
+    }).filter(rider => rider.distance <= radius);
 
-  // Sort by highest score
-  rankedRiders.sort((a, b) => b.totalScore - a.totalScore);
+    if (ridersInRadius.length > 0) {
+      // Sort by highest score
+      ridersInRadius.sort((a, b) => b.totalScore - a.totalScore);
+      return { bestRider: ridersInRadius[0] };
+    }
+  }
 
-  return { bestRider: rankedRiders[0] };
+  return { error: "Search complete: No active riders found within 10km radius." };
 }
 
 /**

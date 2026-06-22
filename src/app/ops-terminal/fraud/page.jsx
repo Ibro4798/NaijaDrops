@@ -119,7 +119,7 @@ export default async function OpsFraudPage() {
                      </div>
                    </div>
                    <div className="text-right">
-                     <div className="text-lg font-black text-amber-500 font-outfit italic tracking-tighter">â‚¦{order.agreed_price?.toLocaleString()}</div>
+                     <div className="text-lg font-black text-amber-500 font-outfit italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
                      <div className="text-[9px] text-charcoal-600 font-black uppercase tracking-widest">Voided value</div>
                    </div>
                  </div>
