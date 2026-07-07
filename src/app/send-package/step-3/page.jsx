@@ -34,6 +34,7 @@ function Step3Content() {
 
   const timerRef = useRef(null);
   const channelRef = useRef(null);
+  const pollingRef = useRef(null);
 
   // Load draft on mount â€” do NOT create order or check auth yet
   useEffect(() => {
@@ -112,14 +113,16 @@ function Step3Content() {
 
   async function startQuickMatch(oid) {
     setMatchState("searching");
+    setError(null);
+    if (pollingRef.current) clearInterval(pollingRef.current);
     
-    // Setup Realtime listener first (to catch the update from the API)
+    // Setup Realtime listener first (to catch the update when matched/assigned)
     const channel = supabase.channel(`order-match-${oid}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${oid}`
       }, async (payload) => {
-        if (payload.new.rider_id && payload.new.status === "matched") {
-          // âœ… FIX: Use correct column name 'rating' not 'avg_rating', and 'full_name' not 'name'
+        if (payload.new.rider_id && (payload.new.status === "matched" || payload.new.status === "assigned")) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
           const { data: rider } = await supabase
             .from("riders")
             .select("*, users(full_name, email)")
@@ -128,11 +131,9 @@ function Step3Content() {
             
           setMatchedRider({
             id: payload.new.rider_id,
-            // âœ… FIX: full_name not name
-            name: rider?.users?.full_name || "Driver",
+            name: rider?.users?.full_name || "Rider",
             vehicle_type: rider?.vehicle_type || "bike",
             plate: rider?.plate_number || "",
-            // âœ… FIX: rating not avg_rating
             rating: rider?.rating || 5.0,
             eta_min: Math.round(5 + Math.random() * 10),
             price: payload.new.agreed_price,
@@ -144,22 +145,53 @@ function Step3Content() {
     channelRef.current = channel;
 
     // Trigger the actual Dispatch Engine
-    try {
-      const response = await fetch("/api/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: oid })
-      });
-      const data = await response.json();
-      
-      if (!data.success) {
-        setMatchState("no_drivers");
-        setError(data.message);
+    const triggerDispatch = async () => {
+      try {
+        const response = await fetch("/api/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: oid })
+        });
+        return await response.json();
+      } catch (e) {
+        console.error("Dispatch Fault:", e);
+        return { success: false, message: e.message };
       }
-    } catch (e) {
-      console.error("Dispatch Fault:", e);
-      setMatchState("no_drivers");
-    }
+    };
+
+    await triggerDispatch();
+
+    // Poll every 15 seconds to check status and expand radius if necessary
+    pollingRef.current = setInterval(async () => {
+      const { data: order, error: orderErr } = await supabase
+        .from("orders")
+        .select("status, broadcast_radius_km, max_broadcast_radius_km")
+        .eq("id", oid)
+        .single();
+
+      if (orderErr || !order) return;
+
+      if (order.status !== "pending") {
+        clearInterval(pollingRef.current);
+        return;
+      }
+
+      const currentRadius = Number(order.broadcast_radius_km) || 1.5;
+      const maxRadius = Number(order.max_broadcast_radius_km) || 8;
+
+      if (currentRadius >= maxRadius) {
+        clearInterval(pollingRef.current);
+        setMatchState("no_drivers");
+        setError("No riders nearby within the maximum search radius.");
+        return;
+      }
+
+      // Expand order radius in DB
+      await supabase.rpc('expand_order_radius', { p_order_id: oid });
+
+      // Re-trigger dispatch API to broadcast to the new radius pool
+      await triggerDispatch();
+    }, 15000);
   }
 
   function startNegotiationTimer() {
@@ -186,7 +218,7 @@ function Step3Content() {
 
     await supabase.from("orders").update({ agreed_price: price, status: "negotiating" }).eq("id", orderId);
 
-    // âœ… FIX: Use correct column names in join
+    // ✅ FIX: Use correct column names in join
     const channel = supabase.channel(`bids-${orderId}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "bids", filter: `order_id=eq.${orderId}`
@@ -205,20 +237,22 @@ function Step3Content() {
 
   async function acceptBid(bid) {
     clearInterval(timerRef.current);
+    if (pollingRef.current) clearInterval(pollingRef.current);
     if (channelRef.current) supabase.removeChannel(channelRef.current);
 
-    await supabase.from("orders").update({ rider_id: bid.rider_id, agreed_price: bid.amount, status: "assigned" }).eq("id", orderId);
-    await supabase.from("riders").update({ operational_status: "awaiting_payment" }).eq("user_id", bid.rider_id);
-    await supabase.from("bids").update({ status: "rejected" }).eq("order_id", orderId).neq("id", bid.id);
-    await supabase.from("bids").update({ status: "accepted" }).eq("id", bid.id);
+    const { error: rpcErr } = await supabase.rpc('accept_bid', { p_order_id: orderId, p_bid_id: bid.id });
+    if (rpcErr) {
+      setError("Failed to accept bid: " + rpcErr.message);
+      return;
+    }
 
     setMatchedRider({
       id: bid.rider_id,
-      // âœ… FIX: full_name not name
+      // ✅ FIX: full_name not name
       name: bid.riders?.users?.full_name || "Driver",
       vehicle_type: bid.riders?.vehicle_type || "bike",
       plate: bid.riders?.plate_number || "",
-      // âœ… FIX: rating not avg_rating
+      // ✅ FIX: rating not avg_rating
       rating: bid.riders?.rating || 5.0,
       eta_min: Math.round(5 + Math.random() * 10),
       price: bid.amount,
@@ -229,6 +263,7 @@ function Step3Content() {
 
   async function cancelMatch() {
     if (!orderId) return;
+    if (pollingRef.current) clearInterval(pollingRef.current);
     
     const { data: order } = await supabase.from("orders").select("rider_id").eq("id", orderId).single();
     if (order?.rider_id) {
@@ -253,6 +288,7 @@ function Step3Content() {
   useEffect(() => {
     return () => {
       clearInterval(timerRef.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, []);

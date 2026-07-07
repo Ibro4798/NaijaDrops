@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import SignOutButton from "@/components/ui/SignOutButton";
 
 export default async function VendorLayout({ children }) {
   const supabase = await createClient();
@@ -18,9 +19,12 @@ export default async function VendorLayout({ children }) {
       {/* VENDOR SPECIFIC NAVIGATION BAR COMES HERE */}
       <nav className="border-b border-white/10 p-4 sticky top-0 bg-charcoal-900/80 backdrop-blur-md z-50 flex justify-between items-center">
         <div className="font-outfit font-black text-xl italic tracking-tighter">NaijaDrops <span className="text-emerald-500">Vendor</span></div>
-        <div className="flex gap-4 text-sm font-bold">
+        <div className="flex gap-4 items-center text-sm font-bold">
           <a href="/vendor/dashboard" className="hover:text-emerald-400 transition-colors">Dashboard</a>
           <a href="/vendor/history" className="hover:text-emerald-400 transition-colors">History</a>
+          <SignOutButton className="text-red-500 hover:text-red-400 transition-colors bg-transparent border-0 p-0 font-bold cursor-pointer">
+            Sign Out
+          </SignOutButton>
         </div>
       </nav>
       

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 function GoogleIcon() {
   return (
@@ -17,7 +17,7 @@ function GoogleIcon() {
   );
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const [mode, setMode] = useState("login"); // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +28,8 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false);
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -55,7 +57,11 @@ export default function LoginPage() {
       }
       
       // Let the central resolver handle smart routing based on the actual database role
-      router.replace("/resolve");
+      if (nextParam) {
+        router.replace(nextParam);
+      } else {
+        router.replace("/resolve");
+      }
       return;
     }
 
@@ -64,7 +70,7 @@ export default function LoginPage() {
         email,
         password,
         options: { 
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''}`,
           data: {
              role: sessionStorage.getItem("nd_intended_role") || 'vendor'
           }
@@ -74,7 +80,11 @@ export default function LoginPage() {
       else {
         if (data.session) {
             // Auto-login succeeded, go to resolver
-            router.replace("/resolve");
+            if (nextParam) {
+                router.replace(nextParam);
+            } else {
+                router.replace("/resolve");
+            }
         } else {
             setError("Check your email to verify your account, then sign in.");
         }
@@ -93,7 +103,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { 
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''}`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -251,5 +261,17 @@ export default function LoginPage() {
         </p>
       </motion.div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <Loader2 className="text-emerald-500 animate-spin" size={32} />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Clock, ShieldAlert, AlertTriangle, PhoneCall } from "lucide-react";
+import SignOutButton from "@/components/ui/SignOutButton";
 
 export default async function RiderLayout({ children }) {
   const supabase = await createClient();
@@ -35,13 +36,16 @@ export default async function RiderLayout({ children }) {
       {/* Universal Driver Header */}
       <nav className="border-b border-white/5 px-6 pt-12 pb-4 flex justify-between items-center bg-charcoal-950/80 backdrop-blur-xl z-50 sticky top-0">
         <div className="font-outfit font-black text-xl italic tracking-tighter">NaijaDrops <span className="text-emerald-500">Rider</span></div>
-        <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-charcoal-500">
+        <div className="flex gap-4 items-center text-[10px] font-black uppercase tracking-widest text-charcoal-500">
            {isApproved && (
              <>
                <a href="/rider" className="hover:text-emerald-400">Feed</a>
                <a href="/rider/active-job" className="hover:text-emerald-400">Active</a>
                <a href="/rider/earnings" className="hover:text-emerald-400">Money</a>
                <a href="/profile" className="hover:text-emerald-400">Profile</a>
+               <SignOutButton className="hover:text-red-400 text-red-500 font-black text-[10px] uppercase tracking-widest bg-transparent border-0 p-0 cursor-pointer">
+                 Sign Out
+               </SignOutButton>
              </>
            )}
         </div>
@@ -80,7 +84,9 @@ export default async function RiderLayout({ children }) {
                </div>
             </div>
 
-            <a href="/auth/login" className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-sm block text-center">Sign Out</a>
+            <SignOutButton className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-sm block text-center cursor-pointer hover:bg-white/10 transition-colors">
+              Sign Out
+            </SignOutButton>
           </div>
         )}
 

@@ -83,7 +83,11 @@ export default async function OpsTerminalLayout({ children }) {
         <div className="p-6 border-t border-white/5 bg-black/40">
            <div className="text-[10px] text-charcoal-500 font-mono tracking-widest uppercase mb-1">God Mode</div>
            <div className="text-white text-xs font-bold truncate">{user?.email}</div>
-           <a href="/api/auth/signout" className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-4 inline-block hover:underline">Sever Connection</a>
+           <form action="/api/auth/signout" method="POST" className="mt-4">
+             <button type="submit" className="text-red-500 text-[10px] font-black uppercase tracking-widest hover:underline bg-transparent border-0 p-0 cursor-pointer">
+               Sever Connection
+             </button>
+           </form>
         </div>
       </aside>
       

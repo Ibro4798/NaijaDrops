@@ -35,33 +35,46 @@ export async function POST(req) {
       });
     }
 
-    // 3. Section 4: Trigger Dispatch Engine
-    const { bestRider, error } = await getBestRider(orderId);
+    // 3. Section 4: Trigger Dispatch Engine (expanding Uber-style broadcast)
+    const { data: riders, error: rpcError } = await supabase
+      .rpc('get_nearby_online_riders', { p_order_id: orderId });
 
-    if (error || !bestRider) {
+    if (rpcError) {
       return NextResponse.json({ 
         success: false, 
-        message: error || "Search complete: No active riders found nearby." 
+        message: rpcError.message || "Dispatch logic failed." 
       });
     }
 
-    // 4. Section 3.4: Order Locking Rule
-    // Lock the rider to the order and move to 'matched' state
-    const { error: lockError } = await supabase
-      .from("orders")
-      .update({ 
-        rider_id: bestRider.id,
-        status: "matched",
-        locked: true // Preventing race conditions
-      })
-      .eq("id", orderId);
+    if (!riders || riders.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "No active riders found nearby." 
+      });
+    }
 
-    if (lockError) throw lockError;
+    // Broadcast the order to all returned riders
+    const inserts = riders.map(r => ({
+      order_id: orderId,
+      rider_id: r.id
+    }));
+
+    const { error: insertError } = await supabase
+      .from("order_broadcasts")
+      .upsert(inserts, { onConflict: "order_id,rider_id" });
+
+    if (insertError) {
+      console.error("Broadcast insert error:", insertError);
+      return NextResponse.json({ 
+        success: false, 
+        message: "Failed to broadcast order to riders." 
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 
-      riderId: bestRider.id,
-      message: "Rider Matched" 
+      broadcastCount: riders.length,
+      message: `Order broadcasted to ${riders.length} riders.` 
     });
 
   } catch (err) {

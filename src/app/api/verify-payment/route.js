@@ -70,6 +70,7 @@ export async function POST(req) {
         .from('orders')
         .update({
             status: 'accepted',
+            payment_status: 'paid',
             delivery_pin: generatedPin
         })
         .eq('id', orderId);
@@ -90,6 +91,7 @@ async function simulateSuccess(reference, orderId) {
         .from('orders')
         .update({
             status: 'accepted',
+            payment_status: 'paid',
             delivery_pin: generatedPin
         })
         .eq('id', orderId);
