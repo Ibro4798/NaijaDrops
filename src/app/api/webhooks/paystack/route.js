@@ -40,8 +40,7 @@ export async function POST(req) {
       const { error } = await supabase
         .from("orders")
         .update({ 
-          payment_status: "authorized",
-          status: "assigned" 
+          payment_status: "authorized" \r
         })
         .eq("id", orderId);
 
