@@ -25,7 +25,7 @@ export async function getReliableLocation(onProgress) {
         // Real IP-based Geolocation Fallback
         const getIPLocation = async () => {
             try {
-                updateStatus("ðŸŒ Resolving city via IP...");
+                updateStatus("🌍 Resolving city via IP...");
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
                 if (data.latitude && data.longitude) {
@@ -44,7 +44,7 @@ export async function getReliableLocation(onProgress) {
         };
 
         if ("geolocation" in navigator) {
-            updateStatus("ðŸ›°ï¸ Synchronizing GPS...");
+            updateStatus("🛰️ Synchronizing GPS...");
 
             const watchId = navigator.geolocation.watchPosition(
                 (pos) => {
@@ -56,7 +56,7 @@ export async function getReliableLocation(onProgress) {
                             accuracy: pos.coords.accuracy,
                             source: 'gps'
                         };
-                        updateStatus(`ðŸŽ¯ Precision Lock: Â±${Math.round(pos.coords.accuracy)}m`);
+                        updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
                     // If we get an extremely good lock (<20m), resolve immediately
@@ -91,7 +91,7 @@ export async function getReliableLocation(onProgress) {
                         resolve(bestReading); // Use the poor GPS reading if IP fails too
                     } else {
                         // Ultimate fallback: Null or let user know
-                        updateStatus("âŒ Location failed.");
+                        updateStatus("❌ Location failed.");
                         resolve(null);
                     }
                 }

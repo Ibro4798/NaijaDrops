@@ -32,7 +32,7 @@ export default async function OpsFinancePage() {
 
   const currentEscrow = totalEscrow?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
   const totalRevenue = completedOrders?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
-  const platformCut = totalRevenue * 0.15; // 15% commission
+  const platformCut = totalRevenue * 0.20; // 20% commission
   const totalPayoutPending = pendingPayouts?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
 
   const withdrawalRequests = (pendingPayouts || []).map(p => ({
@@ -55,13 +55,13 @@ export default async function OpsFinancePage() {
     return {
       date: date.slice(5),
       gmv: gmv,
-      revenue: gmv * 0.15
+      revenue: gmv * 0.20
     };
   });
 
   const kpis = [
     { label: "Live Escrow Balance", value: `₦${currentEscrow.toLocaleString()}`, icon: <Wallet className="text-purple-500" />, trend: "Locked Funds" },
-    { label: "Platform Revenue", value: `₦${platformCut.toLocaleString()}`, icon: <DollarSign className="text-emerald-500" />, trend: "15% Take Rate" },
+    { label: "Platform Revenue", value: `₦${platformCut.toLocaleString()}`, icon: <DollarSign className="text-emerald-500" />, trend: "20% Take Rate" },
     { label: "Gross Merchandise Value", value: `₦${totalRevenue.toLocaleString()}`, icon: <Activity className="text-blue-500" />, trend: "Total Processed" },
     { label: "Pending Payouts", value: `₦${totalPayoutPending.toLocaleString()}`, icon: <CreditCard className="text-amber-500" />, trend: "Rider Liabilities" }
   ];

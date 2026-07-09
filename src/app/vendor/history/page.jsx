@@ -113,7 +113,7 @@ export default function VendorHistoryPage() {
                                 </div>
                                 <div>
                                     <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1">
-                                        ID: {order.id.slice(0, 8)} â€¢ {new Date(order.created_at).toLocaleDateString()}
+                                        ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
                                     </div>
                                     <h3 className="text-lg font-black text-white font-outfit uppercase tracking-tight">{order.item_category || 'General Package'}</h3>
                                 </div>

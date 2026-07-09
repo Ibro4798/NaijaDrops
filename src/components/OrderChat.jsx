@@ -315,7 +315,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
         </div>
       ) : (
         <div className="p-6 bg-charcoal-800/50 border-t border-white/5 text-center shrink-0">
-          <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em]">Order Completed â€¢ Channel Sealed</p>
+          <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em]">Order Completed • Channel Sealed</p>
         </div>
       )}
     </div>

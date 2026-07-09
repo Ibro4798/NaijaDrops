@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -18,7 +18,7 @@ function GoogleIcon() {
 }
 
 function LoginContent() {
-  const [mode, setMode] = useState("login"); // 'login' | 'signup' | 'reset'
+  const [mode, setMode] = useState("login"); // overridden below from ?mode= // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +30,12 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextParam = searchParams.get("next");
+  useEffect(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signup" || urlMode === "login" || urlMode === "reset") {
+      setMode(urlMode);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -164,7 +170,7 @@ function LoginContent() {
                 </p>
                 <button onClick={() => { setMode("login"); setResetSent(false); }}
                   className="text-emerald-500 text-xs font-black uppercase tracking-widest hover:text-emerald-400 transition-colors">
-                  â† Back to sign in
+                  ← Back to sign in
                 </button>
               </motion.div>
             ) : (

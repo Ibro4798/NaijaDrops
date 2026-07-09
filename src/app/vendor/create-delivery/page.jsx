@@ -158,7 +158,7 @@ export default function CreateDelivery() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
 
-      // âœ… FIX: Fetch the vendors.id (FK target) not auth user.id
+      // ✅ FIX: Fetch the vendors.id (FK target) not auth user.id
       const { data: vendorProfile, error: vendorErr } = await supabase
         .from('vendors')
         .select('id')
@@ -176,7 +176,7 @@ export default function CreateDelivery() {
             : estimatedPrice);
 
       const orderData = {
-        // âœ… FIX: Use vendorProfile.id (vendors.id) not user.id
+        // ✅ FIX: Use vendorProfile.id (vendors.id) not user.id
         vendor_id: vendorProfile.id,
         pickup_name: pickup.name,
         pickup_lat: pickup.coords.lat,
@@ -186,7 +186,7 @@ export default function CreateDelivery() {
         dropoff_lng: dropoff.coords.lng,
         item_category: category,
         item_size: size,
-        // âœ… FIX: Correct column names matching DB schema
+        // ✅ FIX: Correct column names matching DB schema
         recipient_name: receiver.name,
         recipient_phone: receiver.phone,
         agreed_price: finalAgreedPrice,
@@ -365,7 +365,7 @@ export default function CreateDelivery() {
                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mb-6 block">Vehicle Priority</label>
                    <button onClick={() => setVehicleType('bike')} className={`w-full p-5 rounded-2xl border-2 flex items-center justify-between transition-all ${vehicleType === 'bike' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 bg-white/5 opacity-50'}`}>
                       <div className="text-left">
-                        <div className="text-3xl mb-1">ðŸï¸</div>
+                        <div className="text-3xl mb-1">🏍️</div>
                         <div className="text-sm font-black text-white uppercase tracking-widest">Motorbike</div>
                       </div>
                       {vehicleType === 'bike' && <Check className="text-emerald-500" strokeWidth={4} />}

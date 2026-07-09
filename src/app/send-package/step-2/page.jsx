@@ -25,13 +25,13 @@ function calcPrice(distanceM, vehicleType, sizeId) {
 }
 
 const SIZES = [
-  { id: "small", label: "Small", sub: "Fits in a bag", emoji: "ðŸŽ’", desc: "Documents, envelopes, small items" },
-  { id: "medium", label: "Medium", sub: "Small box", emoji: "ðŸ“¦", desc: "Shoes, electronics, food orders" },
-  { id: "large", label: "Large", sub: "Big load", emoji: "ðŸ—ƒï¸", desc: "Multiple items, large packages" },
+  { id: "small", label: "Small", sub: "Fits in a bag", emoji: "🎒", desc: "Documents, envelopes, small items" },
+  { id: "medium", label: "Medium", sub: "Small box", emoji: "📦", desc: "Shoes, electronics, food orders" },
+  { id: "large", label: "Large", sub: "Big load", emoji: "🗃️", desc: "Multiple items, large packages" },
 ];
 
 const VEHICLES = [
-  { id: "bike", label: "Motorcycle", sub: "Faster & cheaper", emoji: "ðŸï¸", badge: "Popular" },
+  { id: "bike", label: "Motorcycle", sub: "Faster & cheaper", emoji: "🏍️", badge: "Popular" },
   { id: "car", label: "Car", sub: "Bigger & safer", emoji: "🚗", badge: "Secure" },
 ];
 
@@ -157,14 +157,14 @@ export default function Step2Page() {
       <div className="mx-5 mb-5 bg-gradient-to-r from-emerald-500/10 to-emerald-400/5 border border-emerald-500/20 rounded-2xl px-5 py-4 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Distance</div>
-          <div className="text-white font-black text-lg">{distanceKm ? `${distanceKm} km` : "â€”"}</div>
+          <div className="text-white font-black text-lg">{distanceKm ? `${distanceKm} km` : "—"}</div>
         </div>
         <div className="h-8 w-px bg-white/10" />
         <div className="text-right">
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Price Estimate</div>
           <AnimatePresence mode="wait">
             <motion.div key={`${vehicle}-${size}-${estimatedPrice}`} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-emerald-400 font-black text-2xl">
-              {estimatedPrice ? `₦${estimatedPrice.toLocaleString()}` : "â€”"}
+              {estimatedPrice ? `₦${estimatedPrice.toLocaleString()}` : "—"}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -172,7 +172,7 @@ export default function Step2Page() {
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Route</div>
           <div className="text-white font-black text-sm truncate max-w-[80px]">
-            {draft.pickup?.name?.split(",")[0] || "â€”"}
+            {draft.pickup?.name?.split(",")[0] || "—"}
           </div>
         </div>
       </div>

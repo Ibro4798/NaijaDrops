@@ -59,8 +59,8 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Amount paid is less than agreed price' }, { status: 400 });
     }
 
-    if (order.status === 'accepted') {
-        return NextResponse.json({ success: true, message: 'Already marked as accepted' });
+    if (order.payment_status === 'paid') {
+        return NextResponse.json({ success: true, message: 'Already marked as paid' });
     }
 
     // 3. Update the order safely using the Admin connection
@@ -69,7 +69,6 @@ export async function POST(req) {
     const { error: updateErr } = await supabaseAdmin
         .from('orders')
         .update({
-            status: 'accepted',
             payment_status: 'paid',
             delivery_pin: generatedPin
         })
@@ -90,7 +89,6 @@ async function simulateSuccess(reference, orderId) {
      const { error: updateErr } = await supabaseAdmin
         .from('orders')
         .update({
-            status: 'accepted',
             payment_status: 'paid',
             delivery_pin: generatedPin
         })

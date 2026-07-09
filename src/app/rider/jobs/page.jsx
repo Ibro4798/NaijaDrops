@@ -60,7 +60,7 @@ export default function RiderJobsPage() {
     switch (status) {
       case "completed":
         return "bg-emerald-500/10 text-emerald-500";
-      case "assigned":
+      case "matched":
         return "bg-blue-500/10 text-blue-500";
       case "cancelled":
         return "bg-red-500/10 text-red-500";
@@ -88,7 +88,7 @@ export default function RiderJobsPage() {
 
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-8 overflow-x-auto">
-        {["all", "assigned", "completed", "cancelled"].map((f) => (
+        {["all", "matched", "completed", "cancelled"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}

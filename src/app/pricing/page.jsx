@@ -161,7 +161,7 @@ export default function Pricing() {
               <span className="font-extrabold text-lg text-emerald-800">₦{costs.standard}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7 uppercase tracking-wider">
-               {orderData.vehicleType || 'bike'} â€¢ Driver accepts within ~5 mins. {distance > 0 && `(${distance} km)`}
+               {orderData.vehicleType || 'bike'} • Driver accepts within ~5 mins. {distance > 0 && `(${distance} km)`}
             </div>
           </label>
 

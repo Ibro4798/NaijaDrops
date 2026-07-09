@@ -42,7 +42,7 @@ export default function RiderEarnings() {
       .order('created_at', { ascending: false });
 
     if (orders) {
-      const grossEarned = orders.reduce((sum, o) => sum + (o.agreed_price || 0), 0) * 0.85; // 15% platform commission
+      const grossEarned = orders.reduce((sum, o) => sum + (o.agreed_price || 0), 0) * 0.80; // 20% platform commission
       const alreadyWithdrawn = (walletTxs || [])
         .filter(t => t.status === 'requested' || t.status === 'paid')
         .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -163,7 +163,7 @@ export default function RiderEarnings() {
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.85).toLocaleString()}</div>
+                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.80).toLocaleString()}</div>
                      <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic flex items-center justify-end gap-1">
                         Cleared <Sparkles size={10} />
                      </div>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request) {
-    // Requires SUPABASE_SERVICE_ROLE_KEY â€” this runs on the server only.
+    // Requires SUPABASE_SERVICE_ROLE_KEY — this runs on the server only.
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -17,7 +17,7 @@ export async function POST(request) {
         }
 
         // Step 1: Create the user account using the admin API.
-        // We do NOT set a password â€” Supabase will send a "magic link" style invite.
+        // We do NOT set a password — Supabase will send a "magic link" style invite.
         const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
             email_confirm: true,    // Auto-confirm so the invite link goes straight to password reset
@@ -60,7 +60,7 @@ export async function POST(request) {
         });
 
         if (linkError) {
-            // User was created, but link generation failed â€” return partial success
+            // User was created, but link generation failed — return partial success
             return NextResponse.json({ 
                 success: true, 
                 userId,

@@ -29,14 +29,14 @@ function Step3Content() {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState(null);
 
-  // âœ… NEW: Auth gate state â€” show signup prompt instead of redirecting
+  // ✅ NEW: Auth gate state — show signup prompt instead of redirecting
   const [showAuthGate, setShowAuthGate] = useState(false);
 
   const timerRef = useRef(null);
   const channelRef = useRef(null);
   const pollingRef = useRef(null);
 
-  // Load draft on mount â€” do NOT create order or check auth yet
+  // Load draft on mount — do NOT create order or check auth yet
   useEffect(() => {
     try {
       const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
@@ -52,7 +52,7 @@ function Step3Content() {
     } catch { router.replace("/send-package/step-2"); }
   }, []);
 
-  // âœ… NEW: "Find My Driver" button handler â€” checks auth before creating order
+  // ✅ NEW: "Find My Driver" button handler — checks auth before creating order
   async function handleFindDriver() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -91,7 +91,7 @@ function Step3Content() {
         vehicle_type: draft.vehicle,
         item_description: draft.description,
         voice_note_url: draft.voice_note,
-        // âœ… FIX: Use correct column names matching DB schema
+        // ✅ FIX: Use correct column names matching DB schema
         recipient_name: draft.recipient_name,
         recipient_phone: draft.recipient_phone,
         notify_receiver: draft.notify_receiver,
@@ -317,7 +317,7 @@ function Step3Content() {
         </div>
       </div>
 
-      {/* âœ… NEW: Auth Gate Modal â€” shown instead of redirect */}
+      {/* ✅ NEW: Auth Gate Modal — shown instead of redirect */}
       <AnimatePresence>
         {showAuthGate && (
           <motion.div
@@ -337,7 +337,7 @@ function Step3Content() {
               </div>
               <h2 className="text-xl font-black text-white mb-3">Almost there!</h2>
               <p className="text-charcoal-400 text-sm leading-relaxed mb-8">
-                Create a free account to confirm your delivery. Your route and pricing are saved â€” just sign in and dispatch.
+                Create a free account to confirm your delivery. Your route and pricing are saved — just sign in and dispatch.
               </p>
               <button
                 onClick={() => router.push('/auth/login?next=/send-package/step-3')}
@@ -349,14 +349,14 @@ function Step3Content() {
                 onClick={() => setShowAuthGate(false)}
                 className="w-full py-4 text-charcoal-500 font-bold text-sm"
               >
-                â† Back to preview
+                ← Back to preview
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* âœ… NEW: Idle state â€” shown before user clicks "Find My Driver" */}
+      {/* ✅ NEW: Idle state — shown before user clicks "Find My Driver" */}
       {matchState === "idle" && (
         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
           <div className="w-full max-w-sm bg-white/[0.04] border border-white/10 rounded-3xl p-6 mb-8">
@@ -392,7 +392,7 @@ function Step3Content() {
         </div>
       )}
 
-      {/* Mode Toggle â€” only show when actively searching/matching */}
+      {/* Mode Toggle — only show when actively searching/matching */}
       {matchState !== "idle" && (
         <>
           <div className="mx-5 mb-6 bg-white/[0.04] border border-white/10 rounded-2xl p-1 flex gap-1">

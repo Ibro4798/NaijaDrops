@@ -113,7 +113,7 @@ function ConfirmContent() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-3xl">
-              {order?.vehicle_type === "car" ? "🚗" : "ðŸï¸"}
+              {order?.vehicle_type === "car" ? "🚗" : "🏍️"}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">

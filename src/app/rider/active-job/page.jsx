@@ -30,7 +30,7 @@ export default function ActiveJobPage() {
         .from('orders')
         .select('*, riders(*)')
         .eq('rider_id', profile.id)
-        .in('status', ['assigned', 'picked_up', 'in_transit'])
+        .in('status', ['matched', 'picked_up', 'in_transit'])
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
@@ -85,7 +85,7 @@ export default function ActiveJobPage() {
     );
   }
 
-  const isHeadingToPickup = order.status === 'assigned';
+  const isHeadingToPickup = order.status === 'matched';
   const targetLat = isHeadingToPickup ? order.pickup_lat : order.dropoff_lat;
   const targetLng = isHeadingToPickup ? order.pickup_lng : order.dropoff_lng;
   const targetName = isHeadingToPickup ? order.pickup_name : order.dropoff_name;
@@ -141,7 +141,7 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-white leading-tight mb-2">{order.dropoff_name}</div>
-               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} â€¢ {order.recipient_phone}</div>
+               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
             </div>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function ActiveJobPage() {
 
         {/* Progress Action - SLIDE TO CONFIRM */}
         <div className="pt-4">
-           {order.status === 'assigned' && (
+           {order.status === 'matched' && (
              <SlideToConfirm 
                text="Slide to confirm Pickup" 
                color="bg-amber-500" 
@@ -196,7 +196,7 @@ export default function ActiveJobPage() {
 
       <div className="px-8 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-charcoal-700">
-          Telemetry Active â€¢ Node: KANO-01
+          Telemetry Active • Node: KANO-01
         </p>
       </div>
     </div>

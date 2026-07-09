@@ -20,24 +20,24 @@ async function checkUserStatus(email) {
   try {
     // 1. Check inside Users (Unified)
     const { data: user } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
-    console.log(`[Unified Users Table]: ${user ? 'âœ… Found (ID: ' + user.id + ', Role: ' + user.role + ')' : 'â Œ Not Found'}`);
+    console.log(`[Unified Users Table]: ${user ? '✅ Found (ID: ' + user.id + ', Role: ' + user.role + ')' : 'â Œ Not Found'}`);
 
     if (user) {
       if (user.role === 'admin' || user.role === 'super_admin') {
-        console.log(`\nâœ¨ Redirection Priority: Ops Terminal (Admin)`);
+        console.log(`\n✨ Redirection Priority: Ops Terminal (Admin)`);
       } else if (user.role === 'rider') {
         const { data: rider } = await supabase.from('riders').select('*').eq('user_id', user.id).maybeSingle();
-        console.log(`[Riders Sub-Profile]: ${rider ? 'âœ… Found (ID: ' + rider.id + ')' : 'â Œ Not Found'}`);
-        console.log(`\nâœ¨ Redirection Priority: Rider Dashboard`);
+        console.log(`[Riders Sub-Profile]: ${rider ? '✅ Found (ID: ' + rider.id + ')' : 'â Œ Not Found'}`);
+        console.log(`\n✨ Redirection Priority: Rider Dashboard`);
       } else if (user.role === 'vendor') {
         const { data: vendor } = await supabase.from('vendors').select('*').eq('user_id', user.id).maybeSingle();
-        console.log(`[Vendors Sub-Profile]: ${vendor ? 'âœ… Found (ID: ' + vendor.id + ')' : 'â Œ Not Found'}`);
-        console.log(`\nâœ¨ Redirection Priority: Vendor Dashboard`);
+        console.log(`[Vendors Sub-Profile]: ${vendor ? '✅ Found (ID: ' + vendor.id + ')' : 'â Œ Not Found'}`);
+        console.log(`\n✨ Redirection Priority: Vendor Dashboard`);
       } else {
-        console.log(`\nâš ï¸  Warning: User has an unknown role: ${user.role}`);
+        console.log(`\n⚠️  Warning: User has an unknown role: ${user.role}`);
       }
     } else {
-      console.log(`\nâš ï¸  Warning: User not found in the system.`);
+      console.log(`\n⚠️  Warning: User not found in the system.`);
     }
 
   } catch (err) {

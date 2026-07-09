@@ -13,7 +13,7 @@ export default async function OpsDashboard() {
 
   // Fetch Live Stats
   const { data: riders } = await supabase.from("riders").select("count").eq("operational_status", "online");
-  const { data: activeOrders } = await supabase.from("orders").select("count").in("status", ["assigned", "picked_up", "in_transit"]);
+  const { data: activeOrders } = await supabase.from("orders").select("count").in("status", ["matched", "picked_up", "in_transit"]);
   const { data: escrowVolume } = await supabase.from("orders").select("agreed_price").eq("payment_status", "authorized");
   const totalEscrow = escrowVolume?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
 
@@ -34,7 +34,7 @@ export default async function OpsDashboard() {
               Terminal Access Verified
            </div>
            <h1 className="text-4xl font-black italic tracking-tighter uppercase">NaijaDrops / Ops-Terminal</h1>
-           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Administrator: {admin.full_name} â€¢ Role: {admin.role}</p>
+           <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">Administrator: {admin.full_name} • Role: {admin.role}</p>
         </div>
         <div className="text-right">
            <div className="text-[10px] text-charcoal-600 uppercase font-black tracking-widest mb-1">Node Status</div>
