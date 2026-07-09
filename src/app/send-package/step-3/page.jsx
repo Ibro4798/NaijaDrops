@@ -121,7 +121,7 @@ function Step3Content() {
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${oid}`
       }, async (payload) => {
-        if (payload.new.rider_id && (payload.new.status === "matched" || payload.new.status === "assigned")) {
+        if (payload.new.rider_id && payload.new.status === "matched") {
           if (pollingRef.current) clearInterval(pollingRef.current);
           const { data: rider } = await supabase
             .from("riders")

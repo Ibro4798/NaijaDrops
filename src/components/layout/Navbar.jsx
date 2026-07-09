@@ -44,7 +44,7 @@ export default function Navbar() {
                   const { data: orders } = await supabase.from('orders')
                     .select('id, status')
                     .eq('vendor_id', user.id)
-                    .in('status', ['looking_for_driver', 'awaiting_payment', 'accepted', 'picked_up', 'arriving'])
+                    .in('status', ['pending', 'looking_for_driver', 'matched', 'picked_up', 'in_transit'])
                     .order('created_at', { ascending: false })
                     .limit(1);
                     
