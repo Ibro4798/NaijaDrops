@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  MapPin, Zap, Shield, ArrowRight, Clock, Star,
+  MapPin, Zap, Shield, ArrowRight, Radar, ShieldCheck,
   Package, ChevronRight, Globe, CheckCircle2
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -17,8 +17,8 @@ const STEPS = [
 
 const TRUST = [
   { icon: Shield,     stat: "Verified",   label: "Professional Fleet" },
-  { icon: Clock,      stat: "~20 min",    label: "Avg Pickup Time" },
-  { icon: Star,       stat: "4.9 ★",      label: "Rider Rating" },
+  { icon: Radar,      stat: "Live",       label: "Real-Time Tracking" },
+  { icon: ShieldCheck, stat: "Hand-Vetted", label: "Every Rider" },
   { icon: Globe,      stat: "Kano NG",    label: "Pilot City" },
 ];
 
@@ -97,15 +97,15 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.95] mb-5 font-outfit">
-            Same-day delivery,<br />
+            Reliable delivery,<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600 italic">
-              no account needed.
+              finally trackable.
             </span>
           </h1>
 
           <p className="text-charcoal-400 font-medium max-w-xl mx-auto text-lg leading-relaxed mb-10">
-            Enter your pickup and drop-off, get a price, and a verified rider
-            picks up your parcel — create an account only when you need to track.
+            Pin your pickup and drop-off, get an instant price, and a verified rider
+            picks up your parcel — create your account only when you're ready to send.
           </p>
 
           {/* PRIMARY CTA */}
