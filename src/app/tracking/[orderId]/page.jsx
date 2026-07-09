@@ -83,7 +83,7 @@ export default function TrackingPage() {
 
   // --- Delivered: show a receipt instead of a live tracker ---
   if (order.status === 'delivered') {
-    const commission = isVendorView && order.agreed_price ? Math.round(order.agreed_price * 0.20) : null;
+    const commission = isVendorView && order.agreed_price ? Math.round(order.agreed_price * 0.15) : null;
     return (
       <div className="min-h-screen bg-charcoal-950 px-6 py-12 flex justify-center">
         <div className="w-full max-w-md bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 space-y-6">
@@ -99,7 +99,7 @@ export default function TrackingPage() {
             {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-white font-bold">{riderName}</span></div>}
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black">₦{Number(order.agreed_price ?? order.total_price ?? 0).toLocaleString()}</span></div>
             {isVendorView && commission !== null && (
-              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-white">₦{commission.toLocaleString()}</span></div>
+              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (15%)</span><span className="text-white">₦{commission.toLocaleString()}</span></div>
             )}
           </div>
         </div>
