@@ -39,21 +39,25 @@ export default function Navbar() {
   
           // âœ… FIX: Check role is 'vendor' not 'user', and query by vendor_id not user_id
           if (role === 'vendor' || !role) {
+              const { data: vendorRow } = await supabase.from('vendors').select('id').eq('user_id', user.id).single();
+              const vendorId = vendorRow?.id;
+
               const checkActiveOrder = async () => {
                   // âœ… FIX: orders table has vendor_id not user_id
                   const { data: orders } = await supabase.from('orders')
-                    .select('id, status')
-                    .eq('vendor_id', user.id)
+                    .select('id, status, payment_status')
+                    .eq('vendor_id', vendorId)
                     .in('status', ['pending', 'looking_for_driver', 'matched', 'picked_up', 'in_transit'])
                     .order('created_at', { ascending: false })
                     .limit(1);
                     
-                  setActiveOrder(orders?.[0] || null);
+                  const order = orders?.[0] || null;
+                  setActiveOrder(order ? { ...order, isAwaitingPayment: order.status === 'matched' && order.payment_status !== 'paid' } : null);
               };
               
               await checkActiveOrder();
               const channel = supabase.channel(`navbar-orders-${user.id}`)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `vendor_id=eq.${user.id}` }, checkActiveOrder)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `vendor_id=eq.${vendorId}` }, checkActiveOrder)
                 .subscribe();
               return () => supabase.removeChannel(channel);
           }
@@ -131,7 +135,7 @@ export default function Navbar() {
                     <Link 
                         href={
                           activeOrder.status === 'looking_for_driver' ? `/send-package/step-3?orderId=${activeOrder.id}` :
-                          activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
+                          activeOrder.isAwaitingPayment ? `/payment?orderId=${activeOrder.id}` :
                           `/tracking/${activeOrder.id}`
                         }
                         className="flex items-center gap-2 bg-charcoal-900 text-white px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-premium border border-white/10"
@@ -197,25 +201,25 @@ export default function Navbar() {
                 <Link 
                 href={
                     activeOrder.status === 'looking_for_driver' ? `/send-package/step-3?orderId=${activeOrder.id}` :
-                    activeOrder.status === 'awaiting_payment' ? `/payment?orderId=${activeOrder.id}` :
+                    activeOrder.isAwaitingPayment ? `/payment?orderId=${activeOrder.id}` :
                     `/tracking/${activeOrder.id}`
                 }
                 className={`max-w-md mx-auto glass rounded-[2.5rem] p-5 flex items-center justify-between shadow-premium border-2 pointer-events-auto transition-transform hover:scale-[1.02] active:scale-95 ${
-                    activeOrder.status === 'awaiting_payment' ? 'border-amber-500/30' : 'border-emerald-500/20'
+                    activeOrder.isAwaitingPayment ? 'border-amber-500/30' : 'border-emerald-500/20'
                 }`}
                 >
                     <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${
-                            activeOrder.status === 'awaiting_payment' ? 'bg-amber-500' : 'bg-emerald-600'
+                            activeOrder.isAwaitingPayment ? 'bg-amber-500' : 'bg-emerald-600'
                         }`}>
-                            {activeOrder.status === 'awaiting_payment' ? <CreditCard size={22} className="animate-pulse" /> : <Package size={22} />}
+                            {activeOrder.isAwaitingPayment ? <CreditCard size={22} className="animate-pulse" /> : <Package size={22} />}
                         </div>
                         <div>
                             <div className="text-[10px] font-black uppercase text-charcoal-500 tracking-widest mb-0.5">
-                                {activeOrder.status === 'awaiting_payment' ? 'Action Required' : 'Live Order'}
+                                {activeOrder.isAwaitingPayment ? 'Action Required' : 'Live Order'}
                             </div>
                             <div className="text-sm font-black text-charcoal-900 tracking-tight">
-                                {activeOrder.status === 'awaiting_payment' ? 'Complete Payment' : 
+                                {activeOrder.isAwaitingPayment ? 'Complete Payment' : 
                                  activeOrder.status === 'looking_for_driver' ? 'Searching Drivers...' : 'Trip in Progress'}
                             </div>
                         </div>
