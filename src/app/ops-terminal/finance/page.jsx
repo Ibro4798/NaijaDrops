@@ -14,7 +14,7 @@ export default async function OpsFinancePage() {
   const { data: totalEscrow } = await supabase
     .from("orders")
     .select("agreed_price")
-    .eq("payment_status", "authorized");
+    .eq("payment_status", "paid");
 
   const { data: completedOrders } = await supabase
     .from("orders")

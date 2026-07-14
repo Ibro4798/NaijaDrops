@@ -16,13 +16,14 @@ export default async function OpsOrdersPage() {
       *,
       riders (
          user_id,
-         users (full_name),
+         users (name),
+         current_lat,
+         current_lng,
          vehicle_type,
          plate_number
-      ),
-      users (full_name, phone)
+      )
     `)
-    .in("status", ["pending", "matched", "authorized", "picked_up", "in_transit"])
+    .in("status", ["pending", "looking_for_driver", "matched", "picked_up", "in_transit"])
     .order("created_at", { ascending: false });
 
   return (

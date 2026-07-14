@@ -14,7 +14,7 @@ export default async function OpsDashboard() {
   // Fetch Live Stats
   const { data: riders } = await supabase.from("riders").select("count").eq("operational_status", "online");
   const { data: activeOrders } = await supabase.from("orders").select("count").in("status", ["matched", "picked_up", "in_transit"]);
-  const { data: escrowVolume } = await supabase.from("orders").select("agreed_price").eq("payment_status", "authorized");
+  const { data: escrowVolume } = await supabase.from("orders").select("agreed_price").eq("payment_status", "paid");
   const totalEscrow = escrowVolume?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
 
   const stats = [

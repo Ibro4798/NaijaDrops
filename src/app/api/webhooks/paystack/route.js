@@ -35,12 +35,12 @@ export async function POST(req) {
         return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
       }
 
-      // Update order to AUTHORIZED state
-      // This is the trigger for the driver to start moving
+      // Update order payment_status to 'paid' — this is the webhook fallback
+      // after a successful Paystack charge.success event
       const { error } = await supabase
         .from("orders")
         .update({ 
-          payment_status: "authorized" \r
+          payment_status: "paid"
         })
         .eq("id", orderId);
 
@@ -49,7 +49,7 @@ export async function POST(req) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log(`Order ${orderId} successfully authorized via Paystack.`);
+      console.log(`Order ${orderId} payment confirmed via Paystack webhook.`);
     }
 
     return NextResponse.json({ received: true });

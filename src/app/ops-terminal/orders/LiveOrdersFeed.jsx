@@ -10,9 +10,9 @@ import dynamic from "next/dynamic";
 const MapCanvas = dynamic(() => import("@/components/MapCanvas"), { ssr: false });
 
 const STATUS_CONFIG = {
-  pending: { label: "Pending Search", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+  pending: { label: "Pending", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+  looking_for_driver: { label: "Searching Driver", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
   matched: { label: "Matched", color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20" },
-  authorized: { label: "Payment Hold", color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/20" },
   picked_up: { label: "Picked Up", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
   in_transit: { label: "In Transit", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
 };
@@ -28,7 +28,7 @@ export default function LiveOrdersFeed({ initialOrders }) {
         // Full refresh of order data to get joined relations (riders/users)
         const { data: updatedOrder } = await supabase
           .from("orders")
-          .select("*, riders(user_id, users(full_name)), users(full_name, phone)")
+          .select("*, riders(user_id, users(name), current_lat, current_lng)")
           .eq("id", payload.new.id || payload.old.id)
           .single();
 
@@ -134,11 +134,11 @@ export default function LiveOrdersFeed({ initialOrders }) {
               <div className="pt-4 border-t border-white/5 flex justify-between items-center">
                  <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-charcoal-800 flex items-center justify-center text-[8px] font-black text-charcoal-500">
-                       {order.riders?.users?.full_name?.slice(0, 1) || "?"}
+                       {order.riders?.users?.name?.slice(0, 1) || "?"}
                     </div>
-                    <div className="text-[10px] font-bold text-charcoal-400">
-                       {order.riders?.users?.full_name || "Unassigned"}
-                    </div>
+                     <div className="text-[10px] font-bold text-charcoal-400">
+                        {order.riders?.users?.name || "Unassigned"}
+                     </div>
                  </div>
                  <div className="text-[10px] font-black text-emerald-500 tracking-tighter">
                     ₦{order.agreed_price?.toLocaleString()}
