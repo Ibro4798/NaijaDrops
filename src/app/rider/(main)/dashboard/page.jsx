@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2 } from 'lucide-react';
 import IncomingOrderCard from '@/components/rider/IncomingOrderCard';
+import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 
 export default function RiderDashboard() {
   const router = useRouter();
@@ -139,6 +140,11 @@ export default function RiderDashboard() {
 
   return (
     <div className="space-y-8 pb-32">
+      {/* Headless: pings riders.current_lat/lng + rider_locations every ~35s while online.
+          This is the fix for tracking showing a frozen dot - previously location was only
+          captured once, at the moment "Go Online" was pressed. */}
+      <DriverHeartbeat riderId={rider.id} isOnline={rider.operational_status === 'online'} />
+
       <div className="flex items-center justify-between">
         <div>
           <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
@@ -164,7 +170,7 @@ export default function RiderDashboard() {
       {rider.operational_status !== 'online' ? (
         <p className="text-charcoal-400 text-center py-16">Go online to start receiving jobs.</p>
       ) : jobs.length === 0 ? (
-        <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online — the search radius expands automatically.</p>
+        <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online â€” the search radius expands automatically.</p>
       ) : (
         <div className="space-y-6">
           {jobs.map(job => (

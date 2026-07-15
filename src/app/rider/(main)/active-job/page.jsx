@@ -1,15 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
 const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false });
 
 import SlideToConfirm from '@/components/rider/SlideToConfirm';
+import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
+import OrderChat from '@/components/OrderChat';
 
 export default function ActiveJobPage() {
   const router = useRouter();
@@ -17,14 +19,19 @@ export default function ActiveJobPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [riderId, setRiderId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     async function fetchActiveJob() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setCurrentUserId(user.id);
 
       const { data: profile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
       if (!profile) return;
+      setRiderId(profile.id);
 
       const { data, error } = await supabase
         .from('orders')
@@ -92,6 +99,12 @@ export default function ActiveJobPage() {
 
   return (
     <div className="space-y-6 pb-24">
+      {/* Headless: continuous location pinging (~35s) for the entire duration of this
+          delivery, regardless of the rider's general online/offline toggle. This is
+          what makes the vendor/customer tracking map actually move instead of showing
+          a single frozen point from whenever the rider last went online. */}
+      {riderId && <DriverHeartbeat riderId={riderId} isOnline={true} />}
+
       {/* Dynamic Map Header */}
       <div className="h-[35vh] -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 relative overflow-hidden">
         <MapCanvas orders={[order]} zoom={15} center={[targetLng, targetLat]} />
@@ -124,6 +137,13 @@ export default function ActiveJobPage() {
             <h1 className="text-2xl font-black text-white italic tracking-tighter font-outfit uppercase">Mission Protocol</h1>
             <p className="text-charcoal-500 text-[10px] font-black tracking-[0.2em] uppercase mt-1 italic">Payload: {order.item_category}</p>
           </div>
+          <button
+            onClick={() => setShowChat(true)}
+            className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 shrink-0"
+            title="Message vendor"
+          >
+            <MessageCircle size={20} />
+          </button>
         </div>
 
         {/* Route Details */}
@@ -141,7 +161,7 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-white leading-tight mb-2">{order.dropoff_name}</div>
-               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
+               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} â€¢ {order.recipient_phone}</div>
             </div>
           </div>
         </div>
@@ -196,10 +216,20 @@ export default function ActiveJobPage() {
 
       <div className="px-8 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-charcoal-700">
-          Telemetry Active • Node: KANO-01
+          Telemetry Active â€¢ Node: KANO-01
         </p>
       </div>
+
+      <AnimatePresence>
+        {showChat && currentUserId && (
+          <OrderChat
+            orderId={order.id}
+            currentUserId={currentUserId}
+            onClose={() => setShowChat(false)}
+            isReadOnly={order.status === 'delivered' || order.status === 'cancelled'}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-

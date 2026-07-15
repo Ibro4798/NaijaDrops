@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,18 +31,18 @@ export default function RiderEarnings() {
     const { data: orders } = await supabase
       .from('orders')
       .select('*')
-      .eq('rider_id', rider?.id)   // orders.rider_id → riders.id (not users.id)
+      .eq('rider_id', rider?.id)   // orders.rider_id â†’ riders.id (not users.id)
       .eq('status', 'delivered')
       .order('created_at', { ascending: false });
 
     const { data: walletTxs } = await supabase
       .from('wallet_transactions')
       .select('*')
-      .eq('rider_id', user.id)     // wallet_transactions.rider_id → users.id
+      .eq('rider_id', user.id)     // wallet_transactions.rider_id â†’ users.id
       .order('created_at', { ascending: false });
 
     if (orders) {
-      const grossEarned = orders.reduce((sum, o) => sum + (o.agreed_price || 0), 0) * 0.85; // 15% platform commission
+      const grossEarned = orders.reduce((sum, o) => sum + (o.agreed_price || 0), 0) * 0.80; // 20% platform commission
       const alreadyWithdrawn = (walletTxs || [])
         .filter(t => t.status === 'requested' || t.status === 'paid')
         .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -67,7 +67,7 @@ export default function RiderEarnings() {
     setWithdrawError(null);
 
     if (!amount || amount <= 0) { setWithdrawError('Enter a valid amount.'); return; }
-    if (amount > earningsData.total) { setWithdrawError(`Amount exceeds your available balance of ₦${earningsData.total.toLocaleString()}.`); return; }
+    if (amount > earningsData.total) { setWithdrawError(`Amount exceeds your available balance of â‚¦${earningsData.total.toLocaleString()}.`); return; }
 
     setWithdrawing(true);
     const { error } = await supabase.rpc('request_withdrawal', { p_amount: amount });
@@ -114,7 +114,7 @@ export default function RiderEarnings() {
             </div>
 
             <div className="mb-10">
-               <span className="text-2xl font-black text-emerald-500 mr-2 italic">₦</span>
+               <span className="text-2xl font-black text-emerald-500 mr-2 italic">â‚¦</span>
                <span className="text-7xl font-black text-white tracking-tighter italic font-outfit leading-none">
                   {earningsData.total.toLocaleString()}
                </span>
@@ -123,11 +123,11 @@ export default function RiderEarnings() {
             <div className="grid grid-cols-2 gap-4 mb-8">
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1 italic">Pending Approval</div>
-                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.pending.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">â‚¦{earningsData.pending.toLocaleString()}</div>
                </div>
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1 italic">Weekly Yield</div>
-                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.weekly.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">â‚¦{earningsData.weekly.toLocaleString()}</div>
                </div>
             </div>
 
@@ -159,11 +159,11 @@ export default function RiderEarnings() {
                      </div>
                      <div>
                         <div className="text-sm font-black text-white uppercase tracking-tight">Mission Settlement</div>
-                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} • ID: {tx.id.slice(0, 6)}</div>
+                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} â€¢ ID: {tx.id.slice(0, 6)}</div>
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.85).toLocaleString()}</div>
+                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+â‚¦{Math.floor(tx.agreed_price * 0.80).toLocaleString()}</div>
                      <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic flex items-center justify-end gap-1">
                         Cleared <Sparkles size={10} />
                      </div>
@@ -196,12 +196,12 @@ export default function RiderEarnings() {
             ) : (
               <>
                 <p className="text-white font-black text-lg mb-1">Withdraw Funds</p>
-                <p className="text-charcoal-400 text-sm mb-6">Available: ₦{earningsData.total.toLocaleString()}</p>
+                <p className="text-charcoal-400 text-sm mb-6">Available: â‚¦{earningsData.total.toLocaleString()}</p>
                 <input
                   type="number"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="Amount (₦)"
+                  placeholder="Amount (â‚¦)"
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold mb-3 outline-none focus:border-emerald-500/50"
                 />
                 {withdrawError && <p className="text-red-400 text-xs font-bold mb-3">{withdrawError}</p>}

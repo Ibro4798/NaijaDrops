@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
-export default function ReviewModal({ order, driverProfile, isOpen, onClose }) {
+export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, onClose }) {
   const supabase = createClient();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -22,16 +22,20 @@ export default function ReviewModal({ order, driverProfile, isOpen, onClose }) {
 
     setIsSubmitting(true);
     try {
+       // NOTE: orders.rider_id points to riders.id, and reviews.rider_id matches that.
+       // reviewerId is the reviewing vendor's own auth user id, passed in explicitly
+       // by the caller - order.driver_id / order.user_id never existed on the orders
+       // table, so this previously wrote null into every review.
        const { error } = await supabase.from('reviews').insert({
           order_id: order.id,
-          driver_id: order.driver_id,
-          user_id: order.user_id,
+          rider_id: order.rider_id,
+          user_id: reviewerId,
           rating,
           feedback
        });
 
        if (error && error.code === '23505') {
-           // Unique constraint violation - already reviewed
+           // Unique constraint violation (order_id, user_id) - already reviewed
            setSuccess(true);
        } else if (error) {
            throw error;

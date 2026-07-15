@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { ArrowLeft, Clock, MapPin, Package, History as HistoryIcon, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Package, History as HistoryIcon, ChevronRight, Navigation } from 'lucide-react';
 import Link from 'next/link';
 
 export default function VendorHistoryPage() {
@@ -104,7 +104,7 @@ export default function VendorHistoryPage() {
                                 <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${getStatusStyle(order.status)}`}>
                                     {order.status}
                                 </div>
-                                <div className="mt-2 text-2xl font-black text-white italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
+                                <div className="mt-2 text-2xl font-black text-white italic tracking-tighter">â‚¦{order.agreed_price?.toLocaleString()}</div>
                             </div>
 
                             <div className="flex items-start gap-4 mb-6">
@@ -113,7 +113,7 @@ export default function VendorHistoryPage() {
                                 </div>
                                 <div>
                                     <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1">
-                                        ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
+                                        ID: {order.id.slice(0, 8)} â€¢ {new Date(order.created_at).toLocaleDateString()}
                                     </div>
                                     <h3 className="text-lg font-black text-white font-outfit uppercase tracking-tight">{order.item_category || 'General Package'}</h3>
                                 </div>
