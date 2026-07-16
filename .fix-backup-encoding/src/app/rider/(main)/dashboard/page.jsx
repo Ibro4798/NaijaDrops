@@ -170,7 +170,7 @@ export default function RiderDashboard() {
       {rider.operational_status !== 'online' ? (
         <p className="text-charcoal-400 text-center py-16">Go online to start receiving jobs.</p>
       ) : jobs.length === 0 ? (
-        <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online — the search radius expands automatically.</p>
+        <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online â€” the search radius expands automatically.</p>
       ) : (
         <div className="space-y-6">
           {jobs.map(job => (

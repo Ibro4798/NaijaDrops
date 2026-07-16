@@ -161,7 +161,7 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-white leading-tight mb-2">{order.dropoff_name}</div>
-               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
+               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} â€¢ {order.recipient_phone}</div>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function ActiveJobPage() {
 
       <div className="px-8 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-charcoal-700">
-          Telemetry Active • Node: KANO-01
+          Telemetry Active â€¢ Node: KANO-01
         </p>
       </div>
 

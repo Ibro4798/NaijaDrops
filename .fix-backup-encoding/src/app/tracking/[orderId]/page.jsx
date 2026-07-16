@@ -33,7 +33,7 @@ export default function TrackingPage() {
   useEffect(() => {
     let channel;
     async function load() {
-      // Try the authenticated path first — covers vendors viewing their own order
+      // Try the authenticated path first â€” covers vendors viewing their own order
       // history (vendor/history links here) via normal RLS.
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -137,9 +137,9 @@ export default function TrackingPage() {
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-white font-bold print:text-black">{order.pickup_name}</span></div>
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-white font-bold print:text-black">{order.dropoff_name}</span></div>
             {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-white font-bold print:text-black">{riderName}</span></div>}
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black">₦{Number(order.agreed_price ?? order.total_price ?? 0).toLocaleString()}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black">â‚¦{Number(order.agreed_price ?? order.total_price ?? 0).toLocaleString()}</span></div>
             {isVendorView && commission !== null && (
-              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-white print:text-black">₦{commission.toLocaleString()}</span></div>
+              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-white print:text-black">â‚¦{commission.toLocaleString()}</span></div>
             )}
           </div>
 
@@ -193,7 +193,7 @@ export default function TrackingPage() {
           <MapCanvas markers={[{ lat: riderLat, lng: riderLng, color: 'emerald', type: 'rider' }]} center={{ lat: riderLat, lng: riderLng }} />
         ) : (
           <div className="h-full flex items-center justify-center text-charcoal-500 text-sm">
-            <MapPin className="mr-2" size={16} /> Waiting for rider location…
+            <MapPin className="mr-2" size={16} /> Waiting for rider locationâ€¦
           </div>
         )}
       </div>
