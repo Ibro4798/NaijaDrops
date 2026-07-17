@@ -235,23 +235,6 @@ export default function DriverOnboardingPage() {
             </button>
           </>
         )}
-        {existingStatus === 'paused' && (
-          <>
-            <div className="w-24 h-24 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-8">
-              <AlertCircle className="text-amber-500" size={40} />
-            </div>
-            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You've Been Paused</h2>
-            <p className="text-charcoal-400 text-sm leading-relaxed mb-4 max-w-xs">
-              This isn't a rejection - you're still a NaijaDrops rider. Message support below and we'll help resolve it so you can go back online.
-            </p>
-            {formData.rejection_reason && (
-              <div className="w-full max-w-sm bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 mb-8 text-left">
-                <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Reason</div>
-                <p className="text-charcoal-300 text-xs">{formData.rejection_reason}</p>
-              </div>
-            )}
-          </>
-        )}
         <button
           onClick={() => router.push("/support")}
           className="w-full max-w-sm py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm hover:bg-white/10 transition-all"
