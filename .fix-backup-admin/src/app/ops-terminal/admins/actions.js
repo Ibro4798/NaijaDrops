@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { validateAdmin, logAdminAction } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -19,24 +19,22 @@ export async function addAdmin(formData) {
       throw new Error("Email is required");
     }
 
-    // Previously checked `admin_users`, a table disconnected from the `users`
-    // table that actually controls access - so this check meant nothing.
+    // Check if already exists
     const { data: existing } = await supabase
-      .from("users")
+      .from("admin_users")
       .select("id")
       .eq("email", email)
-      .in("role", ["admin", "super_admin"])
-      .maybeSingle();
+      .single();
 
     if (existing) {
       throw new Error("Admin already exists");
     }
 
-    // Invite User via Supabase Auth. Supabase handles the SMTP email sending.
+    // 1. Invite User via Supabase Auth. Supabase handles the SMTP email sending.
     const { createAdminClient } = await import("@/utils/supabase/admin");
     const adminSupabase = createAdminClient();
 
-    const { error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+    const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
       data: { role: 'admin' }
     });
 
@@ -44,9 +42,11 @@ export async function addAdmin(formData) {
         throw inviteError;
     }
 
-    // The on_auth_user_created trigger now reads this metadata and sets
-    // users.role = 'admin' directly - no separate admin_users table involved,
-    // no manual upsert needed here.
+    // Because of the 'on_auth_user_created' SQL Trigger, the user will AUTOMATICALLY 
+    // be added to public.admin_users as IS_ACTIVE = TRUE.
+    // We do not need to manually upsert into admin_users here anymore!
+
+    // Manual inserts removed. Trigger handles it.
 
     await logAdminAction(currentAdmin.id, "ADMIN_ADDITION", "admin", null, { email });
 

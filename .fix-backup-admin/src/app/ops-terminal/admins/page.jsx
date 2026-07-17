@@ -1,4 +1,4 @@
-﻿import { validateAdmin } from "@/utils/admin";
+import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { Loader2, UserPlus, ShieldCheck, Mail } from "lucide-react";
 import { addAdmin } from "./actions";
@@ -6,22 +6,17 @@ import { addAdmin } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function AdminsPage() {
-  const { admin: currentAdmin } = await validateAdmin();
+  const { user, admin: currentAdmin } = await validateAdmin();
   const supabase = await createClient();
 
-  // Previously hardcoded to `false`, which permanently hid the "Authorize New
-  // Admin" form for everyone, including real super admins. currentAdmin already
-  // comes from validateAdmin() above - just use it.
-  const isSuperAdmin = currentAdmin?.is_super_admin === true;
+  // Superadmin check (as requested: ibrahim@naijadrops.tech)
+  // admin comes from validateAdmin in the layout; if not present, user is not super admin
+const isSuperAdmin = false;
 
-  // Previously read from `admin_users`, a table completely disconnected from
-  // the `users` table that actually gates access in validateAdmin(). An admin
-  // "authorized" here would never actually be able to log into ops-terminal.
-  // `users` is now the single source of truth for both.
-  const { data: admins } = await supabase
-    .from("users")
+  // Load existing admins
+  const { data: admins, error: adminErr } = await supabase
+    .from("admin_users")
     .select("*")
-    .in("role", ["admin", "super_admin"])
     .order("email");
 
   return (
@@ -34,22 +29,21 @@ export default async function AdminsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        {/* Admin List */}
         <section>
           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-500 mb-6 flex items-center gap-2">
             <ShieldCheck size={16} /> Active Credentials
           </h2>
           <div className="space-y-4">
             {admins?.map((a) => (
-              <div key={a.id} className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+              <div key={a.id || a.email} className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-charcoal-500">
                     <Mail size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold tracking-tight">{a.email || a.full_name || 'Unnamed'}</div>
-                    <div className="text-[9px] font-black uppercase tracking-widest text-charcoal-600">
-                      {a.is_super_admin ? 'SUPER ADMIN' : 'ADMIN'}
-                    </div>
+                    <div className="text-sm font-bold tracking-tight">{a.email}</div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-charcoal-600">{a.role || 'ADMIN'}</div>
                   </div>
                 </div>
                 <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${a.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
@@ -57,13 +51,11 @@ export default async function AdminsPage() {
                 </div>
               </div>
             ))}
-            {(!admins || admins.length === 0) && (
-              <p className="text-charcoal-600 text-xs">No admins found.</p>
-            )}
           </div>
         </section>
 
-        {isSuperAdmin ? (
+        {/* Add Admin Form (Super Admin Only) */}
+        {isSuperAdmin && (
           <section className="bg-charcoal-900/20 border border-white/5 rounded-[2rem] p-8">
             <h2 className="text-lg font-black italic uppercase tracking-tight mb-6">Authorize New Admin</h2>
             <form action={addAdmin} className="space-y-4">
@@ -87,7 +79,9 @@ export default async function AdminsPage() {
               </button>
             </form>
           </section>
-        ) : (
+        )}
+
+        {!isSuperAdmin && (
           <div className="flex items-center justify-center border border-dashed border-white/5 rounded-[2rem] p-8 text-center">
              <p className="text-charcoal-600 text-[10px] font-black uppercase tracking-[0.2em]">Super Admin privileges required to manage credentials</p>
           </div>
@@ -96,3 +90,7 @@ export default async function AdminsPage() {
     </div>
   );
 }
+
+
+
+

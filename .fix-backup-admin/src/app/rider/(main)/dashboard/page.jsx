@@ -126,38 +126,14 @@ export default function RiderDashboard() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" /></div>;
 
   if (rider?.status !== 'approved') {
-    const status = rider?.status;
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center gap-4 px-6">
+      <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
         <p className="text-white font-black text-lg">
-          {status === 'pending' ? 'Your application is under review.' :
-           status === 'rejected' ? 'Your rider application was not approved.' :
-           status === 'paused' ? "You've been paused by an admin." :
-           'Finish onboarding to start receiving jobs.'}
+          {rider?.status === 'pending' ? 'Your application is under review.' :
+           rider?.status === 'rejected' ? 'Your rider application was not approved.' :
+           'Your rider account is currently paused.'}
         </p>
-        {status === 'paused' && (
-          <p className="text-charcoal-400 text-sm max-w-xs">
-            You can't go online right now. This isn't a rejection - message support below and we'll sort it out.
-          </p>
-        )}
-        {(status === 'rejected' || status === 'paused') && rider?.rejection_reason && (
-          <div className="w-full max-w-sm bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-left">
-            <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Reason</div>
-            <p className="text-charcoal-300 text-xs">{rider.rejection_reason}</p>
-          </div>
-        )}
-        {status !== 'pending' && status !== 'rejected' && status !== 'paused' && (
-          <a href="/rider/onboarding" className="bg-emerald-500 text-charcoal-950 font-black py-3 px-8 rounded-2xl uppercase text-xs tracking-widest">
-            Continue Onboarding
-          </a>
-        )}
-        {(status === 'paused') ? (
-          <a href="/support" className="bg-emerald-500 text-charcoal-950 font-black py-3 px-8 rounded-2xl uppercase text-xs tracking-widest">
-            Message Support
-          </a>
-        ) : (
-          <a href="/support" className="text-emerald-400 font-bold text-sm underline">Contact Support</a>
-        )}
+        <a href="/support" className="text-emerald-400 font-bold text-sm underline">Contact Support</a>
       </div>
     );
   }

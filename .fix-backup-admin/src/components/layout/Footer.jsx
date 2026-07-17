@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { Package, Instagram, Mail, MessageCircle, ArrowRight, Shield, Clock } from "lucide-react";
+import { Package, Instagram, Mail, MessageCircle, Phone, ArrowRight, Shield, Globe, Clock, MapPin } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
           
           {/* Brand Column */}
           <div className="space-y-6">
@@ -40,42 +40,51 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Company Links - only pages that actually exist */}
+          {/* Platform Links */}
           <div>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-6">Company</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-6">Platform</h3>
             <ul className="space-y-4">
-              {[
-                { label: 'Pricing', href: '/pricing' },
-                { label: 'Contact', href: '/contact' },
-                { label: 'FAQ', href: '/faq' },
-                { label: 'Support', href: '/support' },
-              ].map((item) => (
-                <li key={item.label}>
+              {['Ship Package', 'Carrier Portal', 'City Map', 'Pricing'].map((item) => (
+                <li key={item}>
                   <Link 
-                    href={item.href}
+                    href={item === 'Ship Package' ? '/send' : item === 'Carrier Portal' ? '/welcome' : item === 'City Map' ? '/driver/map' : '/pricing'} 
                     className="text-charcoal-400 hover:text-white transition-colors font-bold text-sm tracking-tight inline-flex items-center gap-2 group"
                   >
-                    {item.label} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    {item} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Legal Links - only pages that actually exist */}
+          {/* Company Links */}
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-6">Company</h3>
+            <ul className="space-y-4">
+              {['About Us', 'Contact', 'FAQ', 'Blog'].map((item) => (
+                <li key={item}>
+                  <Link 
+                    href={item === 'Blog' ? '#' : `/${item.toLowerCase().replace(' ', '')}`} 
+                    className="text-charcoal-400 hover:text-white transition-colors font-bold text-sm tracking-tight inline-flex items-center gap-2 group"
+                  >
+                    {item} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal Links */}
           <div>
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-6">Legal</h3>
             <ul className="space-y-4">
-              {[
-                { label: 'Privacy Policy', href: '/privacy' },
-                { label: 'Terms of Service', href: '/terms' },
-              ].map((item) => (
-                <li key={item.label}>
+              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
+                <li key={item}>
                   <Link 
-                    href={item.href}
+                    href={item === 'Cookie Policy' ? '#' : `/${item.split(' ')[0].toLowerCase()}`} 
                     className="text-charcoal-400 hover:text-white transition-colors font-bold text-sm tracking-tight inline-flex items-center gap-2 group"
                   >
-                    {item.label} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    {item} <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                   </Link>
                 </li>
               ))}
