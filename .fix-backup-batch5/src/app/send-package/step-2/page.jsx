@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -139,12 +139,12 @@ export default function Step2Page() {
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-14 pb-5">
-        <button onClick={() => router.push("/send-package/step-1")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
+        <button onClick={() => router.push("/send-package/step-1")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Step 2 of 3</div>
-          <h1 className="text-xl font-black text-ink tracking-tight">Package Details</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">Package Details</h1>
         </div>
         <div className="ml-auto flex gap-1.5">
           {[1, 2, 3].map(s => (
@@ -157,7 +157,7 @@ export default function Step2Page() {
       <div className="mx-5 mb-5 bg-gradient-to-r from-emerald-500/10 to-emerald-400/5 border border-emerald-500/20 rounded-2xl px-5 py-4 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Distance</div>
-          <div className="text-ink font-black text-lg">{distanceKm ? `${distanceKm} km` : "—"}</div>
+          <div className="text-white font-black text-lg">{distanceKm ? `${distanceKm} km` : "—"}</div>
         </div>
         <div className="h-8 w-px bg-white/10" />
         <div className="text-right">
@@ -171,7 +171,7 @@ export default function Step2Page() {
         <div className="h-8 w-px bg-white/10" />
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Route</div>
-          <div className="text-ink font-black text-sm truncate max-w-[80px]">
+          <div className="text-white font-black text-sm truncate max-w-[80px]">
             {draft.pickup?.name?.split(",")[0] || "—"}
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function Step2Page() {
                   ? "border-emerald-500 bg-emerald-500/10"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}>
                 <span className="text-2xl">{s.emoji}</span>
-                <span className={`text-xs font-black ${size === s.id ? "text-ink" : "text-charcoal-300"}`}>{s.label}</span>
+                <span className={`text-xs font-black ${size === s.id ? "text-white" : "text-charcoal-300"}`}>{s.label}</span>
                 <span className="text-[10px] text-charcoal-500">{s.sub}</span>
               </button>
             ))}
@@ -207,7 +207,7 @@ export default function Step2Page() {
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest absolute top-3 right-3">{v.badge}</span>
                 <span className="text-3xl">{v.emoji}</span>
                 <div>
-                  <div className={`text-sm font-black ${vehicle === v.id ? "text-ink" : "text-charcoal-200"}`}>{v.label}</div>
+                  <div className={`text-sm font-black ${vehicle === v.id ? "text-white" : "text-charcoal-200"}`}>{v.label}</div>
                   <div className="text-charcoal-500 text-xs">{v.sub}</div>
                 </div>
               </button>
@@ -223,7 +223,7 @@ export default function Step2Page() {
             <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-600" size={15} />
             <input type="text" placeholder="Package description (e.g. Red shoes, size 42)"
               value={description} onChange={e => setDescription(e.target.value)}
-              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
           </div>
 
           <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
@@ -232,7 +232,7 @@ export default function Step2Page() {
                  <Mic size={18} />
                </div>
                <div>
-                 <div className="text-ink text-sm font-bold">Voice Instructions</div>
+                 <div className="text-white text-sm font-bold">Voice Instructions</div>
                  <div className="text-charcoal-500 text-xs">Record special handling notes</div>
                </div>
              </div>
@@ -253,7 +253,7 @@ export default function Step2Page() {
              ) : (
                 <button 
                   onClick={isRecording ? stopRecording : startRecording} 
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? "bg-red-500 text-ink animate-pulse shadow-[0_0_16px_rgba(239,68,68,0.4)]" : "bg-emerald-500 hover:bg-emerald-400 text-charcoal-950"}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? "bg-red-500 text-white animate-pulse shadow-[0_0_16px_rgba(239,68,68,0.4)]" : "bg-emerald-500 hover:bg-emerald-400 text-charcoal-950"}`}
                 >
                   {isRecording ? <><Square size={12} fill="currentColor" /> Stop</> : "Record"}
                 </button>
@@ -264,14 +264,14 @@ export default function Step2Page() {
             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-600" size={15} />
             <input type="text" placeholder="Receiver full name"
               value={receiverName} onChange={e => setReceiverName(e.target.value)}
-              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
           </div>
 
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-600" size={15} />
             <input type="tel" placeholder="Receiver phone (e.g. 08012345678)"
               value={receiverPhone} onChange={e => setReceiverPhone(e.target.value)}
-              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
           </div>
         </div>
 
@@ -281,7 +281,7 @@ export default function Step2Page() {
           <div className="flex items-center gap-3">
             <Bell size={16} className={notifyReceiver ? "text-emerald-400" : "text-charcoal-500"} />
             <div className="text-left">
-              <div className={`text-sm font-bold ${notifyReceiver ? "text-ink" : "text-charcoal-300"}`}>Notify Receiver</div>
+              <div className={`text-sm font-bold ${notifyReceiver ? "text-white" : "text-charcoal-300"}`}>Notify Receiver</div>
               <div className="text-charcoal-500 text-xs">Call before delivery (optional)</div>
             </div>
           </div>

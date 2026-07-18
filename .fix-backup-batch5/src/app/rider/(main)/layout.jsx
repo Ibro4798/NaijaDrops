@@ -33,7 +33,7 @@ export default async function RiderLayout({ children }) {
   const isPaused = rider.status === "paused";
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-charcoal-950 text-ink selection:bg-emerald-500 overflow-x-hidden">
+    <div className="flex flex-col min-h-[100dvh] bg-charcoal-950 text-white selection:bg-emerald-500 overflow-x-hidden">
       {/* Universal Driver Header - icon-only nav so it stays readable on small
           screens. Previously five text links plus the logo were crammed onto
           one row with a pt-12 top offset, which visibly overlapped on
@@ -81,14 +81,14 @@ export default async function RiderLayout({ children }) {
             <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-8">
                <ShieldAlert className="text-red-500" size={36} />
             </div>
-            <h2 className="text-2xl font-black text-ink mb-2">{isRejected ? "Access Denied" : "Account Paused"}</h2>
+            <h2 className="text-2xl font-black text-white mb-2">{isRejected ? "Access Denied" : "Account Paused"}</h2>
             <p className="text-red-400/80 text-xs font-black uppercase tracking-widest mb-6">Status ID: {rider.status}</p>
             
             <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 mb-8 w-full">
                <div className="flex items-start gap-3 text-left">
                   <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={16} />
                   <div>
-                    <div className="text-ink text-sm font-bold mb-1">Reason for restriction:</div>
+                    <div className="text-white text-sm font-bold mb-1">Reason for restriction:</div>
                     <p className="text-charcoal-400 text-xs leading-relaxed">
                       {rider.rejection_reason || "Your profile requires further verification or violated terms of service. Please contact our Kano operations center."}
                     </p>
@@ -96,7 +96,7 @@ export default async function RiderLayout({ children }) {
                </div>
             </div>
 
-            <SignOutButton className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-ink font-black text-sm block text-center cursor-pointer hover:bg-white/10 transition-colors">
+            <SignOutButton className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-sm block text-center cursor-pointer hover:bg-white/10 transition-colors">
               Sign Out
             </SignOutButton>
           </div>

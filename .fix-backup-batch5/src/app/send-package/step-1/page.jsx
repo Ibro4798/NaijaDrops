@@ -198,12 +198,12 @@ export default function Step1Page() {
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-14 pb-5">
-        <button onClick={() => router.push("/dashboard")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
+        <button onClick={() => router.push("/dashboard")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Step 1 of 3</div>
-          <h1 className="text-xl font-black text-ink tracking-tight">Set Locations</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">Set Locations</h1>
         </div>
         {/* Step pills */}
         <div className="ml-auto flex gap-1.5">
@@ -276,10 +276,10 @@ export default function Step1Page() {
               value={pickupInput}
               onFocus={() => setActiveInput("pickup")}
               onChange={e => handleSearch(e.target.value, "pickup")}
-              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-10 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium"
+              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-10 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium"
             />
             {pickupInput && (
-              <button onClick={() => { setPickupInput(""); setPickup(null); setPickupSuggestions([]); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-600 hover:text-ink transition-colors">
+              <button onClick={() => { setPickupInput(""); setPickup(null); setPickupSuggestions([]); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-600 hover:text-white transition-colors">
                 <X size={14} />
               </button>
             )}
@@ -311,7 +311,7 @@ export default function Step1Page() {
                     className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
                     <MapPin className="text-charcoal-500 shrink-0 mt-0.5" size={14} />
                     <div>
-                      <div className="text-ink text-sm font-semibold leading-tight">{s.name}</div>
+                      <div className="text-white text-sm font-semibold leading-tight">{s.name}</div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>
                     </div>
                   </button>
@@ -332,10 +332,10 @@ export default function Step1Page() {
               value={dropoffInput}
               onFocus={() => setActiveInput("dropoff")}
               onChange={e => handleSearch(e.target.value, "dropoff")}
-              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-10 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium"
+              className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-10 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium"
             />
             {dropoffInput && (
-              <button onClick={() => { setDropoffInput(""); setDropoff(null); setDropoffSuggestions([]); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-600 hover:text-ink transition-colors">
+              <button onClick={() => { setDropoffInput(""); setDropoff(null); setDropoffSuggestions([]); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-600 hover:text-white transition-colors">
                 <X size={14} />
               </button>
             )}
@@ -357,7 +357,7 @@ export default function Step1Page() {
                     className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
                     <MapPin className="text-emerald-500 shrink-0 mt-0.5" size={14} />
                     <div>
-                      <div className="text-ink text-sm font-semibold leading-tight">{s.name}</div>
+                      <div className="text-white text-sm font-semibold leading-tight">{s.name}</div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>
                     </div>
                   </button>
@@ -392,14 +392,14 @@ export default function Step1Page() {
             className="fixed inset-0 z-50 bg-charcoal-950/90 backdrop-blur-sm flex items-end">
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
               className="w-full bg-charcoal-900 border-t border-white/10 rounded-t-[2rem] p-6">
-              <h3 className="text-ink font-black text-lg mb-1">Paste a Map Link</h3>
+              <h3 className="text-white font-black text-lg mb-1">Paste a Map Link</h3>
               <p className="text-charcoal-500 text-sm mb-4">Works with Google Maps, Apple Maps URLs</p>
               
               <div className="relative mb-4">
                 <textarea value={linkInput} onChange={e => { setLinkInput(e.target.value); setLinkError(null); }} rows={3}
                   disabled={gpsLoading}
                   placeholder="Paste your maps link here..."
-                  className={`w-full bg-charcoal-800 border ${linkError ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 text-sm font-medium resize-none transition-all`} />
+                  className={`w-full bg-charcoal-800 border ${linkError ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 text-sm font-medium resize-none transition-all`} />
                 
                 {gpsLoading && (
                   <div className="absolute inset-0 bg-charcoal-900/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-2">

@@ -74,13 +74,13 @@ export default function ProfilePage() {
         
         <header className="mb-12 flex items-center justify-between">
            <div>
-              <h1 className="text-4xl font-black text-ink tracking-tighter italic font-outfit">Account Settings</h1>
+              <h1 className="text-4xl font-black text-white tracking-tighter italic font-outfit">Account Settings</h1>
               <p className="text-charcoal-500 font-bold text-[10px] uppercase tracking-widest mt-1">Your Profile & Details</p>
            </div>
            {role === 'rider' && (
              <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl flex items-center gap-2">
                 <Star size={16} className="text-emerald-500" fill="currentColor" />
-                <span className="text-ink font-black text-sm italic">{profile?.rating || "5.0"}</span>
+                <span className="text-white font-black text-sm italic">{profile?.rating || "5.0"}</span>
              </div>
            )}
         </header>
@@ -97,13 +97,13 @@ export default function ProfilePage() {
                       <User size={48} className="text-charcoal-600" />
                     )}
                  </div>
-                 <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 text-ink rounded-xl flex items-center justify-center shadow-glow hover:bg-emerald-400 transition-all">
+                 <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-glow hover:bg-emerald-400 transition-all">
                     <Camera size={18} />
                  </button>
               </div>
 
               <div className="flex-1 space-y-2 text-center md:text-left">
-                 <div className="text-ink font-black text-2xl tracking-tight">{profile?.name || "New Dispatcher"}</div>
+                 <div className="text-white font-black text-2xl tracking-tight">{profile?.name || "New Dispatcher"}</div>
                  <div className="text-charcoal-500 font-bold text-sm tracking-tight">{user?.email}</div>
                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
@@ -121,7 +121,7 @@ export default function ProfilePage() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Aliyu Ibrahim"
-                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all"
+                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-white font-bold tracking-tight focus:border-emerald-500 outline-none transition-all"
                     />
                  </div>
                  <div>
@@ -141,7 +141,7 @@ export default function ProfilePage() {
                       value={avatarUrl}
                       onChange={(e) => setAvatarUrl(e.target.value)}
                       placeholder="https://image-source.com/photo.jpg"
-                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all placeholder:text-charcoal-700"
+                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-white font-bold tracking-tight focus:border-emerald-500 outline-none transition-all placeholder:text-charcoal-700"
                     />
                     <p className="text-charcoal-600 text-[10px] mt-2 font-medium px-1">Note: We currently support direct image URLs. Full upload system coming soon.</p>
                  </div>
@@ -151,13 +151,13 @@ export default function ProfilePage() {
                  <button 
                    onClick={handleSave}
                    disabled={isSaving}
-                   className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:bg-charcoal-700 text-ink font-black py-4 rounded-2xl transition-all shadow-glow active:scale-95 flex items-center justify-center gap-3"
+                   className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:bg-charcoal-700 text-white font-black py-4 rounded-2xl transition-all shadow-glow active:scale-95 flex items-center justify-center gap-3"
                  >
                     {isSaving ? "Updating System..." : <><Save size={18} /> Commit Changes</>}
                  </button>
                  <button 
                    onClick={() => router.back()}
-                   className="bg-white/5 border border-white/10 text-ink font-black px-8 rounded-2xl hover:bg-white/10 transition-all"
+                   className="bg-white/5 border border-white/10 text-white font-black px-8 rounded-2xl hover:bg-white/10 transition-all"
                  >
                     Discard
                  </button>
@@ -168,11 +168,11 @@ export default function ProfilePage() {
         {role === 'rider' && (
           <section className="bg-emerald-500/5 border border-emerald-500/10 rounded-[3rem] p-10">
              <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-ink shadow-glow">
+                <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-glow">
                    <Shield size={24} />
                 </div>
                 <div>
-                   <h3 className="text-ink font-black text-xl italic tracking-tight">Rider Details</h3>
+                   <h3 className="text-white font-black text-xl italic tracking-tight">Rider Details</h3>
                    <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Your Rider Account</p>
                 </div>
              </div>
@@ -180,11 +180,11 @@ export default function ProfilePage() {
              <div className="grid grid-cols-2 gap-4">
                 <div className="p-6 bg-charcoal-900 rounded-2xl border border-white/5">
                    <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Status</div>
-                   <div className="text-ink font-black text-lg italic tracking-tight">Operational</div>
+                   <div className="text-white font-black text-lg italic tracking-tight">Operational</div>
                 </div>
                 <div className="p-6 bg-charcoal-900 rounded-2xl border border-white/5">
                    <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Commission</div>
-                   <div className="text-ink font-black text-lg italic tracking-tight">20% Standard</div>
+                   <div className="text-white font-black text-lg italic tracking-tight">20% Standard</div>
                 </div>
              </div>
           </section>
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                  <Sun size={24} />
               </div>
               <div>
-                 <h3 className="text-ink font-black text-xl italic tracking-tight">Appearance</h3>
+                 <h3 className="text-white font-black text-xl italic tracking-tight">Appearance</h3>
                  <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Light, Dark, or Match Your Device</p>
               </div>
            </div>
@@ -213,7 +213,7 @@ export default function ProfilePage() {
                   className={`flex flex-col items-center gap-2 py-5 rounded-2xl border transition-all ${
                     themeMode === value
                       ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                      : 'bg-charcoal-900 border-white/5 text-charcoal-500 hover:text-ink hover:border-white/10'
+                      : 'bg-charcoal-900 border-white/5 text-charcoal-500 hover:text-white hover:border-white/10'
                   }`}
                 >
                   <Icon size={20} />

@@ -83,7 +83,7 @@ export default function ActiveJobPage() {
         <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-charcoal-600">
           <ShieldAlert size={40} />
         </div>
-        <h2 className="text-xl font-black text-ink mb-2">No Active Mission</h2>
+        <h2 className="text-xl font-black text-white mb-2">No Active Mission</h2>
         <p className="text-charcoal-500 text-sm mb-8">You don't have any assigned dispatches at the moment. Return to the radar to find jobs.</p>
         <button onClick={() => router.push('/rider')} className="bg-emerald-500 text-charcoal-950 font-black py-4 px-8 rounded-2xl uppercase text-xs tracking-widest">
           Open Radar
@@ -109,7 +109,7 @@ export default function ActiveJobPage() {
       <div className="h-[35vh] -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 relative overflow-hidden">
         <MapCanvas orders={[order]} zoom={15} center={[targetLng, targetLat]} />
         <div className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none">
-          <button onClick={() => router.push('/rider')} className="w-12 h-12 bg-charcoal-950/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-ink border border-white/10 pointer-events-auto shadow-2xl">
+          <button onClick={() => router.push('/rider')} className="w-12 h-12 bg-charcoal-950/80 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 pointer-events-auto shadow-2xl">
             <ArrowLeft size={22} />
           </button>
           <div className={`px-4 py-2 rounded-full bg-charcoal-950/80 backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest shadow-2xl pointer-events-auto flex items-center gap-2 ${isHeadingToPickup ? 'text-amber-500' : 'text-emerald-500'}`}>
@@ -122,7 +122,7 @@ export default function ActiveJobPage() {
         <div className="absolute bottom-6 left-6 right-6 z-20 pointer-events-auto">
           <a 
             href={`google.navigation:q=${targetLat},${targetLng}&mode=l`}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-ink font-black rounded-2xl flex items-center justify-center gap-3 shadow-2xl shadow-blue-600/30 transition-all active:scale-95"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-2xl shadow-blue-600/30 transition-all active:scale-95"
           >
             <Navigation size={20} fill="currentColor" />
             Launch GPS Navigation
@@ -134,7 +134,7 @@ export default function ActiveJobPage() {
       <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 -mt-6 relative z-10 shadow-2xl space-y-8">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-black text-ink italic tracking-tighter font-outfit uppercase">Mission Protocol</h1>
+            <h1 className="text-2xl font-black text-white italic tracking-tighter font-outfit uppercase">Mission Protocol</h1>
             <p className="text-charcoal-500 text-[10px] font-black tracking-[0.2em] uppercase mt-1 italic">Payload: {order.item_category}</p>
           </div>
           <button
@@ -153,14 +153,14 @@ export default function ActiveJobPage() {
             <div className={`w-6 h-6 rounded-full border-4 border-charcoal-950 shrink-0 z-10 ${isHeadingToPickup ? 'bg-amber-500 shadow-glow' : 'bg-charcoal-800'}`}></div>
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1">Step 1: Pick up</div>
-               <div className="text-lg font-black text-ink leading-tight">{order.pickup_name}</div>
+               <div className="text-lg font-black text-white leading-tight">{order.pickup_name}</div>
             </div>
           </div>
           <div className={`flex items-start gap-5 relative transition-opacity ${isHeadingToPickup ? 'opacity-30' : 'opacity-100'}`}>
             <div className={`w-6 h-6 rounded-lg border-4 border-charcoal-950 shrink-0 z-10 ${!isHeadingToPickup ? 'bg-emerald-500 shadow-glow' : 'bg-charcoal-800'}`}></div>
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
-               <div className="text-lg font-black text-ink leading-tight mb-2">{order.dropoff_name}</div>
+               <div className="text-lg font-black text-white leading-tight mb-2">{order.dropoff_name}</div>
                <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
             </div>
           </div>

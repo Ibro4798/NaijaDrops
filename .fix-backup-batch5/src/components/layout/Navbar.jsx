@@ -117,21 +117,6 @@ export default function Navbar() {
                 </motion.div>
                 )}
 
-                {/* Rider quick links - so Feed/Active Job stay reachable even on
-                    pages outside /rider/(main) (like /profile), which doesn't
-                    get the rider layout's own icon nav. Kept icon-only and
-                    compact to avoid re-crowding the header. */}
-                {profile?.role === 'rider' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="hidden sm:flex items-center gap-1">
-                    <Link href="/rider" title="Feed" className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all">
-                        <Radar size={18} />
-                    </Link>
-                    <Link href="/rider/active-job" title="Active Job" className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all">
-                        <Truck size={18} />
-                    </Link>
-                </motion.div>
-                )}
-
                 {/* âœ… FIX: Rider wallet links to /rider/earnings not /driver/earnings */}
                 {profile?.role === 'rider' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>

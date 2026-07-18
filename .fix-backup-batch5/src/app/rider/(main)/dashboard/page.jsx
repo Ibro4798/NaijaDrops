@@ -129,7 +129,7 @@ export default function RiderDashboard() {
     const status = rider?.status;
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center gap-4 px-6">
-        <p className="text-ink font-black text-lg">
+        <p className="text-white font-black text-lg">
           {status === 'pending' ? 'Your application is under review.' :
            status === 'rejected' ? 'Your rider application was not approved.' :
            status === 'paused' ? "You've been paused by an admin." :
@@ -172,7 +172,7 @@ export default function RiderDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
-          <p className="text-ink font-black text-2xl font-outfit">
+          <p className="text-white font-black text-2xl font-outfit">
             {rider.operational_status === 'online' ? 'Online' : 'Offline'}
           </p>
         </div>

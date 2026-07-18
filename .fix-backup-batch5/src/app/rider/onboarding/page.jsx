@@ -175,14 +175,14 @@ export default function DriverOnboardingPage() {
               <ShieldCheck className="text-emerald-500 animate-pulse" size={40} />
               <div className="absolute inset-0 w-24 h-24 rounded-full border border-emerald-500/20 animate-ping opacity-30" />
             </div>
-            <h2 className="text-2xl font-black text-ink mb-4 font-outfit">Application Under Review</h2>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">Application Under Review</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
               We've received your documents. Our team in Kano is currently verifying your license and vehicle details. This usually takes 24-48 hours.
             </p>
             <div className="w-full max-w-sm bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left mb-8">
               <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-3">Verification Progress</div>
               <div className="space-y-3">
-                <div className="flex items-center gap-3 text-xs text-ink font-bold">
+                <div className="flex items-center gap-3 text-xs text-white font-bold">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Documents received
                 </div>
                 <div className="flex items-center gap-3 text-xs text-charcoal-500">
@@ -200,7 +200,7 @@ export default function DriverOnboardingPage() {
             <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-8">
               <CheckCircle2 className="text-emerald-500" size={40} />
             </div>
-            <h2 className="text-2xl font-black text-ink mb-4 font-outfit">You're Verified!</h2>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You're Verified!</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-8 max-w-xs">
               Your driver profile has been approved. You can now access the Rider Dashboard and start accepting deliveries.
             </p>
@@ -217,7 +217,7 @@ export default function DriverOnboardingPage() {
             <div className="w-24 h-24 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-8">
               <AlertCircle className="text-red-500" size={40} />
             </div>
-            <h2 className="text-2xl font-black text-ink mb-4 font-outfit">Application Not Approved</h2>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">Application Not Approved</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-4 max-w-xs">
               Unfortunately your application was not approved.
             </p>
@@ -240,7 +240,7 @@ export default function DriverOnboardingPage() {
             <div className="w-24 h-24 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-8">
               <AlertCircle className="text-amber-500" size={40} />
             </div>
-            <h2 className="text-2xl font-black text-ink mb-4 font-outfit">You've Been Paused</h2>
+            <h2 className="text-2xl font-black text-white mb-4 font-outfit">You've Been Paused</h2>
             <p className="text-charcoal-400 text-sm leading-relaxed mb-4 max-w-xs">
               This isn't a rejection - you're still a NaijaDrops rider. Message support below and we'll help resolve it so you can go back online.
             </p>
@@ -254,7 +254,7 @@ export default function DriverOnboardingPage() {
         )}
         <button
           onClick={() => router.push("/support")}
-          className="w-full max-w-sm py-4 bg-white/5 border border-white/10 rounded-2xl text-ink font-bold text-sm hover:bg-white/10 transition-all"
+          className="w-full max-w-sm py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm hover:bg-white/10 transition-all"
         >
           Back to Support
         </button>
@@ -267,11 +267,11 @@ export default function DriverOnboardingPage() {
       <div className="px-6 pt-14 pb-8">
          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <button onClick={() => step > 1 ? handleBack() : router.back()} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink">
+              <button onClick={() => step > 1 ? handleBack() : router.back()} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white">
                  <ArrowLeft size={18} />
               </button>
               <div>
-                 <h1 className="text-xl font-black text-ink tracking-tight">Rider Onboarding</h1>
+                 <h1 className="text-xl font-black text-white tracking-tight">Rider Onboarding</h1>
                  <p className="text-charcoal-500 text-xs font-medium">Verify your profile to start earning</p>
               </div>
             </div>
@@ -305,12 +305,12 @@ export default function DriverOnboardingPage() {
                <div>
                   <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Full Name</label>
                   <input type="text" name="full_name" value={formData.full_name} onChange={handleInputChange} placeholder="As seen on your ID"
-                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-ink placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
+                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-white placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
                </div>
                <div>
                   <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Phone Number</label>
                   <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="080XXXXXXXX"
-                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-ink placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
+                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-white placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
                </div>
                {error && (
                  <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
@@ -335,7 +335,7 @@ export default function DriverOnboardingPage() {
                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'bike' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>
                        <Truck size={20} />
                      </div>
-                     <div className={`font-black text-sm ${formData.vehicle_type === 'bike' ? "text-emerald-500" : "text-ink"}`}>Motorcycle</div>
+                     <div className={`font-black text-sm ${formData.vehicle_type === 'bike' ? "text-emerald-500" : "text-white"}`}>Motorcycle</div>
                      <div className="text-charcoal-500 text-[10px] mt-1">Recommended for Kano</div>
                   </button>
                   <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'car' }))}
@@ -343,14 +343,14 @@ export default function DriverOnboardingPage() {
                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>
                        <Truck size={20} />
                      </div>
-                     <div className={`font-black text-sm ${formData.vehicle_type === 'car' ? "text-emerald-500" : "text-ink"}`}>Mini Car</div>
+                     <div className={`font-black text-sm ${formData.vehicle_type === 'car' ? "text-emerald-500" : "text-white"}`}>Mini Car</div>
                      <div className="text-charcoal-500 text-[10px] mt-1">Faster for big parcels</div>
                   </button>
                </div>
                <div>
                   <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Plate Number</label>
                   <input type="text" name="plate_number" value={formData.plate_number} onChange={handleInputChange} placeholder="ABC-123-XY"
-                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-ink placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 uppercase" />
+                    className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-white placeholder:text-charcoal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 uppercase" />
                </div>
                {error && (
                  <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
@@ -375,7 +375,7 @@ export default function DriverOnboardingPage() {
                ].map((doc) => (
                  <div key={doc.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
                     <div>
-                       <div className="text-ink text-sm font-black">{doc.label}</div>
+                       <div className="text-white text-sm font-black">{doc.label}</div>
                        <div className="text-charcoal-500 text-[10px] font-medium">Clear photo required</div>
                     </div>
                     <div className="relative">

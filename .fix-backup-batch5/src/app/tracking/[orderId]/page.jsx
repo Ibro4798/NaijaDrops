@@ -93,7 +93,7 @@ export default function TrackingPage() {
   if (notFound || !order) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-charcoal-950 text-center px-6">
-        <p className="text-ink font-black text-xl mb-2">Delivery not found</p>
+        <p className="text-white font-black text-xl mb-2">Delivery not found</p>
         <p className="text-charcoal-400 text-sm">Check the link and try again, or contact the sender.</p>
       </div>
     );
@@ -122,24 +122,24 @@ export default function TrackingPage() {
                   {(vendorName || 'ND').slice(0, 2).toUpperCase()}
                 </div>
               )}
-              {vendorName && <p className="text-ink font-black text-lg font-outfit print:text-black">{vendorName}</p>}
+              {vendorName && <p className="text-white font-black text-lg font-outfit print:text-black">{vendorName}</p>}
               <p className="text-charcoal-500 text-[10px] font-black uppercase tracking-widest print:text-charcoal-500">Delivered via NaijaDrops</p>
             </div>
           )}
 
           <div className="flex flex-col items-center text-center gap-2">
             <CheckCircle2 className="text-emerald-500" size={40} />
-            <p className="text-ink font-black text-xl font-outfit print:text-black">Delivered</p>
+            <p className="text-white font-black text-xl font-outfit print:text-black">Delivered</p>
             <p className="text-charcoal-400 text-xs">{new Date(order.updated_at).toLocaleString()}</p>
           </div>
           <div className="space-y-3 border-t border-white/10 pt-6 print:border-charcoal-300">
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">Item</span><span className="text-ink font-bold print:text-black">{order.item_description}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink font-bold print:text-black">{order.pickup_name}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink font-bold print:text-black">{order.dropoff_name}</span></div>
-            {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold print:text-black">{riderName}</span></div>}
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">Item</span><span className="text-white font-bold print:text-black">{order.item_description}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-white font-bold print:text-black">{order.pickup_name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-white font-bold print:text-black">{order.dropoff_name}</span></div>
+            {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-white font-bold print:text-black">{riderName}</span></div>}
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black">₦{Number(order.agreed_price ?? order.total_price ?? 0).toLocaleString()}</span></div>
             {isVendorView && commission !== null && (
-              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-ink print:text-black">₦{commission.toLocaleString()}</span></div>
+              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-white print:text-black">₦{commission.toLocaleString()}</span></div>
             )}
           </div>
 
@@ -148,13 +148,13 @@ export default function TrackingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleShare}
-                  className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                  className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
                 >
                   <Share2 size={16} /> Share
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                  className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
                 >
                   <Printer size={16} /> Print
                 </button>
@@ -202,7 +202,7 @@ export default function TrackingPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
-            <p className="text-ink font-black text-2xl font-outfit">{STATUS_LABELS[order.status] || order.status}</p>
+            <p className="text-white font-black text-2xl font-outfit">{STATUS_LABELS[order.status] || order.status}</p>
           </div>
           {isVendorView && (
             <button
@@ -219,16 +219,16 @@ export default function TrackingPage() {
           {STATUS_STEPS.map((step, i) => (
             <div key={step} className="flex items-center gap-3">
               {i <= currentStepIndex ? <CheckCircle2 className="text-emerald-500" size={18} /> : <Clock className="text-charcoal-600" size={18} />}
-              <span className={i <= currentStepIndex ? 'text-ink font-bold text-sm' : 'text-charcoal-600 text-sm'}>{STATUS_LABELS[step]}</span>
+              <span className={i <= currentStepIndex ? 'text-white font-bold text-sm' : 'text-charcoal-600 text-sm'}>{STATUS_LABELS[step]}</span>
             </div>
           ))}
         </div>
 
         <div className="border-t border-white/10 pt-6 space-y-3">
-          <div className="flex items-center gap-2 text-sm"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold">{order.item_description}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink">{order.pickup_name}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink">{order.dropoff_name}</span></div>
-          {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold">{riderName}</span></div>}
+          <div className="flex items-center gap-2 text-sm"><Package size={14} className="text-charcoal-400" /><span className="text-white font-bold">{order.item_description}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-white">{order.pickup_name}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-white">{order.dropoff_name}</span></div>
+          {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-white font-bold">{riderName}</span></div>}
         </div>
       </div>
 

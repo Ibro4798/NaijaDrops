@@ -87,11 +87,11 @@ export default function RiderEarnings() {
     <div className="space-y-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
          <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-ink border border-white/10 hover:bg-white/10 transition-colors">
+            <button onClick={() => router.back()} className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 hover:bg-white/10 transition-colors">
                 <ArrowLeft size={20} />
             </button>
             <div>
-               <h1 className="text-3xl font-black text-ink tracking-tight font-outfit italic">
+               <h1 className="text-3xl font-black text-white tracking-tight font-outfit italic">
                   Financial <span className="text-emerald-500">Node</span>
                </h1>
                <p className="text-charcoal-400 text-sm font-medium">Operation settlement & payouts.</p>
@@ -115,7 +115,7 @@ export default function RiderEarnings() {
 
             <div className="mb-10">
                <span className="text-2xl font-black text-emerald-500 mr-2 italic">₦</span>
-               <span className="text-7xl font-black text-ink tracking-tighter italic font-outfit leading-none">
+               <span className="text-7xl font-black text-white tracking-tighter italic font-outfit leading-none">
                   {earningsData.total.toLocaleString()}
                </span>
             </div>
@@ -123,11 +123,11 @@ export default function RiderEarnings() {
             <div className="grid grid-cols-2 gap-4 mb-8">
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest mb-1 italic">Pending Approval</div>
-                  <div className="text-lg font-black text-ink tracking-tight">₦{earningsData.pending.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.pending.toLocaleString()}</div>
                </div>
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
                   <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1 italic">Weekly Yield</div>
-                  <div className="text-lg font-black text-ink tracking-tight">₦{earningsData.weekly.toLocaleString()}</div>
+                  <div className="text-lg font-black text-white tracking-tight">₦{earningsData.weekly.toLocaleString()}</div>
                </div>
             </div>
 
@@ -158,12 +158,12 @@ export default function RiderEarnings() {
                         <Receipt size={20} />
                      </div>
                      <div>
-                        <div className="text-sm font-black text-ink uppercase tracking-tight">Mission Settlement</div>
+                        <div className="text-sm font-black text-white uppercase tracking-tight">Mission Settlement</div>
                         <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} • ID: {tx.id.slice(0, 6)}</div>
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xl font-black text-ink italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.80).toLocaleString()}</div>
+                     <div className="text-xl font-black text-white italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.80).toLocaleString()}</div>
                      <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic flex items-center justify-end gap-1">
                         Cleared <Sparkles size={10} />
                      </div>
@@ -185,7 +185,7 @@ export default function RiderEarnings() {
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm relative">
-            <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-charcoal-500 hover:text-ink">
+            <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-charcoal-500 hover:text-white">
               <X size={20} />
             </button>
             {withdrawSuccess ? (
@@ -195,14 +195,14 @@ export default function RiderEarnings() {
               </div>
             ) : (
               <>
-                <p className="text-ink font-black text-lg mb-1">Withdraw Funds</p>
+                <p className="text-white font-black text-lg mb-1">Withdraw Funds</p>
                 <p className="text-charcoal-400 text-sm mb-6">Available: ₦{earningsData.total.toLocaleString()}</p>
                 <input
                   type="number"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   placeholder="Amount (₦)"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold mb-3 outline-none focus:border-emerald-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold mb-3 outline-none focus:border-emerald-500/50"
                 />
                 {withdrawError && <p className="text-red-400 text-xs font-bold mb-3">{withdrawError}</p>}
                 <button

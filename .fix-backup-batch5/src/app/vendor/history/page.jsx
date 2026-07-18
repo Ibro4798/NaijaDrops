@@ -65,10 +65,10 @@ export default function VendorHistoryPage() {
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Link href="/vendor/dashboard" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10">
-                    <ArrowLeft size={20} className="text-ink" />
+                    <ArrowLeft size={20} className="text-white" />
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-black text-ink tracking-tight font-outfit italic">
+                    <h1 className="text-3xl font-black text-white tracking-tight font-outfit italic">
                         Operation <span className="text-emerald-500 text-outfit italic">History</span>
                     </h1>
                     <p className="text-charcoal-400 text-sm font-medium">Registry of all city-wide dispatches.</p>
@@ -86,7 +86,7 @@ export default function VendorHistoryPage() {
                     <div className="w-20 h-20 bg-charcoal-900 rounded-full flex items-center justify-center mb-6 border border-white/5">
                         <Package size={40} className="text-charcoal-600" />
                     </div>
-                    <h2 className="text-xl font-black text-ink mb-2">No active records found.</h2>
+                    <h2 className="text-xl font-black text-white mb-2">No active records found.</h2>
                     <p className="text-charcoal-500 mb-8 max-w-xs mx-auto text-sm">Initialize your first delivery to start logging operations.</p>
                     <Link href="/send-package/step-1" className="bg-emerald-500 text-charcoal-950 font-black py-4 px-8 rounded-2xl shadow-glow hover:bg-emerald-400 transition-all uppercase tracking-widest text-xs">
                         Dispatch Load
@@ -104,7 +104,7 @@ export default function VendorHistoryPage() {
                                 <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${getStatusStyle(order.status)}`}>
                                     {order.status}
                                 </div>
-                                <div className="mt-2 text-2xl font-black text-ink italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
+                                <div className="mt-2 text-2xl font-black text-white italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
                             </div>
 
                             <div className="flex items-start gap-4 mb-6">
@@ -115,7 +115,7 @@ export default function VendorHistoryPage() {
                                     <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1">
                                         ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
                                     </div>
-                                    <h3 className="text-lg font-black text-ink font-outfit uppercase tracking-tight">{order.item_category || 'General Package'}</h3>
+                                    <h3 className="text-lg font-black text-white font-outfit uppercase tracking-tight">{order.item_category || 'General Package'}</h3>
                                 </div>
                             </div>
 
@@ -126,7 +126,7 @@ export default function VendorHistoryPage() {
                                     </div>
                                     <div className="min-w-0">
                                         <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit">Origin</div>
-                                        <div className="text-sm font-bold text-ink truncate max-w-[200px]">{order.pickup_name}</div>
+                                        <div className="text-sm font-bold text-white truncate max-w-[200px]">{order.pickup_name}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -135,7 +135,7 @@ export default function VendorHistoryPage() {
                                     </div>
                                     <div className="min-w-0">
                                         <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit italic">Terminal</div>
-                                        <div className="text-sm font-bold text-ink truncate max-w-[200px]">{order.dropoff_name}</div>
+                                        <div className="text-sm font-bold text-white truncate max-w-[200px]">{order.dropoff_name}</div>
                                     </div>
                                 </div>
                             </div>

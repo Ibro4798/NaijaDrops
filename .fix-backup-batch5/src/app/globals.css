@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 @custom-variant dark (&:is(.dark *));
 
@@ -16,67 +16,16 @@
   --color-charcoal-100: #f4f4f5;
   --color-charcoal-200: #e4e4e7;
   --color-charcoal-300: #d4d4d8;
-  /* 400 upward now read from plain custom properties (defined below) instead
-     of fixed hex, so the SAME class (e.g. bg-charcoal-950) can mean "near
-     black" in dark mode and "near white" in light mode without touching any
-     component file. 50-300 stay fixed - they're used as deliberate light
-     accents in a handful of places (e.g. small badges) regardless of theme,
-     not as the app's own background/text scale. */
-  --color-charcoal-400: var(--app-charcoal-400);
-  --color-charcoal-500: var(--app-charcoal-500);
-  --color-charcoal-600: var(--app-charcoal-600);
-  --color-charcoal-700: var(--app-charcoal-700);
-  --color-charcoal-800: var(--app-charcoal-800);
-  --color-charcoal-900: var(--app-charcoal-900);
-  --color-charcoal-950: var(--app-charcoal-950);
-  /* New token for primary text (headings/body) in the customer-facing app -
-     dark ink on light backgrounds, white on dark backgrounds. Introduced
-     instead of flipping the built-in `white`/`black` because those are
-     already used, correctly, as fixed literal colors on ~15 already-light
-     marketing pages (terms, privacy, about, pricing, faq, contact) and on
-     several "always white" cards (e.g. review modal) - flipping them
-     globally would have broken those. */
-  --color-ink: var(--app-ink);
+  --color-charcoal-400: #a1a1aa;
+  --color-charcoal-500: #71717a;
+  --color-charcoal-600: #52525b;
+  --color-charcoal-700: #3f3f46;
+  --color-charcoal-800: #27272a;
+  --color-charcoal-900: #18181b;
+  --color-charcoal-950: #09090b;
 
   --shadow-glow: 0 0 20px -5px var(--color-emerald-500);
   --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-:root {
-  /* LIGHT (default) */
-  --app-charcoal-950: #ffffff;
-  --app-charcoal-900: #f7f7f8;
-  --app-charcoal-800: #eef0f2;
-  --app-charcoal-700: #e2e4e8;
-  --app-charcoal-600: #52525b;
-  --app-charcoal-500: #3f3f46;
-  --app-charcoal-400: #52525b;
-  --app-ink: #0a0a0c;
-}
-
-.dark {
-  /* DARK (the app's original look, values unchanged from before) */
-  --app-charcoal-950: #09090b;
-  --app-charcoal-900: #18181b;
-  --app-charcoal-800: #27272a;
-  --app-charcoal-700: #3f3f46;
-  --app-charcoal-600: #52525b;
-  --app-charcoal-500: #71717a;
-  --app-charcoal-400: #a1a1aa;
-  --app-ink: #ffffff;
-}
-
-/* The admin console keeps its dark "terminal" look regardless of the site
-   theme toggle - OpsTerminalShell applies this class unconditionally. */
-.ops-terminal-scope {
-  --app-charcoal-950: #09090b;
-  --app-charcoal-900: #18181b;
-  --app-charcoal-800: #27272a;
-  --app-charcoal-700: #3f3f46;
-  --app-charcoal-600: #52525b;
-  --app-charcoal-500: #71717a;
-  --app-charcoal-400: #a1a1aa;
-  --app-ink: #ffffff;
 }
 
 @layer base {

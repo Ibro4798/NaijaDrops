@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import SignOutButton from "@/components/ui/SignOutButton";
 
@@ -15,7 +15,7 @@ export default async function VendorLayout({ children }) {
   if (!user) redirect("/auth/login");
 
   return (
-    <div className="flex flex-col min-h-screen bg-charcoal-900 text-ink">
+    <div className="flex flex-col min-h-screen bg-charcoal-900 text-white">
       {/* VENDOR SPECIFIC NAVIGATION BAR COMES HERE */}
       <nav className="border-b border-white/10 p-4 sticky top-0 bg-charcoal-900/80 backdrop-blur-md z-50 flex justify-between items-center">
         <div className="font-outfit font-black text-xl italic tracking-tighter">NaijaDrops <span className="text-emerald-500">Vendor</span></div>

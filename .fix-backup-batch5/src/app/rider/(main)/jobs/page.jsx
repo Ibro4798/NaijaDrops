@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -71,14 +71,14 @@ export default function RiderJobsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-ink flex items-center justify-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-ink p-6 font-mono">
+    <div className="min-h-screen bg-black text-white p-6 font-mono">
       <div className="mb-8">
         <h1 className="text-3xl font-black italic tracking-tighter uppercase">Job History</h1>
         <p className="text-charcoal-500 text-xs mt-2 uppercase tracking-widest">

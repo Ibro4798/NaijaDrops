@@ -93,7 +93,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
         className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
         
         <div className="text-center">
-            <h2 className="text-2xl font-black text-ink italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
+            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
             <p className="text-charcoal-500 text-xs mt-2 uppercase font-bold tracking-widest">Help riders find you faster</p>
         </div>
 
@@ -128,7 +128,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold focus:border-emerald-500 transition-all outline-none"
+                className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold focus:border-emerald-500 transition-all outline-none"
               />
            </div>
            
@@ -168,18 +168,18 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
       >
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
            <span className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Menu</span>
-           <button onClick={onClose} className="p-2 text-charcoal-500 hover:text-ink transition-colors"><X size={20} /></button>
+           <button onClick={onClose} className="p-2 text-charcoal-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
 
         <div className="p-4 space-y-2 overflow-y-auto flex-1">
-           <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-ink transition-all group">
+           <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all overflow-hidden">
                 {userAvatar ? <img src={userAvatar} className="w-full h-full object-cover" /> : <UserIcon size={20} />}
               </div>
               <span className="font-bold text-sm">Identity Profile</span>
            </button>
 
-           <button onClick={() => { router.push("/vendor/history"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-ink transition-all group">
+           <button onClick={() => { router.push("/vendor/history"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-white transition-all group">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
                 <HistoryIcon size={20} />
               </div>
@@ -395,7 +395,7 @@ export default function DashboardPage() {
              </div>
              <div>
                <p className="text-charcoal-400 text-[10px] font-bold uppercase tracking-widest leading-none mb-1">{greeting}</p>
-               <h1 className="text-ink font-black text-xl tracking-tight font-outfit leading-none">
+               <h1 className="text-white font-black text-xl tracking-tight font-outfit leading-none">
                  {displayName || "Dashboard"}
                </h1>
              </div>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                 <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeOrderCount} Active</span>
               </button>
             )}
-            <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 bg-charcoal-900 border border-white/10 rounded-2xl text-ink flex items-center justify-center hover:bg-white/5 transition-all shadow-xl">
+            <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 bg-charcoal-900 border border-white/10 rounded-2xl text-white flex items-center justify-center hover:bg-white/5 transition-all shadow-xl">
               <Menu size={20} />
             </button>
           </div>

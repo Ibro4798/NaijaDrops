@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -303,12 +303,12 @@ function Step3Content() {
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-14 pb-5">
-        <button onClick={() => router.push("/send-package/step-2")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
+        <button onClick={() => router.push("/send-package/step-2")} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Step 3 of 3</div>
-          <h1 className="text-xl font-black text-ink tracking-tight">Find a Driver</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">Find a Driver</h1>
         </div>
         <div className="ml-auto flex gap-1.5">
           {[1, 2, 3].map(s => (
@@ -335,7 +335,7 @@ function Step3Content() {
               <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Lock size={28} className="text-emerald-500" />
               </div>
-              <h2 className="text-xl font-black text-ink mb-3">Almost there!</h2>
+              <h2 className="text-xl font-black text-white mb-3">Almost there!</h2>
               <p className="text-charcoal-400 text-sm leading-relaxed mb-8">
                 Create a free account to confirm your delivery. Your route and pricing are saved — just sign in and dispatch.
               </p>
@@ -364,11 +364,11 @@ function Step3Content() {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-charcoal-500 font-bold">From</span>
-                <span className="text-ink font-black text-right max-w-[180px] truncate">{draft.pickup?.name}</span>
+                <span className="text-white font-black text-right max-w-[180px] truncate">{draft.pickup?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-charcoal-500 font-bold">To</span>
-                <span className="text-ink font-black text-right max-w-[180px] truncate">{draft.dropoff?.name}</span>
+                <span className="text-white font-black text-right max-w-[180px] truncate">{draft.dropoff?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-charcoal-500 font-bold">Estimated Fare</span>
@@ -397,11 +397,11 @@ function Step3Content() {
         <>
           <div className="mx-5 mb-6 bg-white/[0.04] border border-white/10 rounded-2xl p-1 flex gap-1">
             <button onClick={() => { setMode("quickmatch"); setOfferSent(false); clearInterval(timerRef.current); if (orderId && matchState !== "found") startQuickMatch(orderId); }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "quickmatch" ? "bg-emerald-500 text-charcoal-950 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "text-charcoal-500 hover:text-ink"}`}>
+              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "quickmatch" ? "bg-emerald-500 text-charcoal-950 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "text-charcoal-500 hover:text-white"}`}>
               <Zap size={14} /> Quick Match
             </button>
             <button onClick={() => setMode("negotiate")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "negotiate" ? "bg-white/10 text-ink" : "text-charcoal-500 hover:text-ink"}`}>
+              className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${mode === "negotiate" ? "bg-white/10 text-white" : "text-charcoal-500 hover:text-white"}`}>
               <MessageCircle size={14} /> Negotiate Price
             </button>
           </div>
@@ -424,7 +424,7 @@ function Step3Content() {
                         </div>
                         <div className="absolute inset-0 w-32 h-32 rounded-full border border-emerald-500/30 animate-ping opacity-20" />
                       </div>
-                      <h2 className="text-ink font-black text-xl mb-2">Finding nearby riders...</h2>
+                      <h2 className="text-white font-black text-xl mb-2">Finding nearby riders...</h2>
                       <p className="text-charcoal-500 text-sm text-center max-w-[240px]">Scanning riders within 3km of your pickup point</p>
                     </div>
                   )}
@@ -438,17 +438,17 @@ function Step3Content() {
                             {matchedRider.vehicle_type === "car" ? "🚗" : "🏍️"}
                           </div>
                           <div className="flex-1">
-                            <div className="text-ink font-black text-xl">{matchedRider.name}</div>
+                            <div className="text-white font-black text-xl">{matchedRider.name}</div>
                             <div className="flex items-center gap-2 mt-1">
                               <div className="flex items-center gap-1 text-amber-400 font-black text-xs">⭐ {matchedRider.rating}</div>
                               <span className="text-charcoal-600">·</span>
-                              <span className="text-ink font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
+                              <span className="text-white font-black text-lg">₦{matchedRider.price?.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex gap-3">
-                          <button onClick={cancelMatch} className="flex-1 py-4 bg-white/5 border border-white/10 text-ink font-black rounded-2xl uppercase text-[10px] tracking-widest">
+                          <button onClick={cancelMatch} className="flex-1 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest">
                             Cancel Match
                           </button>
                           <button onClick={acceptQuickMatch}
@@ -465,7 +465,7 @@ function Step3Content() {
                       <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mb-6">
                         <CheckCircle2 size={40} className="text-emerald-400" />
                       </div>
-                      <h2 className="text-ink font-black text-2xl mb-2">Rider Accepted!</h2>
+                      <h2 className="text-white font-black text-2xl mb-2">Rider Accepted!</h2>
                       <p className="text-charcoal-500 text-sm">Redirecting to confirmation...</p>
                     </div>
                   )}
@@ -475,7 +475,7 @@ function Step3Content() {
                       <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mb-6">
                         <AlertCircle size={36} className="text-amber-400" />
                       </div>
-                      <h2 className="text-ink font-black text-xl mb-3">No riders nearby</h2>
+                      <h2 className="text-white font-black text-xl mb-3">No riders nearby</h2>
                       <p className="text-charcoal-400 text-sm mb-6 leading-relaxed max-w-[260px]">
                         No immediate match found at ₦{draft.estimated_price?.toLocaleString()}. Try negotiating for a faster response.
                       </p>
@@ -498,7 +498,7 @@ function Step3Content() {
                         <div className="relative">
                           <span className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">₦</span>
                           <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
-                            className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-ink text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
+                            className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 pl-12 pr-4 text-white text-2xl font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all" />
                         </div>
                         <div className="flex justify-between mt-3 px-1 text-[10px] font-black uppercase text-charcoal-600">
                            <span>Recommended: ₦{draft.estimated_price}</span>
@@ -506,7 +506,7 @@ function Step3Content() {
                       </div>
 
                       <button onClick={sendOffer}
-                        className="w-full bg-white/5 border border-white/10 text-ink font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
+                        className="w-full bg-white/5 border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-white/10 transition-all">
                          Broadcast New Offer 📢
                       </button>
                     </div>
@@ -514,7 +514,7 @@ function Step3Content() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-5 py-4 bg-charcoal-900 border border-emerald-500/20 rounded-2xl">
                          <div className="text-charcoal-500 text-[10px] font-black uppercase">Current Offer</div>
-                         <div className="text-ink font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
+                         <div className="text-white font-black text-xl">₦{parseInt(offerPrice).toLocaleString()}</div>
                       </div>
 
                       {bids.length === 0 ? (
@@ -531,7 +531,7 @@ function Step3Content() {
                                 <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-xl border border-emerald-500/20">🏍️</div>
                                 <div>
                                   {/* ✅ FIX: full_name not name, rating not avg_rating */}
-                                  <div className="text-ink font-black text-sm">{bid.riders?.users?.full_name || "Rider"}</div>
+                                  <div className="text-white font-black text-sm">{bid.riders?.users?.full_name || "Rider"}</div>
                                   <div className="text-amber-400 font-bold text-[10px]">⭐ {bid.riders?.rating || "4.8"}</div>
                                 </div>
                               </div>

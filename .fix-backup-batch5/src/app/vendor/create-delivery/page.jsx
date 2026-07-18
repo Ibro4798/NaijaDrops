@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -214,7 +214,7 @@ export default function CreateDelivery() {
       {/* Visual Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-ink tracking-tight font-outfit italic">
+          <h1 className="text-3xl font-black text-white tracking-tight font-outfit italic">
             Dispatch <span className="text-emerald-500">Terminal</span>
           </h1>
           <p className="text-charcoal-400 text-sm font-medium">New logistics request for Kano city node.</p>
@@ -238,7 +238,7 @@ export default function CreateDelivery() {
                 <div className="flex items-center justify-between bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/20 shadow-inner">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500"><MapPin size={20} /></div>
-                    <div className="font-black text-ink text-lg tracking-tight truncate max-w-[200px]">{pickup.name}</div>
+                    <div className="font-black text-white text-lg tracking-tight truncate max-w-[200px]">{pickup.name}</div>
                   </div>
                   <button onClick={() => setPickup(null)} className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest"><RotateCcw size={16} /></button>
                 </div>
@@ -247,7 +247,7 @@ export default function CreateDelivery() {
                   <div className="relative group/input">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-charcoal-500 group-focus-within/input:text-emerald-500 transition-colors" size={18} />
                     <input 
-                      className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                      className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-white font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
                       placeholder="Search Kano landmarks..."
                       value={searchInputs.pickup}
                       onChange={(e) => handleSearchChange(e.target.value, 'pickup')}
@@ -257,13 +257,13 @@ export default function CreateDelivery() {
                         {suggestions.pickup.map((loc, i) => (
                           <button key={i} onClick={() => handleSelectSuggestion(loc, 'pickup')} className="w-full p-4 text-left hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-3 transition-colors">
                             <MapPin size={14} className="text-emerald-500" />
-                            <div className="text-sm font-bold text-ink">{loc.name}</div>
+                            <div className="text-sm font-bold text-white">{loc.name}</div>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <button onClick={() => useCurrentLocation('pickup')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95">
+                  <button onClick={() => useCurrentLocation('pickup')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95">
                     {gpsStatus.slot === 'pickup' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Current Location
                   </button>
                 </div>
@@ -279,7 +279,7 @@ export default function CreateDelivery() {
                 <div className="flex items-center justify-between bg-emerald-500/5 p-5 rounded-2xl border border-emerald-500/20 shadow-inner">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500"><MapIcon size={20} /></div>
-                    <div className="font-black text-ink text-lg tracking-tight truncate max-w-[200px]">{dropoff.name}</div>
+                    <div className="font-black text-white text-lg tracking-tight truncate max-w-[200px]">{dropoff.name}</div>
                   </div>
                   <button onClick={() => setDropoff(null)} className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest"><RotateCcw size={16} /></button>
                 </div>
@@ -289,7 +289,7 @@ export default function CreateDelivery() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-charcoal-500 group-focus-within/input:text-emerald-500 transition-colors" size={18} />
                     <input 
                       disabled={!pickup}
-                      className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-30"
+                      className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-white font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-30"
                       placeholder="Search destination..."
                       value={searchInputs.dropoff}
                       onChange={(e) => handleSearchChange(e.target.value, 'dropoff')}
@@ -299,13 +299,13 @@ export default function CreateDelivery() {
                         {suggestions.dropoff.map((loc, i) => (
                           <button key={i} onClick={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full p-4 text-left hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-3 transition-colors">
                             <MapPin size={14} className="text-emerald-500" />
-                            <div className="text-sm font-bold text-ink">{loc.name}</div>
+                            <div className="text-sm font-bold text-white">{loc.name}</div>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <button disabled={!pickup} onClick={() => useCurrentLocation('dropoff')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
+                  <button disabled={!pickup} onClick={() => useCurrentLocation('dropoff')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
                     {gpsStatus.slot === 'dropoff' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Destination
                   </button>
                 </div>
@@ -320,7 +320,7 @@ export default function CreateDelivery() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Payload Distance</div>
-                    <div className="text-4xl font-black text-ink italic tracking-tighter font-outfit">{distanceKm} <span className="text-xl">KM</span></div>
+                    <div className="text-4xl font-black text-white italic tracking-tighter font-outfit">{distanceKm} <span className="text-xl">KM</span></div>
                   </div>
                   <div className="text-right">
                     <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Estimated Fare</div>
@@ -349,7 +349,7 @@ export default function CreateDelivery() {
                       ))}
                    </div>
                    <div className="relative">
-                      <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-charcoal-900 border border-white/10 rounded-xl py-4 px-4 text-ink font-bold outline-none focus:ring-2 focus:ring-emerald-500 appearance-none">
+                      <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-charcoal-900 border border-white/10 rounded-xl py-4 px-4 text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 appearance-none">
                         <option value="">Select Category...</option>
                         <option value="Electronics">Electronics</option>
                         <option value="Fashion">Fashion / Clothes</option>
@@ -366,7 +366,7 @@ export default function CreateDelivery() {
                    <button onClick={() => setVehicleType('bike')} className={`w-full p-5 rounded-2xl border-2 flex items-center justify-between transition-all ${vehicleType === 'bike' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 bg-white/5 opacity-50'}`}>
                       <div className="text-left">
                         <div className="text-3xl mb-1">🏍️</div>
-                        <div className="text-sm font-black text-ink uppercase tracking-widest">Motorbike</div>
+                        <div className="text-sm font-black text-white uppercase tracking-widest">Motorbike</div>
                       </div>
                       {vehicleType === 'bike' && <Check className="text-emerald-500" strokeWidth={4} />}
                    </button>
@@ -376,7 +376,7 @@ export default function CreateDelivery() {
              <div className="bg-charcoal-900/50 p-8 rounded-[3rem] border border-white/5 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-1 italic">Mission Fare</div>
-                  <div className="text-5xl font-black text-ink italic tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
+                  <div className="text-5xl font-black text-white italic tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
                 </div>
                 <button disabled={!isStep2Valid} onClick={() => setStep(3)} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-20 text-charcoal-950 px-10 py-5 rounded-2xl font-black text-xl italic transition-all active:scale-95 h-fit">
                    Finalize <ChevronRight className="inline ml-1" />
@@ -390,20 +390,20 @@ export default function CreateDelivery() {
              <div className="bg-white/[0.03] border border-white/10 p-10 rounded-[3rem] space-y-8">
                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 block">Recipient Protocol</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 px-6 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Receiver Name" value={receiver.name} onChange={e => setReceiver({...receiver, name: e.target.value})} />
-                  <input className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 px-6 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contact Phone" value={receiver.phone} onChange={e => setReceiver({...receiver, phone: e.target.value})} />
+                  <input className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 px-6 text-white font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Receiver Name" value={receiver.name} onChange={e => setReceiver({...receiver, name: e.target.value})} />
+                  <input className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-5 px-6 text-white font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Contact Phone" value={receiver.phone} onChange={e => setReceiver({...receiver, phone: e.target.value})} />
                 </div>
 
                 <div className="space-y-4 pt-4">
                   <label className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 opacity-50 block">Pricing Architecture</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button onClick={() => setFareType('standard')} className={`p-6 rounded-2xl border transition-all text-left ${fareType === 'standard' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 opacity-50'}`}>
-                      <div className="font-black text-ink uppercase text-xs tracking-widest mb-1 italic">Standard</div>
-                      <div className="text-2xl font-black text-ink tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
+                      <div className="font-black text-white uppercase text-xs tracking-widest mb-1 italic">Standard</div>
+                      <div className="text-2xl font-black text-white tracking-tighter">₦{estimatedPrice.toLocaleString()}</div>
                     </button>
                     <button onClick={() => setFareType('express')} className={`p-6 rounded-2xl border transition-all text-left ${fareType === 'express' ? 'border-emerald-500 bg-emerald-500/5' : 'border-white/5 opacity-50'}`}>
                       <div className="font-black text-emerald-500 uppercase text-xs tracking-widest mb-1 italic">Express (+30%)</div>
-                      <div className="text-2xl font-black text-ink tracking-tighter">₦{(Math.ceil(estimatedPrice*1.3/50)*50).toLocaleString()}</div>
+                      <div className="text-2xl font-black text-white tracking-tighter">₦{(Math.ceil(estimatedPrice*1.3/50)*50).toLocaleString()}</div>
                     </button>
                   </div>
                 </div>

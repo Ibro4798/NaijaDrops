@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -91,12 +91,12 @@ function ConfirmContent() {
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-14 pb-5">
-        <button onClick={() => router.back()} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
+        <button onClick={() => router.back()} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div>
           <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Safe Escrow Bridge</div>
-          <h1 className="text-xl font-black text-ink tracking-tight">Checkout Portal</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">Checkout Portal</h1>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ function ConfirmContent() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-ink font-black text-xl">{rider?.users?.full_name || "Verified Driver"}</span>
+                <span className="text-white font-black text-xl">{rider?.users?.full_name || "Verified Driver"}</span>
                 <ShieldCheck size={16} className="text-blue-400" />
               </div>
               <div className="flex items-center gap-3 mt-1">
@@ -134,7 +134,7 @@ function ConfirmContent() {
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="bg-white/[0.03] rounded-2xl p-3">
               <Clock size={14} className="text-emerald-400 mb-1" />
-              <div className="text-ink font-black text-lg">{etaMin} min</div>
+              <div className="text-white font-black text-lg">{etaMin} min</div>
               <div className="text-charcoal-500 text-[10px] font-bold uppercase tracking-widest">ETA to pickup</div>
             </div>
             <div className="bg-white/[0.03] rounded-2xl p-3">
@@ -156,7 +156,7 @@ function ConfirmContent() {
               </div>
               <div>
                 <div className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest mb-0.5">Pickup</div>
-                <div className="text-ink font-semibold text-sm leading-tight">{order?.pickup_name}</div>
+                <div className="text-white font-semibold text-sm leading-tight">{order?.pickup_name}</div>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -165,7 +165,7 @@ function ConfirmContent() {
               </div>
               <div>
                 <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Dropoff</div>
-                <div className="text-ink font-semibold text-sm leading-tight">{order?.dropoff_name}</div>
+                <div className="text-white font-semibold text-sm leading-tight">{order?.dropoff_name}</div>
               </div>
             </div>
           </div>
@@ -196,7 +196,7 @@ function ConfirmContent() {
         <button 
           onClick={cancelMatch}
           disabled={cancelling}
-          className="w-full py-4 text-charcoal-500 font-black uppercase text-[10px] tracking-widest hover:text-ink transition-colors"
+          className="w-full py-4 text-charcoal-500 font-black uppercase text-[10px] tracking-widest hover:text-white transition-colors"
         >
           {cancelling ? "Releasing Driver..." : "Cancel & Change Driver"}
         </button>
