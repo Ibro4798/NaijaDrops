@@ -170,8 +170,8 @@ export default function ProfilePage() {
                    <Shield size={24} />
                 </div>
                 <div>
-                   <h3 className="text-white font-black text-xl italic tracking-tight">Rider Details</h3>
-                   <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Your Rider Account</p>
+                   <h3 className="text-white font-black text-xl italic tracking-tight">Rider Manifest</h3>
+                   <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Authorized Personnel Only</p>
                 </div>
              </div>
              
@@ -182,7 +182,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="p-6 bg-charcoal-900 rounded-2xl border border-white/5">
                    <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Commission</div>
-                   <div className="text-white font-black text-lg italic tracking-tight">20% Standard</div>
+                   <div className="text-white font-black text-lg italic tracking-tight">15% Standard</div>
                 </div>
              </div>
           </section>

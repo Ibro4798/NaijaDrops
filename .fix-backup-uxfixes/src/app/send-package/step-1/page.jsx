@@ -297,9 +297,6 @@ export default function Step1Page() {
               Paste map link
             </button>
           </div>
-          {gpsError && (
-            <p className="text-red-400 text-[11px] font-bold mt-2">{gpsError}</p>
-          )}
 
           {/* Pickup suggestions */}
           <AnimatePresence>

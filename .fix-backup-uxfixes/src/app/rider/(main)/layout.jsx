@@ -1,7 +1,6 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import Link from "next/link";
-import { Clock, ShieldAlert, AlertTriangle, Radar, Truck, Wallet, User, LogOut } from "lucide-react";
+import { Clock, ShieldAlert, AlertTriangle, PhoneCall } from "lucide-react";
 import SignOutButton from "@/components/ui/SignOutButton";
 
 export default async function RiderLayout({ children }) {
@@ -34,33 +33,22 @@ export default async function RiderLayout({ children }) {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-charcoal-950 text-white selection:bg-emerald-500 overflow-x-hidden">
-      {/* Universal Driver Header - icon-only nav so it stays readable on small
-          screens. Previously five text links plus the logo were crammed onto
-          one row with a pt-12 top offset, which visibly overlapped on
-          narrower devices. */}
-      <nav className="border-b border-white/5 px-4 sm:px-6 pt-6 pb-3 flex justify-between items-center bg-charcoal-950/80 backdrop-blur-xl z-50 sticky top-0">
-        <div className="font-outfit font-black text-lg italic tracking-tighter shrink-0">
-          NaijaDrops <span className="text-emerald-500">Rider</span>
+      {/* Universal Driver Header */}
+      <nav className="border-b border-white/5 px-6 pt-12 pb-4 flex justify-between items-center bg-charcoal-950/80 backdrop-blur-xl z-50 sticky top-0">
+        <div className="font-outfit font-black text-xl italic tracking-tighter">NaijaDrops <span className="text-emerald-500">Rider</span></div>
+        <div className="flex gap-4 items-center text-[10px] font-black uppercase tracking-widest text-charcoal-500">
+           {isApproved && (
+             <>
+               <a href="/rider" className="hover:text-emerald-400">Feed</a>
+               <a href="/rider/active-job" className="hover:text-emerald-400">Active</a>
+               <a href="/rider/earnings" className="hover:text-emerald-400">Money</a>
+               <a href="/profile" className="hover:text-emerald-400">Profile</a>
+               <SignOutButton className="hover:text-red-400 text-red-500 font-black text-[10px] uppercase tracking-widest bg-transparent border-0 p-0 cursor-pointer">
+                 Sign Out
+               </SignOutButton>
+             </>
+           )}
         </div>
-        {isApproved && (
-          <div className="flex gap-1">
-            <Link href="/rider" title="Feed" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Radar size={18} />
-            </Link>
-            <Link href="/rider/active-job" title="Active Job" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Truck size={18} />
-            </Link>
-            <Link href="/rider/earnings" title="Money" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Wallet size={18} />
-            </Link>
-            <Link href="/profile" title="Profile" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <User size={18} />
-            </Link>
-            <SignOutButton title="Sign Out" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-red-400 hover:bg-white/5 rounded-xl transition-all bg-transparent border-0 cursor-pointer">
-              <LogOut size={18} />
-            </SignOutButton>
-          </div>
-        )}
       </nav>
       
       <main className="flex-1 w-full max-w-lg mx-auto relative px-5 py-4">

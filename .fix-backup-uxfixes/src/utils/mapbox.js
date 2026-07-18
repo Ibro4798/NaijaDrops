@@ -1,4 +1,4 @@
-﻿// Mapbox Utilities for Kano Precision Search
+// Mapbox Utilities for Kano Precision Search
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 // Kano Bounding Box [minLng, minLat, maxLng, maxLat]
@@ -42,15 +42,7 @@ export const getMapboxSuggestions = async (query, providedToken = null) => {
 /**
  * Reverse Geocode: Get street address from coordinates
  * Mapbox expects [lng, lat]
- *
- * FIX: was a hardcoded 3-second timeout, which on Kano's patchy mobile
- * networks regularly aborted mid-request and silently fell back to raw
- * coordinates - the "sometimes shows coordinates instead of the location
- * name" symptom. Bumped to 6 seconds, which is generous enough to survive a
- * slow network round-trip without making the single-attempt worst case any
- * slower than a user would tolerate. Deliberately NOT doing a slow multi-
- * attempt retry here - that would fix the coordinate-fallback problem at the
- * cost of making the "it's slow" complaint worse.
+ * FIX #4: Added 3-second timeout to prevent hanging
  */
 export const reverseGeocodeMapbox = async (lat, lng, providedToken = null) => {
     const activeToken = providedToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -58,7 +50,7 @@ export const reverseGeocodeMapbox = async (lat, lng, providedToken = null) => {
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);  // 3 second timeout
 
         const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${activeToken}&types=address,poi,neighborhood,locality&limit=1`;
 
@@ -77,7 +69,7 @@ export const reverseGeocodeMapbox = async (lat, lng, providedToken = null) => {
         return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     } catch (error) {
         if (error.name === 'AbortError') {
-            console.warn("Mapbox reverse geocoding timed out (>6s), using coordinates fallback");
+            console.warn("Mapbox reverse geocoding timed out (>3s), using coordinates fallback");
         } else {
             console.error("Mapbox reverse geocode error:", error);
         }
@@ -137,3 +129,4 @@ export const getMapboxMatrix = async (coordinates, providedToken = null) => {
         return null;
     }
 };
+

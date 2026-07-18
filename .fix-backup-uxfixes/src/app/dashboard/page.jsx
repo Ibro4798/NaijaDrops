@@ -402,13 +402,10 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {activeOrderCount > 0 && (
-              <button
-                onClick={() => latestActiveOrder && router.push(`/tracking/${latestActiveOrder.id}`)}
-                className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all active:scale-95"
-              >
+              <div className="bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                 <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeOrderCount} Active</span>
-              </button>
+              </div>
             )}
             <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 bg-charcoal-900 border border-white/10 rounded-2xl text-white flex items-center justify-center hover:bg-white/5 transition-all shadow-xl">
               <Menu size={20} />

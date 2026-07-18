@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
-export default function SignOutButton({ className = "", children, ...rest }) {
+export default function SignOutButton({ className = "", children }) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -14,7 +14,7 @@ export default function SignOutButton({ className = "", children, ...rest }) {
   };
 
   return (
-    <button onClick={handleSignOut} className={className} {...rest}>
+    <button onClick={handleSignOut} className={className}>
       {children}
     </button>
   );

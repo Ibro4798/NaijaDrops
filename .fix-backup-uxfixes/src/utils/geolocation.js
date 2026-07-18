@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Reliable Geolocation Utility
  * Tiered fetching: GPS -> Wifi/Cell -> IP-API Fallback
  */
@@ -59,15 +59,8 @@ export async function getReliableLocation(onProgress) {
                         updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
-                    // FIX: previously required accuracy < 20m AND a second ping
-                    // before resolving early - on a phone that only ever reports
-                    // ~30-40m accuracy (common indoors/under cloud cover in Kano)
-                    // this condition never fired, so every single request paid
-                    // the full 5-second forced wait below. 50m is still a solid,
-                    // usable fix for picking a delivery address, and firing on
-                    // the very first ping (not just the second) saves real time
-                    // on a clean GPS lock.
-                    if (pos.coords.accuracy < 50) {
+                    // If we get an extremely good lock (<20m), resolve immediately
+                    if (pos.coords.accuracy < 20 && pingsReceived > 1) {
                         cleanup();
                         resolve(bestReading);
                     }
@@ -83,12 +76,7 @@ export async function getReliableLocation(onProgress) {
                 navigator.geolocation.clearWatch(watchId);
             };
 
-            // FIX: reduced from 5000ms to 2500ms. This was a flat wait applied
-            // on every call regardless of how good the reading already was -
-            // the single biggest contributor to "the location button is slow."
-            // Readings that don't stabilize to a usable accuracy in 2.5s are
-            // unlikely to improve much by waiting longer anyway; the IP
-            // fallback below still catches anything genuinely bad.
+            // Force resolve after 5 seconds of stabilization
             setTimeout(async () => {
                 if (locationFound) return;
                 cleanup();
@@ -107,7 +95,7 @@ export async function getReliableLocation(onProgress) {
                         resolve(null);
                     }
                 }
-            }, 2500); 
+            }, 5000); 
 
         } else {
             const ipLoc = await getIPLocation();
