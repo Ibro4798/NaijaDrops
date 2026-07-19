@@ -197,13 +197,20 @@ export default function Step2Page() {
         {/* Vehicle Type */}
         <div>
           <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Delivery Type</label>
-          <div className="p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-500/10 flex items-center gap-4">
-            <span className="text-3xl">{VEHICLES[0].emoji}</span>
-            <div className="flex-1">
-              <div className="text-sm font-black text-ink">{VEHICLES[0].label}</div>
-              <div className="text-charcoal-500 text-xs">Every rider on the pilot fleet right now</div>
-            </div>
-            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{VEHICLES[0].badge}</span>
+          <div className="grid grid-cols-2 gap-3">
+            {VEHICLES.map(v => (
+              <button key={v.id} onClick={() => setVehicle(v.id)}
+                className={`p-4 rounded-2xl border-2 flex flex-col gap-2 text-left transition-all active:scale-95 relative overflow-hidden ${vehicle === v.id
+                  ? "border-emerald-500 bg-emerald-500/10"
+                  : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}>
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest absolute top-3 right-3">{v.badge}</span>
+                <span className="text-3xl">{v.emoji}</span>
+                <div>
+                  <div className={`text-sm font-black ${vehicle === v.id ? "text-ink" : "text-charcoal-200"}`}>{v.label}</div>
+                  <div className="text-charcoal-500 text-xs">{v.sub}</div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 

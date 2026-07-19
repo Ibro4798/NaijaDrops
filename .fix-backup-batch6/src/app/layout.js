@@ -1,4 +1,4 @@
-﻿
+
 import "./globals.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Outfit, Inter } from "next/font/google";
@@ -45,17 +45,6 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${inter.variable}`}>
-      <head>
-        {/* Warms the DNS/TLS connection to Mapbox ahead of time, site-wide,
-            so whichever page first opens a map isn't also paying for that
-            handshake on top of downloading the map bundle itself. This is a
-            near-zero-cost hint - browsers only actually use it if something
-            on the page ends up requesting these domains. */}
-        <link rel="preconnect" href="https://api.mapbox.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://events.mapbox.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://api.mapbox.com" />
-        <link rel="dns-prefetch" href="https://events.mapbox.com" />
-      </head>
       <body className="font-sans bg-charcoal-50 text-charcoal-900 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
         <ThemeProvider>
           {children}

@@ -329,16 +329,23 @@ export default function DriverOnboardingPage() {
 
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-               <div className="p-5 rounded-2xl border bg-emerald-500/10 border-emerald-500">
-                  <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500 text-charcoal-950 shrink-0">
+               <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'bike' }))}
+                    className={`p-5 rounded-2xl border transition-all text-left ${formData.vehicle_type === 'bike' ? "bg-emerald-500/10 border-emerald-500" : "bg-white/[0.03] border-white/10"}`}>
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'bike' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>
                        <Truck size={20} />
                      </div>
-                     <div>
-                       <div className="font-black text-sm text-emerald-500">Motorcycle</div>
-                       <div className="text-charcoal-500 text-[10px] mt-1">We're starting the pilot with motorcycle riders only - other vehicle types will open up as the fleet grows.</div>
+                     <div className={`font-black text-sm ${formData.vehicle_type === 'bike' ? "text-emerald-500" : "text-ink"}`}>Motorcycle</div>
+                     <div className="text-charcoal-500 text-[10px] mt-1">Recommended for Kano</div>
+                  </button>
+                  <button onClick={() => setFormData(p => ({ ...p, vehicle_type: 'car' }))}
+                    className={`p-5 rounded-2xl border transition-all text-left ${formData.vehicle_type === 'car' ? "bg-emerald-500/10 border-emerald-500" : "bg-white/[0.03] border-white/10"}`}>
+                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${formData.vehicle_type === 'car' ? "bg-emerald-500 text-charcoal-950" : "bg-white/5 text-charcoal-400"}`}>
+                       <Truck size={20} />
                      </div>
-                  </div>
+                     <div className={`font-black text-sm ${formData.vehicle_type === 'car' ? "text-emerald-500" : "text-ink"}`}>Mini Car</div>
+                     <div className="text-charcoal-500 text-[10px] mt-1">Faster for big parcels</div>
+                  </button>
                </div>
                <div>
                   <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-2 block">Plate Number</label>

@@ -258,15 +258,9 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
               </div>
           )}
 
-          <button onClick={useMyLocation} disabled={isResolving} className="absolute top-1/2 right-4 -translate-y-1/2 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-emerald-600 hover:scale-105 active:scale-95 transition-all group z-10 border border-gray-100 disabled:opacity-60">
+          <button onClick={useMyLocation} className="absolute top-1/2 right-4 -translate-y-1/2 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-emerald-600 hover:scale-105 active:scale-95 transition-all group z-10 border border-gray-100">
             <Navigation size={22} className="group-hover:rotate-12 transition-transform" />
           </button>
-
-          {locationError && (
-            <div className="absolute top-[calc(50%+50px)] right-4 z-10 max-w-[220px] bg-red-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl">
-              {locationError}
-            </div>
-          )}
 
           {/* Overlaid Confirm Footer */}
           <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">

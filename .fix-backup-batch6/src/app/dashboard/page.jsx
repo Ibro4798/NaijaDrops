@@ -265,14 +265,6 @@ export default function DashboardPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Vendors land here first, then usually tap "Send Package" - which is
-    // the first time MapModal would otherwise cold-start. Kicking off the
-    // same dynamic import now means it's already cached by the time they
-    // get there.
-    warmMapBundle();
-  }, []);
-
-  useEffect(() => {
     const h = new Date().getHours();
     if (h < 12) setGreeting("Good morning");
     else if (h < 17) setGreeting("Good afternoon");
