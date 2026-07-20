@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -31,14 +31,14 @@ export default function TermsPage() {
       <section className="pt-40 pb-20 max-w-4xl mx-auto px-6">
         <div className="flex items-center gap-4 text-emerald-500 mb-6">
            <FileText size={40} />
-           <h1 className="text-5xl font-black text-[#18181b] tracking-tighter">Terms of Service</h1>
+           <h1 className="text-5xl font-black text-charcoal-900 tracking-tighter">Terms of Service</h1>
         </div>
         <p className="text-charcoal-500 font-bold mb-12 uppercase tracking-widest text-xs">Last Updated: April 2026</p>
 
         <div className="prose prose-lg prose-emerald max-w-none">
            {sections.map((sec, i) => (
              <div key={i} className="mb-12">
-                <h2 className="text-2xl font-black text-[#18181b] mb-4 tracking-tight">{sec.title}</h2>
+                <h2 className="text-2xl font-black text-charcoal-900 mb-4 tracking-tight">{sec.title}</h2>
                 <p className="text-charcoal-600 font-medium leading-relaxed">{sec.content}</p>
              </div>
            ))}

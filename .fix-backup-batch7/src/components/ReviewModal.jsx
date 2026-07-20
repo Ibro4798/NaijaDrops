@@ -55,12 +55,12 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
 
   if (success) {
       return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#18181b]/60 backdrop-blur-sm animate-in fade-in">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal-900/60 backdrop-blur-sm animate-in fade-in">
              <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
                 <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
                    <Star size={32} className="fill-emerald-500" />
                 </div>
-                <h3 className="text-xl font-black text-[#18181b] mb-2">Review Submitted!</h3>
+                <h3 className="text-xl font-black text-charcoal-900 mb-2">Review Submitted!</h3>
                 <p className="text-charcoal-500 font-medium mb-6">Thank you for your feedback.</p>
                 <button onClick={onClose} className="w-full py-3 bg-gray-100 font-bold rounded-xl hover:bg-gray-200 transition-colors">Close</button>
              </div>
@@ -69,7 +69,7 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#18181b]/60 backdrop-blur-sm animate-in fade-in">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-charcoal-900/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up sm:animate-in sm:zoom-in-95">
         
         <div className="p-4 flex justify-end">
@@ -80,7 +80,7 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
 
         <div className="px-6 pb-6 text-center">
              <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${driverProfile.full_name}&backgroundColor=10b981`} alt="Driver" className="w-20 h-20 rounded-full border-4 border-emerald-50 mx-auto object-cover mb-4" />
-             <h3 className="text-2xl font-black text-[#18181b] mb-1">Rate your driver</h3>
+             <h3 className="text-2xl font-black text-charcoal-900 mb-1">Rate your driver</h3>
              <p className="text-charcoal-500 font-medium mb-8">How was your delivery with {driverProfile.full_name}?</p>
 
              {/* Star Rating */}
@@ -109,7 +109,7 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
                 placeholder="Leave an optional tip or feedback..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 min-h-[100px] mb-6 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-medium text-[#18181b] resize-none"
+                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 min-h-[100px] mb-6 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-medium text-charcoal-900 resize-none"
              />
 
              <button 

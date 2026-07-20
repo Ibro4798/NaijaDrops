@@ -95,7 +95,7 @@ export default function Navbar() {
             <div className="bg-emerald-500 p-2 rounded-xl mr-3 group-hover:rotate-12 transition-transform hidden sm:flex">
                 <Package size={24} className="text-white" />
             </div>
-            <span className="text-2xl font-black tracking-tighter text-[#18181b] dark:text-white group-hover:text-emerald-700 transition-colors">
+            <span className="text-2xl font-black tracking-tighter text-charcoal-900 dark:text-white group-hover:text-emerald-700 transition-colors">
                 NaijaDrops<span className="text-emerald-500">.</span>
             </span>
           </Link>
@@ -110,7 +110,7 @@ export default function Navbar() {
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <Link 
                         href="/ops-terminal/dashboard" 
-                        className="hidden sm:flex items-center gap-2 bg-[#18181b] text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+                        className="hidden sm:flex items-center gap-2 bg-charcoal-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
                     >
                         <Shield size={16} className="text-emerald-400" /> Terminal
                     </Link>
@@ -153,7 +153,7 @@ export default function Navbar() {
                           activeOrder.isAwaitingPayment ? `/payment?orderId=${activeOrder.id}` :
                           `/tracking/${activeOrder.id}`
                         }
-                        className="flex items-center gap-2 bg-[#18181b] text-white px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-premium border border-white/10"
+                        className="flex items-center gap-2 bg-charcoal-900 text-white px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-premium border border-white/10"
                     >
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
                         Live Trip
@@ -187,7 +187,7 @@ export default function Navbar() {
             {!profile && !isCheckingAuth && (
                 <Link 
                     href="/auth/login" 
-                    className="bg-[#18181b] text-white px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-black transition-all shadow-premium"
+                    className="bg-charcoal-900 text-white px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-black transition-all shadow-premium"
                 >
                     Login
                 </Link>
@@ -225,13 +225,13 @@ export default function Navbar() {
                             <div className="text-[10px] font-black uppercase text-charcoal-500 tracking-widest mb-0.5">
                                 {activeOrder.isAwaitingPayment ? 'Action Required' : 'Live Order'}
                             </div>
-                            <div className="text-sm font-black text-[#18181b] tracking-tight">
+                            <div className="text-sm font-black text-charcoal-900 tracking-tight">
                                 {activeOrder.isAwaitingPayment ? 'Complete Payment' : 
                                  activeOrder.status === 'looking_for_driver' ? 'Searching Drivers...' : 'Trip in Progress'}
                             </div>
                         </div>
                     </div>
-                    <div className="bg-[#18181b] text-base text-white w-10 h-10 rounded-xl flex items-center justify-center">
+                    <div className="bg-charcoal-900 text-base text-white w-10 h-10 rounded-xl flex items-center justify-center">
                         <ArrowRight size={18} />
                     </div>
                 </Link>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -133,7 +133,7 @@ export default function Pricing() {
               <ArrowLeft size={20} className="text-charcoal-700" />
             </button>
             <div>
-              <h1 className="text-2xl font-extrabold text-[#18181b] tracking-tight">Set Your Price</h1>
+              <h1 className="text-2xl font-extrabold text-charcoal-900 tracking-tight">Set Your Price</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <p className="text-charcoal-500 font-medium text-sm">Choose a fare that works for you.</p>
                 {orderData.scheduledAt && (
@@ -156,7 +156,7 @@ export default function Pricing() {
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${fareType === 'standard' ? 'border-emerald-500' : 'border-gray-300'}`}>
                   {fareType === 'standard' && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>}
                 </div>
-                <span className="font-bold text-[#18181b]">Standard Delivery</span>
+                <span className="font-bold text-charcoal-900">Standard Delivery</span>
               </div>
               <span className="font-extrabold text-lg text-emerald-800">₦{costs.standard}</span>
             </div>
@@ -174,21 +174,21 @@ export default function Pricing() {
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${fareType === 'express' ? 'border-emerald-500' : 'border-gray-300'}`}>
                   {fareType === 'express' && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>}
                 </div>
-                <span className="font-bold text-[#18181b]">Priority Express</span>
+                <span className="font-bold text-charcoal-900">Priority Express</span>
               </div>
-              <span className="font-extrabold text-lg text-[#18181b]">₦{costs.express}</span>
+              <span className="font-extrabold text-lg text-charcoal-900">₦{costs.express}</span>
             </div>
             <div className="text-charcoal-500 text-xs font-medium pl-7">Matched instantly. Priority routing.</div>
           </label>
 
           {/* Offer Your Price */}
-          <label className={`block relative border border-gray-200 rounded-2xl p-4 transition-all cursor-pointer overflow-hidden ${fareType === 'offer' ? 'border-[#18181b] bg-charcoal-50 ring-2 ring-[#18181b]/10' : 'bg-white hover:border-gray-300'}`}>
+          <label className={`block relative border border-gray-200 rounded-2xl p-4 transition-all cursor-pointer overflow-hidden ${fareType === 'offer' ? 'border-charcoal-900 bg-charcoal-50 ring-2 ring-charcoal-900/10' : 'bg-white hover:border-gray-300'}`}>
             <input type="radio" name="fareType" value="offer" checked={fareType === 'offer'} onChange={() => setFareType('offer')} className="hidden" />
             <div className="flex items-center gap-2 mb-3">
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center border-gray-300 ${fareType === 'offer' ? 'border-[#18181b]' : ''}`}>
-                {fareType === 'offer' && <div className="w-2.5 h-2.5 bg-[#18181b] rounded-full"></div>}
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center border-gray-300 ${fareType === 'offer' ? 'border-charcoal-900' : ''}`}>
+                {fareType === 'offer' && <div className="w-2.5 h-2.5 bg-charcoal-900 rounded-full"></div>}
               </div>
-              <span className="font-bold text-[#18181b]">Offer Your Price</span>
+              <span className="font-bold text-charcoal-900">Offer Your Price</span>
             </div>
             <div className="pl-7">
               <div className="relative flex items-center">
@@ -199,7 +199,7 @@ export default function Pricing() {
                   value={customOffer}
                   onChange={(e) => setCustomOffer(e.target.value)}
                   placeholder={`Suggest ~₦${costs.standard}`}
-                  className="w-full bg-white border border-gray-300 rounded-xl py-3 pl-8 pr-4 font-bold text-[#18181b] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#18181b] disabled:opacity-50 disabled:bg-gray-50"
+                  className="w-full bg-white border border-gray-300 rounded-xl py-3 pl-8 pr-4 font-bold text-charcoal-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-charcoal-900 disabled:opacity-50 disabled:bg-gray-50"
                   step="10"
                 />
               </div>
@@ -213,7 +213,7 @@ export default function Pricing() {
         <button 
           onClick={handleBidding}
           disabled={isSubmitting}
-          className={`w-full max-w-2xl mx-auto py-4 bg-[#18181b] hover:bg-black text-white font-bold rounded-2xl shadow-lg transition-transform focus:outline-none flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+          className={`w-full max-w-2xl mx-auto py-4 bg-charcoal-900 hover:bg-black text-white font-bold rounded-2xl shadow-lg transition-transform focus:outline-none flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
           {isSubmitting ? 'Initialising...' : (fareType === 'offer' ? 'Start Negotiation' : 'Find Drivers')}
           {isSubmitting && <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin ml-2"></div>}

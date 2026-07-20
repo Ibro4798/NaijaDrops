@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useRef, useState } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl';
@@ -77,7 +77,7 @@ export default function MiniRouteMap({ pickup, dropoff }) {
         </Marker>
 
         <Marker longitude={dropoff.lng} latitude={dropoff.lat} anchor="bottom">
-           <MapPin size={28} className="text-[#18181b] fill-white drop-shadow-md" />
+           <MapPin size={28} className="text-charcoal-900 fill-white drop-shadow-md" />
         </Marker>
       </Map>
       

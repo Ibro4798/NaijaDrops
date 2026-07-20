@@ -374,43 +374,6 @@ function Step3Content() {
         )}
       </AnimatePresence>
 
-      {/* Pre-launch gate: everyone except the one test account sees this
-          instead of actually dispatching a rider. */}
-      <AnimatePresence>
-        {showLaunchGate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-charcoal-950/90 backdrop-blur-md z-50 flex items-end justify-center pb-10 px-5"
-          >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center"
-            >
-              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock size={28} className="text-emerald-500" />
-              </div>
-              <h2 className="text-xl font-black text-ink mb-3">We're almost open!</h2>
-              <p className="text-charcoal-400 text-sm leading-relaxed mb-2">
-                NaijaDrops launches fully in Kano on <span className="text-ink font-bold">Monday, August 10, 2026</span>.
-              </p>
-              <p className="text-charcoal-500 text-xs leading-relaxed mb-8">
-                Your route and pricing are saved - come back after launch and dispatch will be live.
-              </p>
-              <button
-                onClick={() => setShowLaunchGate(false)}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-4 rounded-2xl transition-all"
-              >
-                Got it
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ✅ NEW: Idle state — shown before user clicks "Find My Driver" */}
       {matchState === "idle" && (
         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">

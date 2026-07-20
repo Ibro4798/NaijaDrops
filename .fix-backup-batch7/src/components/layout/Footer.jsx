@@ -34,6 +34,9 @@ export default function Footer() {
               <a href="https://wa.me/message/3756ZAFK6RTTI1" target="_blank" className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all">
                 <MessageCircle size={20} />
               </a>
+              <a href="mailto:support@naijadrops.tech" className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all">
+                <Mail size={20} />
+              </a>
             </div>
           </div>
 

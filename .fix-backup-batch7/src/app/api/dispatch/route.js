@@ -1,5 +1,5 @@
-﻿import { getBestRider } from "@/utils/dispatch";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { getBestRider } from "@/utils/dispatch";
+import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 // Section 7: Kano Pilot Geofence (Metropolitan Bounds)
@@ -16,18 +16,7 @@ function isWithinPilotZone(lat, lng) {
 export async function POST(req) {
   try {
     const { orderId } = await req.json();
-    // FIX: this was the actual root cause of jobs never reaching riders.
-    // order_broadcasts has RLS enabled with only a SELECT policy (riders can
-    // see their own broadcasts) - there was no INSERT policy at all, so the
-    // .upsert() below was being silently rejected by RLS every single time
-    // it ran under the calling vendor's own session. Dispatch is inherently
-    // a privileged, system-level operation - it shouldn't depend on the
-    // requesting vendor's own row permissions - so this now runs with the
-    // service-role client, matching how admin actions already work
-    // elsewhere in this codebase, rather than trying to write a permissive-
-    // enough RLS policy for an operation that was never really "the vendor's
-    // own" action to begin with.
-    const supabase = createAdminClient();
+    const supabase = await createClient();
 
     // 1. Fetch Order
     const { data: order } = await supabase

@@ -1,17 +1,17 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { MessageCircle, ArrowLeft, Instagram } from "lucide-react";
+import { MessageCircle, Mail, ArrowLeft } from "lucide-react";
 
 export default function SupportPage() {
   return (
     <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center px-6 py-24">
       <div className="w-full max-w-md">
-        <Link href="/" className="inline-flex items-center gap-2 text-charcoal-500 hover:text-ink text-sm font-bold mb-10 transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-charcoal-500 hover:text-white text-sm font-bold mb-10 transition-colors">
           <ArrowLeft size={16} /> Back to home
         </Link>
 
-        <h1 className="text-4xl font-black text-ink tracking-tight mb-3">
+        <h1 className="text-4xl font-black text-white tracking-tight mb-3">
           Support
         </h1>
         <p className="text-charcoal-400 text-base mb-10 leading-relaxed">
@@ -20,7 +20,7 @@ export default function SupportPage() {
 
         <div className="space-y-4">
           <a
-            href="https://wa.me/message/3756ZAFK6RTTI1"
+            href="https://wa.me/2348000000000"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center gap-4 p-5 bg-white/[0.04] border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all group"
@@ -29,23 +29,21 @@ export default function SupportPage() {
               <MessageCircle size={22} className="text-emerald-400" />
             </div>
             <div>
-              <div className="text-ink font-black text-sm">WhatsApp Support</div>
+              <div className="text-white font-black text-sm">WhatsApp Support</div>
               <div className="text-charcoal-500 text-xs font-medium">Fastest response — usually under 1 hour</div>
             </div>
           </a>
 
           <a
-            href="https://www.instagram.com/naija.drops"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:support@naijadrops.tech"
             className="w-full flex items-center gap-4 p-5 bg-white/[0.04] border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all group"
           >
             <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-              <Instagram size={22} className="text-emerald-400" />
+              <Mail size={22} className="text-emerald-400" />
             </div>
             <div>
-              <div className="text-ink font-black text-sm">Instagram</div>
-              <div className="text-charcoal-500 text-xs font-medium">@naija.drops</div>
+              <div className="text-white font-black text-sm">Email</div>
+              <div className="text-charcoal-500 text-xs font-medium">support@naijadrops.tech</div>
             </div>
           </a>
         </div>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -143,11 +143,11 @@ function LoginContent() {
             <div className="w-10 h-10 bg-emerald-500 rounded-[14px] flex items-center justify-center shadow-[0_0_24px_rgba(16,185,129,0.45)]">
               <span className="text-charcoal-950 font-black text-[17px] font-outfit">N</span>
             </div>
-            <span className="text-ink font-black text-xl tracking-tight font-outfit">NaijaDrops</span>
+            <span className="text-white font-black text-xl tracking-tight font-outfit">NaijaDrops</span>
           </div>
           <AnimatePresence mode="wait">
             <motion.div key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <h1 className="text-2xl font-black text-ink tracking-tight">
+              <h1 className="text-2xl font-black text-white tracking-tight">
                 {mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password"}
               </h1>
               <p className="text-charcoal-500 text-sm mt-1 font-medium">
@@ -164,7 +164,7 @@ function LoginContent() {
                 <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
                   <Mail className="text-emerald-400" size={28} />
                 </div>
-                <h3 className="text-ink font-bold text-lg mb-2">Check your email</h3>
+                <h3 className="text-white font-bold text-lg mb-2">Check your email</h3>
                 <p className="text-charcoal-400 text-sm mb-6 leading-relaxed">
                   Reset link sent to <span className="text-emerald-400 font-semibold">{email}</span>
                 </p>
@@ -197,7 +197,7 @@ function LoginContent() {
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-600" size={15} />
                   <input type="email" required placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-charcoal-900/60 border border-white/[0.08] rounded-xl py-3.5 pl-11 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+                    className="w-full bg-charcoal-900/60 border border-white/[0.08] rounded-xl py-3.5 pl-11 pr-4 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
                 </div>
 
                 {/* Password */}
@@ -205,7 +205,7 @@ function LoginContent() {
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-charcoal-600" size={15} />
                     <input type={showPassword ? "text" : "password"} required placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-charcoal-900/60 border border-white/[0.08] rounded-xl py-3.5 pl-11 pr-11 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+                      className="w-full bg-charcoal-900/60 border border-white/[0.08] rounded-xl py-3.5 pl-11 pr-11 text-white placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-600 hover:text-charcoal-300 transition-colors">
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}

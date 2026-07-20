@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -195,7 +195,7 @@ function PaymentContent() {
                             <div className="w-24 h-24 bg-white text-emerald-500 rounded-[3rem] flex items-center justify-center mx-auto mb-8 shadow-premium border-2 border-emerald-500/20 rotate-3">
                                 <CheckCircle2 size={56} className="stroke-[3]" />
                             </div>
-                            <h1 className="text-5xl font-black text-[#18181b] mb-4 tracking-tighter italic">Mission Live</h1>
+                            <h1 className="text-5xl font-black text-charcoal-900 mb-4 tracking-tighter italic">Mission Live</h1>
                             <p className="text-charcoal-400 font-bold text-sm uppercase tracking-widest mb-10 leading-relaxed">
                                 {driverData?.full_name || 'Unit'} is synchronized. <br />Estimated Arrival: <span className="text-emerald-600">30-50m</span>
                             </p>
@@ -214,12 +214,12 @@ function PaymentContent() {
                                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
                                 <div className="text-center mb-8">
                                     <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-[0.4em] mb-2">Synchronized Fare</div>
-                                    <div className="text-6xl font-black text-[#18181b] tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
+                                    <div className="text-6xl font-black text-charcoal-900 tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
                                 </div>
                                 <div className="bg-charcoal-950/5 rounded-3xl p-6 space-y-4 border border-black/5">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest">Protocol Type</span>
-                                        <span className="font-black text-xs text-[#18181b] uppercase italic">Delivery Manifest</span>
+                                        <span className="font-black text-xs text-charcoal-900 uppercase italic">Delivery Manifest</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest">Assigned Unit</span>
@@ -248,7 +248,7 @@ function PaymentContent() {
                                         <div className="flex items-center gap-5">
                                             <div className="w-16 h-16 bg-emerald-50 rounded-[1.4rem] flex items-center justify-center border border-emerald-100 text-emerald-600 font-black text-2xl group-hover:scale-105 transition-transform italic">O</div>
                                             <div>
-                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'opay' ? 'text-charcoal-950' : 'text-[#18181b]'}`}>OPay Digital</div>
+                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'opay' ? 'text-charcoal-950' : 'text-charcoal-900'}`}>OPay Digital</div>
                                                 <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-widest mt-1">Instant App Transfer</div>
                                             </div>
                                         </div>
@@ -267,7 +267,7 @@ function PaymentContent() {
                                                 <CreditCard size={32} />
                                             </div>
                                             <div>
-                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'paystack' ? 'text-charcoal-950' : 'text-[#18181b]'}`}>Card / USSD</div>
+                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'paystack' ? 'text-charcoal-950' : 'text-charcoal-900'}`}>Card / USSD</div>
                                                 <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-widest mt-1">Multi-Channel Terminal</div>
                                             </div>
                                         </div>
@@ -290,7 +290,7 @@ function PaymentContent() {
                                     disabled={!method}
                                     className={`w-full py-6 rounded-[2.5rem] font-black text-xl uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 shadow-premium active:scale-95 overflow-hidden relative group ${
                                         !method ? 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5' : 
-                                        'bg-[#18181b] hover:bg-black text-white hover:shadow-glow hover:shadow-black/20'
+                                        'bg-charcoal-900 hover:bg-black text-white hover:shadow-glow hover:shadow-black/20'
                                     }`}
                                 >
                                     <span className="relative z-10 flex items-center gap-3">Commit Protocol <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" /></span>
@@ -328,22 +328,22 @@ function PaymentContent() {
                                     <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm not-italic">O</div>
                                     OPay Web
                                 </div>
-                                <button onClick={() => !isProcessing && setShowGateway(null)} className="w-10 h-10 glass flex items-center justify-center text-charcoal-400 hover:text-[#18181b] transition-colors border border-black/5 rounded-2xl"><X size={20} /></button>
+                                <button onClick={() => !isProcessing && setShowGateway(null)} className="w-10 h-10 glass flex items-center justify-center text-charcoal-400 hover:text-charcoal-900 transition-colors border border-black/5 rounded-2xl"><X size={20} /></button>
                             </div>
                             <div className="p-8 text-center">
                                 <div className="mb-10">
                                     <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest mb-2">Protocol Fee</div>
-                                    <div className="text-5xl font-black text-[#18181b] tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
+                                    <div className="text-5xl font-black text-charcoal-900 tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
                                 </div>
                                 
                                 <div className="bg-white border-8 border-emerald-50 rounded-[3rem] p-10 mx-auto w-60 h-60 mb-10 flex items-center justify-center shadow-inner relative overflow-hidden group">
                                     <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
-                                    <QrCode size={160} className="text-[#18181b] relative z-10 opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <QrCode size={160} className="text-charcoal-900 relative z-10 opacity-80 group-hover:opacity-100 transition-opacity" />
                                     <div className="absolute top-1/2 left-0 w-full h-1 bg-emerald-500 shadow-[0_0_15px_4px_#10b981] animate-scan z-20"></div>
                                 </div>
 
                                 <p className="text-xs font-bold text-charcoal-500 uppercase tracking-widest mb-10 leading-relaxed px-4">
-                                    Open your OPay Hub, select <strong className="text-[#18181b]">Scan</strong>, and authorize the transmission.
+                                    Open your OPay Hub, select <strong className="text-charcoal-900">Scan</strong>, and authorize the transmission.
                                 </p>
 
                                 <button 

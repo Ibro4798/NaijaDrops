@@ -158,7 +158,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center sm:p-4 bg-[#18181b]/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center sm:p-4 bg-charcoal-900/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col sm:max-h-[90vh]">
         
         {/* Header */}
@@ -168,7 +168,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
                <Navigation size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-[#18181b] tracking-tight">{title}</h3>
+              <h3 className="text-xl font-black text-charcoal-900 tracking-tight">{title}</h3>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-1">
                 {mapboxToken ? 'Powered by Mapbox' : 'Powered by OpenStreetMap (Demo)'}
               </p>
@@ -188,7 +188,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search landmark or street in Kano..."
-              className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-[#18181b] shadow-sm transition-all"
+              className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-charcoal-900 shadow-sm transition-all"
             />
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto z-[250]">
@@ -196,7 +196,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
                   <button key={idx} onClick={() => selectSuggestion(sug)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3 border-b border-gray-50 last:border-0 transition-colors">
                     <MapPin size={16} className="text-emerald-500 mt-1 shrink-0" />
                     <div>
-                      <p className="font-bold text-[#18181b] text-sm line-clamp-1 truncate">{sug.name || sug.description}</p>
+                      <p className="font-bold text-charcoal-900 text-sm line-clamp-1 truncate">{sug.name || sug.description}</p>
                       {sug.name && sug.name !== sug.description && (
                          <p className="text-xs text-charcoal-400 line-clamp-1">{sug.description}</p>
                       )}
@@ -246,7 +246,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
           {/* Fixed Center Pin Overlay */}
           {mapboxToken && (
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 flex flex-col items-center z-10 pointer-events-none" style={{ marginTop: '-42px' }}>
-                  <div className="bg-[#18181b] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg mb-2 flex items-center gap-2">
+                  <div className="bg-charcoal-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg mb-2 flex items-center gap-2">
                        {isResolving ? <><Loader2 size={12} className="animate-spin" /> Locating</> : 'Set Pin'}
                   </div>
                   <div className="relative">
@@ -277,14 +277,14 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
                     <div className="w-10 h-10 bg-emerald-700 text-white rounded-xl flex items-center justify-center shrink-0"><MapPin size={20} /></div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Selected Location</div>
-                      <div className="text-[#18181b] font-bold text-base leading-tight truncate">{isResolving ? 'Resolving...' : address || 'Select a point'}</div>
+                      <div className="text-charcoal-900 font-bold text-base leading-tight truncate">{isResolving ? 'Resolving...' : address || 'Select a point'}</div>
                     </div>
                   </div>
 
                    <button 
                        disabled={!address || isResolving} 
                        onClick={() => onConfirm({ name: address, coords: markerPosition })} 
-                       className={`w-full py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] text-xl active:scale-95 ${!address || isResolving ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#18181b] border-2 border-emerald-500/30 hover:bg-black text-white hover:shadow-emerald-500/10'}`}
+                       className={`w-full py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] text-xl active:scale-95 ${!address || isResolving ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' : 'bg-charcoal-900 border-2 border-emerald-500/30 hover:bg-black text-white hover:shadow-emerald-500/10'}`}
                    >
                          {!address || isResolving ? <Loader2 size={28} className="animate-spin" /> : <><CheckCircle2 size={28} className="text-emerald-500" /> Confirm Point</>}
                    </button>

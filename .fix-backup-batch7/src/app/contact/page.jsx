@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Instagram, Mail, Phone, ArrowLeft, MessageCircle, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
@@ -38,7 +38,7 @@ export default function Contact() {
       description: "Call us for urgent delivery issues",
       link: "tel:+2349118267433",
       label: "+234 911 826 7433",
-      color: "bg-gray-100 text-[#18181b]"
+      color: "bg-gray-100 text-charcoal-900"
     }
   ];
 
@@ -54,7 +54,7 @@ export default function Contact() {
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-3xl font-black text-[#18181b] tracking-tight">Contact Us</h1>
+            <h1 className="text-3xl font-black text-charcoal-900 tracking-tight">Contact Us</h1>
             <div className="w-12 h-12"></div> {/* Spacer */}
         </div>
 
@@ -72,7 +72,7 @@ export default function Contact() {
                   {opt.icon}
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-black text-[#18181b] mb-1">{opt.name}</h2>
+                  <h2 className="text-xl font-black text-charcoal-900 mb-1">{opt.name}</h2>
                   <p className="text-charcoal-500 font-medium text-sm mb-3">{opt.description}</p>
                   <div className={`inline-block px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest ${opt.color}`}>
                     {opt.label}
@@ -84,7 +84,7 @@ export default function Contact() {
         </div>
 
         {/* Operating Hours & Location */}
-        <div className="mt-12 bg-[#18181b] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+        <div className="mt-12 bg-charcoal-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-12 -mt-12"></div>
             <h3 className="text-lg font-black uppercase tracking-widest text-emerald-400 mb-6 font-mono text-center">NaijaDrops Kano</h3>
             
