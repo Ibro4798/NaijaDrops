@@ -90,15 +90,6 @@ export async function POST(req) {
 
   } catch (err) {
     console.error("Dispatch API Error:", err);
-    // Consistent response shape with the success path above - previously
-    // this only returned { error }, which the frontend's failure check
-    // didn't recognize, so a genuine crash here (e.g. a missing
-    // SUPABASE_SERVICE_ROLE_KEY env var making createAdminClient() throw)
-    // still showed the vendor nothing at all.
-    return NextResponse.json({
-      success: false,
-      error: "Dispatch failed - couldn't reach nearby riders.",
-      message: err.message,
-    }, { status: 500 });
+    return NextResponse.json({ error: "System Fault: Dispatch Logic Failed" }, { status: 500 });
   }
 }

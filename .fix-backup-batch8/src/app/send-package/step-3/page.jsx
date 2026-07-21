@@ -174,16 +174,9 @@ function Step3Content() {
     // for any reason (including the RLS bug that silently blocked every
     // broadcast until now), the vendor just watched "searching..." with zero
     // explanation until the 15s poll cycle eventually gave up.
-    //
-    // SECOND BUG FOUND: the dispatch route's error path returns
-    // { error: "..." } (no "success" key at all), but this check only ever
-    // looked for { success: false, message }. That mismatch meant a genuine
-    // server-side failure (e.g. missing SUPABASE_SERVICE_ROLE_KEY causing
-    // the admin client to throw) still showed nothing to the vendor, even
-    // after the fix above - now both shapes are caught.
     const firstAttempt = await triggerDispatch();
-    if (firstAttempt && (firstAttempt.success === false || firstAttempt.error)) {
-      setError(firstAttempt.message || firstAttempt.error || "Couldn't reach nearby riders. Retrying automatically...");
+    if (firstAttempt && firstAttempt.success === false && firstAttempt.message) {
+      setError(firstAttempt.message);
     }
 
     // Poll every 15 seconds to check status and expand radius if necessary
