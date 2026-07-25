@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2, Sparkles
+  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2, Sparkles, AlertTriangle
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { estimateSizeFromFile } from "@/utils/clientSizeEstimate";
@@ -74,6 +74,7 @@ export default function Step2Page() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [estimating, setEstimating] = useState(false);
   const [estimateReasoning, setEstimateReasoning] = useState(null);
+  const [oversizedWarning, setOversizedWarning] = useState(false);
   const fileInputRef = useRef(null);
 
   const supabase = createClient();
@@ -140,6 +141,7 @@ export default function Step2Page() {
             setSize(result.size);
             setSizeSource("ai");
             setEstimateReasoning(result.reasoning);
+            setOversizedWarning(!!result.oversized);
             return;
           }
 
@@ -151,6 +153,7 @@ export default function Step2Page() {
             setSize(clientResult.size);
             setSizeSource("client-cv");
             setEstimateReasoning(clientResult.reasoning);
+            setOversizedWarning(!!clientResult.oversizedForTricycle);
           }
           // If that also fails, we say nothing - manual sizing already
           // works fine and always did, this is a bonus when it works.
@@ -178,6 +181,7 @@ export default function Step2Page() {
     setPhotoPreview(null);
     setEstimateReasoning(null);
     setSizeSource(null);
+    setOversizedWarning(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -275,9 +279,15 @@ export default function Step2Page() {
             </label>
           )}
           {estimateReasoning && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <Sparkles size={13} className="text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-emerald-400 text-[11px] font-medium leading-snug">{estimateReasoning}</p>
+            <div className={`mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border ${oversizedWarning
+              ? "bg-amber-500/10 border-amber-500/30"
+              : "bg-emerald-500/10 border-emerald-500/20"}`}>
+              {oversizedWarning
+                ? <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                : <Sparkles size={13} className="text-emerald-400 shrink-0 mt-0.5" />}
+              <p className={`text-[11px] font-medium leading-snug ${oversizedWarning ? "text-amber-400" : "text-emerald-400"}`}>
+                {estimateReasoning}
+              </p>
             </div>
           )}
         </div>

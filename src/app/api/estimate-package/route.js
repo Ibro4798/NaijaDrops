@@ -26,15 +26,17 @@ export async function POST(req) {
       return NextResponse.json({ success: false, reason: "no_image" });
     }
 
-    const prompt = `You are helping estimate a delivery package size for a motorcycle courier in Kano, Nigeria. Look at this photo of a package/item to be delivered.
+    const prompt = `You are helping a Nigerian delivery service estimate a package size for their delivery vehicle - a keke napep (motorized tricycle with an open cargo tray). A keke's rated payload runs roughly 250-400kg, shared between the rider, fuel, and cargo - not one parcel alone. Look at this photo of a package/item to be delivered.
 
 Classify it into exactly one of these three sizes:
 - "small": fits in a bag or under the arm (documents, phones, small envelopes, jewelry, shoes in a small bag)
 - "medium": a small-to-medium box (electronics boxes, food orders, clothing bundles, medium bags)
-- "large": bulky or multiple items, needs both hands or won't fit in a backpack (large boxes, multiple bags, furniture pieces, large appliances)
+- "large": bulky or multiple items that still fit in a keke's open cargo tray (large boxes, multiple bags, a mid-size generator, several cartons of goods)
+
+Also set "oversized" to true ONLY if the item plainly cannot fit in or be safely carried by a tricycle's open cargo tray at all - for example a full-size refrigerator, a bed frame, a couch, a dining table, or another motor vehicle. Be generous here: if it's genuinely unclear, prefer "large" and leave "oversized" false, since a wrongly-flagged "too big" costs the vendor a bookable delivery.
 
 Respond with ONLY a JSON object, no other text, in exactly this shape:
-{"size": "small" | "medium" | "large", "reasoning": "one short sentence explaining why"}`;
+{"size": "small" | "medium" | "large", "oversized": true | false, "reasoning": "one short sentence explaining why"}`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -93,6 +95,7 @@ Respond with ONLY a JSON object, no other text, in exactly this shape:
     return NextResponse.json({
       success: true,
       size: parsed.size,
+      oversized: !!parsed.oversized,
       reasoning: parsed.reasoning || null,
     });
   } catch (err) {
