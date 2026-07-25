@@ -6,11 +6,10 @@ import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin, Navigation, Search, ArrowRight, X, Link as LinkIcon,
-  Loader2, ArrowLeft, ChevronRight, Mic, Square, Play, Trash2, MessageSquareText
+  Loader2, ArrowLeft, ChevronRight
 } from "lucide-react";
 import { getMapboxSuggestions, reverseGeocodeMapbox, getMapboxRoute } from "@/utils/mapbox";
 import { extractFirstUrl } from "@/utils/MapResolver";
-import { createClient } from "@/utils/supabase/client";
 
 const Map = dynamic(() => import("react-map-gl").then(m => m.default), { ssr: false });
 const Marker = dynamic(() => import("react-map-gl").then(m => m.Marker), { ssr: false });
@@ -20,6 +19,8 @@ const Layer = dynamic(() => import("react-map-gl").then(m => m.Layer), { ssr: fa
 const DRAFT_KEY = "nd_order_draft";
 const LAST_PICKUP_KEY = "nd_last_pickup";
 const KANO_CENTER = { lat: 11.9964, lng: 8.5200 };
+
+// parseMapLink is now handled by src/lib/mapResolver.js and the API route
 
 function formatDistance(meters) {
   if (!meters) return null;
@@ -32,123 +33,6 @@ function formatDuration(seconds) {
   const mins = Math.round(seconds / 60);
   if (mins < 60) return `~${mins} min`;
   return `~${Math.floor(mins / 60)}h ${mins % 60}m`;
-}
-
-/**
- * "Help your rider find you" - inline, optional note per location. Text by
- * default, with a "record voice note instead" toggle. This is what replaced
- * the old single voice-note field on step 2 - a pin alone often isn't enough
- * in Kano's markets, but a strict text-vs-voice choice was worse than just
- * letting someone do whichever's faster for them in the moment.
- */
-function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlChange, storagePrefix }) {
-  const supabase = createClient();
-  const [mode, setMode] = useState("text"); // 'text' | 'voice'
-  const [isRecording, setIsRecording] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      mediaRecorderRef.current.onstop = async () => {
-        setIsUploading(true);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const fileName = `${storagePrefix}_${Date.now()}.webm`;
-        const { data, error } = await supabase.storage.from("documents").upload(fileName, blob, { contentType: "audio/webm" });
-        if (!error && data) {
-          const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(fileName);
-          onVoiceUrlChange(publicUrlData.publicUrl);
-        } else {
-          alert("Couldn't upload the voice note. Try again or use text instead.");
-        }
-        setIsUploading(false);
-        stream.getTracks().forEach(t => t.stop());
-      };
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      // Soft cap so notes stay quick to listen to - matches the WhatsApp
-      // voice-note length this ICP already uses daily.
-      setTimeout(() => {
-        if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
-        setIsRecording(false);
-      }, 45000);
-    } catch {
-      alert("Microphone access denied or unavailable.");
-    }
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-  };
-
-  return (
-    <div className="mt-2 bg-white/[0.03] border border-white/10 rounded-2xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 text-charcoal-400">
-          <MessageSquareText size={14} />
-          <span className="text-xs font-bold">Help your rider find you</span>
-          <span className="text-[9px] font-black uppercase tracking-widest text-charcoal-600 bg-white/5 px-2 py-0.5 rounded-full">Optional</span>
-        </div>
-        <div className="flex gap-1 bg-charcoal-950 rounded-full p-1">
-          <button
-            onClick={() => setMode("text")}
-            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${mode === "text" ? "bg-emerald-500 text-charcoal-950" : "text-charcoal-500"}`}
-          >
-            Text
-          </button>
-          <button
-            onClick={() => setMode("voice")}
-            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${mode === "voice" ? "bg-emerald-500 text-charcoal-950" : "text-charcoal-500"}`}
-          >
-            Voice
-          </button>
-        </div>
-      </div>
-
-      {mode === "text" ? (
-        <textarea
-          value={note}
-          onChange={(e) => onNoteChange(e.target.value)}
-          placeholder={`e.g. "Blue gate, ask for ${label === "pickup" ? "Aunty Fatima's shop" : "the security man"}"`}
-          rows={2}
-          className="w-full bg-charcoal-950 border border-white/10 rounded-xl p-3 text-ink placeholder:text-charcoal-600 text-sm outline-none focus:border-emerald-500 transition-all resize-none"
-        />
-      ) : (
-        <div className="flex items-center gap-3">
-          {isUploading ? (
-            <div className="flex items-center text-emerald-500 gap-2 text-xs font-bold px-4 py-2.5 bg-emerald-500/10 rounded-xl">
-              <Loader2 size={14} className="animate-spin" /> Uploading...
-            </div>
-          ) : voiceUrl ? (
-            <>
-              <button onClick={() => { const a = new Audio(voiceUrl); a.play(); }} className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-colors">
-                <Play size={16} fill="currentColor" />
-              </button>
-              <span className="text-charcoal-400 text-xs font-bold">Voice note recorded</span>
-              <button onClick={() => onVoiceUrlChange("")} className="ml-auto p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors">
-                <Trash2 size={16} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500 hover:bg-emerald-400 text-charcoal-950"}`}
-            >
-              {isRecording ? <><Square size={12} fill="currentColor" /> Stop</> : <><Mic size={12} /> Record (max 45s)</>}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default function Step1Page() {
@@ -173,12 +57,6 @@ export default function Step1Page() {
   const [linkError, setLinkError] = useState(null);
   const searchTimeout = useRef(null);
 
-  // Per-location "help your rider find you" notes.
-  const [pickupNote, setPickupNote] = useState("");
-  const [pickupVoiceUrl, setPickupVoiceUrl] = useState("");
-  const [dropoffNote, setDropoffNote] = useState("");
-  const [dropoffVoiceUrl, setDropoffVoiceUrl] = useState("");
-
   // Preload last pickup on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -194,10 +72,6 @@ export default function Step1Page() {
       const draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
       if (draft?.pickup) { setPickup(draft.pickup); setPickupInput(draft.pickup.name); }
       if (draft?.dropoff) { setDropoff(draft.dropoff); setDropoffInput(draft.dropoff.name); }
-      if (draft?.pickup_note) setPickupNote(draft.pickup_note);
-      if (draft?.pickup_voice_note_url) setPickupVoiceUrl(draft.pickup_voice_note_url);
-      if (draft?.dropoff_note) setDropoffNote(draft.dropoff_note);
-      if (draft?.dropoff_voice_note_url) setDropoffVoiceUrl(draft.dropoff_voice_note_url);
     } catch {}
   }, []);
 
@@ -251,6 +125,10 @@ export default function Step1Page() {
   async function handleUseMyLocation() {
     setGpsLoading(true);
     setGpsError(null);
+    // FIX: previously called with no options object at all, which means the
+    // browser default (no timeout - it can wait forever) applied. On a weak
+    // signal this could hang indefinitely with no feedback. 10s is enough for
+    // a normal GPS fix without leaving the button stuck spinning.
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude: lat, longitude: lng } = pos.coords;
       const name = await reverseGeocodeMapbox(lat, lng, mapboxToken);
@@ -271,15 +149,16 @@ export default function Step1Page() {
 
   async function handleLinkPaste() {
     if (!linkInput) return;
-
+    
+    // 1. Extract the first valid URL from potentially messy input
     const extractedUrl = extractFirstUrl(linkInput);
-
+    
     if (!extractedUrl) {
       alert("No valid map link found in the text.");
       return;
     }
 
-    setGpsLoading(true);
+    setGpsLoading(true); 
     setLinkError(null);
     try {
       const resp = await fetch("/api/resolve-link", {
@@ -288,7 +167,7 @@ export default function Step1Page() {
         headers: { "Content-Type": "application/json" }
       });
       const data = await resp.json();
-
+      
       if (data.lat && data.lng) {
         const name = await reverseGeocodeMapbox(data.lat, data.lng, mapboxToken);
         const point = { name, lat: data.lat, lng: data.lng };
@@ -307,14 +186,7 @@ export default function Step1Page() {
 
   function handleContinue() {
     if (!pickup || !dropoff) return;
-    const draft = {
-      pickup, dropoff,
-      distance_m: routeInfo?.distance, duration_s: routeInfo?.duration,
-      pickup_note: pickupNote.trim(),
-      pickup_voice_note_url: pickupVoiceUrl,
-      dropoff_note: dropoffNote.trim(),
-      dropoff_voice_note_url: dropoffVoiceUrl,
-    };
+    const draft = { pickup, dropoff, distance_m: routeInfo?.distance, duration_s: routeInfo?.duration };
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     localStorage.setItem(LAST_PICKUP_KEY, JSON.stringify(pickup));
     router.push("/send-package/step-2");
@@ -447,22 +319,6 @@ export default function Step1Page() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Inline "help your rider find you" note - appears once pickup is confirmed */}
-          <AnimatePresence>
-            {pickup && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <LocationNoteSection
-                  label="pickup"
-                  note={pickupNote}
-                  onNoteChange={setPickupNote}
-                  voiceUrl={pickupVoiceUrl}
-                  onVoiceUrlChange={setPickupVoiceUrl}
-                  storagePrefix="pickup_note"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Dropoff field */}
@@ -509,22 +365,6 @@ export default function Step1Page() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Inline "help your rider find you" note - appears once dropoff is confirmed */}
-          <AnimatePresence>
-            {dropoff && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <LocationNoteSection
-                  label="dropoff"
-                  note={dropoffNote}
-                  onNoteChange={setDropoffNote}
-                  voiceUrl={dropoffVoiceUrl}
-                  onVoiceUrlChange={setDropoffVoiceUrl}
-                  storagePrefix="dropoff_note"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
 
@@ -554,13 +394,13 @@ export default function Step1Page() {
               className="w-full bg-charcoal-900 border-t border-white/10 rounded-t-[2rem] p-6">
               <h3 className="text-ink font-black text-lg mb-1">Paste a Map Link</h3>
               <p className="text-charcoal-500 text-sm mb-4">Works with Google Maps, Apple Maps URLs</p>
-
+              
               <div className="relative mb-4">
                 <textarea value={linkInput} onChange={e => { setLinkInput(e.target.value); setLinkError(null); }} rows={3}
                   disabled={gpsLoading}
                   placeholder="Paste your maps link here..."
                   className={`w-full bg-charcoal-800 border ${linkError ? 'border-red-500/50' : 'border-white/10'} rounded-2xl p-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 text-sm font-medium resize-none transition-all`} />
-
+                
                 {gpsLoading && (
                   <div className="absolute inset-0 bg-charcoal-900/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-2">
                     <Loader2 className="text-emerald-500 animate-spin" size={24} />
@@ -572,16 +412,16 @@ export default function Step1Page() {
               {linkError && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                   className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
-                  <X className="text-red-500 shrink-0" size={18} />
+                  <AlertCircle className="text-red-500 shrink-0" size={18} />
                   <p className="text-red-400 text-xs font-bold leading-tight">{linkError}</p>
                 </motion.div>
               )}
 
               <div className="flex gap-3">
-                <button onClick={() => { setShowLinkModal(false); setLinkInput(""); setLinkError(null); }}
+                <button onClick={() => { setShowLinkModal(false); setLinkInput(""); setLinkError(null); }} 
                   disabled={gpsLoading}
                   className="flex-1 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-sm disabled:opacity-50">Cancel</button>
-                <button onClick={handleLinkPaste}
+                <button onClick={handleLinkPaste} 
                   disabled={gpsLoading || !linkInput.trim()}
                   className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-400 rounded-2xl text-charcoal-950 font-black text-sm disabled:opacity-50 shadow-glow">
                   {gpsLoading ? "Extracting..." : "Extract Location"}

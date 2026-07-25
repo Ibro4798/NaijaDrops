@@ -77,40 +77,28 @@ export default function RiderDashboard() {
 
     // Going online requires a real location fix - get_nearby_online_riders() filters
     // on current_lat/current_lng being non-null, so skipping this breaks matching entirely.
-    //
-    // FIX: this used to call navigator.geolocation.getCurrentPosition directly
-    // with enableHighAccuracy:true and only a 10s timeout - on a real phone
-    // with a weak GPS lock (indoors, cloud cover, patchy signal) that
-    // regularly timed out, and the error handler showed the same "enable
-    // location access" message regardless of whether the real problem was a
-    // timeout, a denied permission, or something else. Switched to the same
-    // tiered GPS -> IP-location fallback already used elsewhere in the app,
-    // so a slow/weak GPS fix no longer means an outright failure.
     if (!navigator.geolocation) {
       setError('Location services are required to go online.');
       setToggling(false);
       return;
     }
-
-    const loc = await getReliableLocation();
-    if (!loc) {
-      setError('Could not get your location. Check that location access is enabled for this site, and that you have a network connection, then try again.');
-      setToggling(false);
-      return;
-    }
-
-    const { error: updErr } = await supabase.from('riders').update({
-      operational_status: 'online',
-      current_lat: loc.lat,
-      current_lng: loc.lng
-    }).eq('id', rider.id);
-    if (!updErr) {
-      setRider({ ...rider, operational_status: 'online', current_lat: loc.lat, current_lng: loc.lng });
-      await fetchBroadcastJobs(rider.id);
-    } else {
-      setError('Could not update your status. Try again.');
-    }
-    setToggling(false);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const { error: updErr } = await supabase.from('riders').update({
+          operational_status: 'online',
+          current_lat: latitude,
+          current_lng: longitude
+        }).eq('id', rider.id);
+        if (!updErr) {
+          setRider({ ...rider, operational_status: 'online', current_lat: latitude, current_lng: longitude });
+          await fetchBroadcastJobs(rider.id);
+        }
+        setToggling(false);
+      },
+      () => { setError('Could not get your location. Enable location access and try again.'); setToggling(false); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }
 
   async function acceptAtBasePrice(order) {

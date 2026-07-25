@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2, Sparkles
+  ArrowLeft, Package, Bike, Car, Phone, FileText,
+  User, MapPin, ArrowRight, ChevronRight, Bell, Mic, Square, Play, Trash2, Loader2
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -33,50 +34,25 @@ const VEHICLES = [
   { id: "bike", label: "Motorcycle", sub: "Faster & cheaper", emoji: "🏍️", badge: "Popular" },
 ];
 
-// Compresses + converts a File to base64 for the estimation API, capping
-// dimensions so the request stays small and fast over patchy connections.
-function fileToResizedBase64(file, maxDim = 1024) {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    const reader = new FileReader();
-    reader.onload = (e) => { img.src = e.target.result; };
-    reader.onerror = reject;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let { width, height } = img;
-      if (width > height && width > maxDim) { height *= maxDim / width; width = maxDim; }
-      else if (height > maxDim) { width *= maxDim / height; height = maxDim; }
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-      resolve(dataUrl.split(",")[1]);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function Step2Page() {
   const router = useRouter();
   const [draft, setDraft] = useState(null);
   const [size, setSize] = useState("small");
-  const [sizeSource, setSizeSource] = useState(null); // null | 'ai' | 'manual'
   const [vehicle, setVehicle] = useState("bike");
   const [description, setDescription] = useState("");
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [notifyReceiver, setNotifyReceiver] = useState(false);
 
-  const [packagePhotoUrl, setPackagePhotoUrl] = useState("");
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [estimating, setEstimating] = useState(false);
-  const [estimateReasoning, setEstimateReasoning] = useState(null);
-  const fileInputRef = useRef(null);
-
   const supabase = createClient();
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const estimatedPrice = calcPrice(draft?.distance_m, vehicle, size);
+
   const distanceKm = draft?.distance_m ? (draft.distance_m / 1000).toFixed(1) : null;
 
   useEffect(() => {
@@ -84,10 +60,11 @@ export default function Step2Page() {
       const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
       if (!d?.pickup || !d?.dropoff) { router.replace("/send-package/step-1"); return; }
       setDraft(d);
-      if (d.size) { setSize(d.size); setSizeSource(d.size_source || null); }
+      // Restore selections if returning from step 3
+      if (d.size) setSize(d.size);
       if (d.vehicle) setVehicle(d.vehicle);
       if (d.description) setDescription(d.description);
-      if (d.package_photo_url) setPackagePhotoUrl(d.package_photo_url);
+      if (d.voice_note_url) setVoiceNoteUrl(d.voice_note_url);
       if (d.recipient_name) setReceiverName(d.recipient_name);
       if (d.recipient_phone) setReceiverPhone(d.recipient_phone);
       if (d.notify_receiver !== undefined) setNotifyReceiver(d.notify_receiver);
@@ -98,74 +75,50 @@ export default function Step2Page() {
 
   const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8;
 
-  async function handlePhotoSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setPhotoPreview(URL.createObjectURL(file));
-    setUploadingPhoto(true);
-    setEstimateReasoning(null);
-
+  const startRecording = async () => {
     try {
-      // Upload the actual photo for the rider to see later, and run the
-      // (much smaller, resized) version through the size-estimate API in
-      // parallel - neither one blocks the other.
-      const fileName = `package_${Date.now()}.jpg`;
-      const uploadPromise = supabase.storage.from("delivery-photos").upload(fileName, file, { contentType: file.type || "image/jpeg" });
-
-      const estimatePromise = (async () => {
-        setEstimating(true);
-        try {
-          const base64 = await fileToResizedBase64(file);
-          const res = await fetch("/api/estimate-package", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: base64, mediaType: "image/jpeg" }),
-          });
-          const result = await res.json();
-          if (result.success) {
-            setSize(result.size);
-            setSizeSource("ai");
-            setEstimateReasoning(result.reasoning);
-          }
-          // On failure, we simply say nothing - manual sizing already works
-          // fine and always did, this is a bonus when it works.
-        } catch {
-          // Same as above - silent fallback to manual sizing.
-        } finally {
-          setEstimating(false);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mediaRecorderRef.current.onstop = async () => {
+        setIsUploadingAudio(true);
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        chunksRef.current = [];
+        
+        // Upload to Supabase Storage
+        const fileName = `voice_note_${Date.now()}.webm`;
+        const { data, error } = await supabase.storage.from("documents").upload(fileName, blob, { contentType: "audio/webm" });
+        
+        if (!error && data) {
+           const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(fileName);
+           setVoiceNoteUrl(publicUrlData.publicUrl);
+        } else {
+           alert("Failed to upload voice note. Make sure the 'documents' bucket exists.");
         }
-      })();
-
-      const [{ data, error }] = await Promise.all([uploadPromise, estimatePromise]);
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage.from("delivery-photos").getPublicUrl(fileName);
-        setPackagePhotoUrl(publicUrlData.publicUrl);
-      } else {
-        alert("Couldn't upload the photo. You can still continue without it.");
-      }
-    } finally {
-      setUploadingPhoto(false);
+        setIsUploadingAudio(false);
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone access denied or unavailable.");
     }
-  }
+  };
 
-  function removePhoto() {
-    setPackagePhotoUrl("");
-    setPhotoPreview(null);
-    setEstimateReasoning(null);
-    setSizeSource(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
 
   function handleContinue() {
     if (!canContinue) return;
     const updated = {
       ...draft,
       size,
-      size_source: sizeSource,
       vehicle,
       description: description.trim(),
-      package_photo_url: packagePhotoUrl,
+      voice_note: voiceNoteUrl, // Save the URL to the draft
       recipient_name: receiverName.trim(),
       recipient_phone: receiverPhone.trim(),
       notify_receiver: notifyReceiver,
@@ -224,53 +177,12 @@ export default function Step2Page() {
       </div>
 
       <div className="flex-1 px-5 overflow-y-auto pb-6 space-y-6">
-        {/* Package Photo */}
-        <div>
-          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Photo</label>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" id="package-photo-input" />
-          {photoPreview ? (
-            <div className="relative rounded-2xl overflow-hidden border border-white/10">
-              <img src={photoPreview} alt="Package" className="w-full h-40 object-cover" />
-              {(uploadingPhoto || estimating) && (
-                <div className="absolute inset-0 bg-charcoal-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="text-emerald-500 animate-spin" size={24} />
-                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-                    {estimating ? "Estimating size..." : "Uploading..."}
-                  </span>
-                </div>
-              )}
-              <button onClick={removePhoto} className="absolute top-3 right-3 w-8 h-8 bg-charcoal-950/80 backdrop-blur-md rounded-xl flex items-center justify-center text-ink">
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <label htmlFor="package-photo-input" className="flex flex-col items-center justify-center gap-2 py-8 bg-charcoal-900 border border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all">
-              <Camera size={24} className="text-charcoal-500" />
-              <span className="text-charcoal-400 text-xs font-bold">Add a photo - we'll suggest a size for you</span>
-              <span className="text-charcoal-600 text-[10px]">Optional, but helps set the right price</span>
-            </label>
-          )}
-          {estimateReasoning && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <Sparkles size={13} className="text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-emerald-400 text-[11px] font-medium leading-snug">{estimateReasoning}</p>
-            </div>
-          )}
-        </div>
-
         {/* Package Size */}
         <div>
-          <div className="flex items-center justify-between ml-1 mb-3">
-            <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Package Size</label>
-            {sizeSource === "ai" && (
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
-                <Sparkles size={10} /> Estimated from photo
-              </span>
-            )}
-          </div>
+          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Size</label>
           <div className="grid grid-cols-3 gap-2">
             {SIZES.map(s => (
-              <button key={s.id} onClick={() => { setSize(s.id); setSizeSource("manual"); }}
+              <button key={s.id} onClick={() => setSize(s.id)}
                 className={`p-3 rounded-2xl border-2 flex flex-col gap-1 text-left transition-all active:scale-95 ${size === s.id
                   ? "border-emerald-500 bg-emerald-500/10"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}>
@@ -304,6 +216,40 @@ export default function Step2Page() {
             <input type="text" placeholder="Package description (e.g. Red shoes, size 42)"
               value={description} onChange={e => setDescription(e.target.value)}
               className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-11 pr-4 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/60 transition-all text-sm font-medium" />
+          </div>
+
+          <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-charcoal-400">
+                 <Mic size={18} />
+               </div>
+               <div>
+                 <div className="text-ink text-sm font-bold">Voice Instructions</div>
+                 <div className="text-charcoal-500 text-xs">Record special handling notes</div>
+               </div>
+             </div>
+             
+             {isUploadingAudio ? (
+                <div className="flex items-center text-emerald-500 gap-2 text-xs font-bold px-4 py-2 bg-emerald-500/10 rounded-xl">
+                  <Loader2 size={14} className="animate-spin" /> Uploading...
+                </div>
+             ) : voiceNoteUrl ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { const a = new Audio(voiceNoteUrl); a.play(); }} className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-colors">
+                    <Play size={16} fill="currentColor" />
+                  </button>
+                  <button onClick={() => setVoiceNoteUrl("")} className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+             ) : (
+                <button 
+                  onClick={isRecording ? stopRecording : startRecording} 
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isRecording ? "bg-red-500 text-ink animate-pulse shadow-[0_0_16px_rgba(239,68,68,0.4)]" : "bg-emerald-500 hover:bg-emerald-400 text-charcoal-950"}`}
+                >
+                  {isRecording ? <><Square size={12} fill="currentColor" /> Stop</> : "Record"}
+                </button>
+             )}
           </div>
 
           <div className="relative">

@@ -2,8 +2,8 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 const ThemeContext = createContext({
-  theme: 'dark',       // resolved theme actually applied: 'light' | 'dark'
-  mode: 'dark',        // user's chosen mode: 'light' | 'dark' | 'system'
+  theme: 'light',       // resolved theme actually applied: 'light' | 'dark'
+  mode: 'light',        // user's chosen mode: 'light' | 'dark' | 'system'
   setMode: () => {},
   toggleTheme: () => {},
 });
@@ -17,10 +17,8 @@ function applyTheme(resolved) {
 }
 
 export function ThemeProvider({ children }) {
-    // Dark is the default theme - light is available as an explicit choice
-    // via the picker on the Profile page.
-    const [mode, setModeState] = useState('dark');
-    const [theme, setTheme] = useState('dark');
+    const [mode, setModeState] = useState('light');
+    const [theme, setTheme] = useState('light');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -30,7 +28,7 @@ export function ThemeProvider({ children }) {
 
         const resolve = (m) => (m === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : m);
 
-        const initialMode = stored === 'dark' || stored === 'light' || stored === 'system' ? stored : 'dark';
+        const initialMode = stored === 'dark' || stored === 'light' || stored === 'system' ? stored : 'light';
         setModeState(initialMode);
         const resolved = resolve(initialMode);
         setTheme(resolved);
@@ -38,7 +36,7 @@ export function ThemeProvider({ children }) {
 
         // Keep tracking OS changes live while mode is 'system'.
         const handleSystemChange = (e) => {
-            const currentMode = localStorage.getItem('themeMode') || 'dark';
+            const currentMode = localStorage.getItem('themeMode') || 'light';
             if (currentMode === 'system') {
                 const next = e.matches ? 'dark' : 'light';
                 setTheme(next);

@@ -194,7 +194,6 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1">Step 1: Pick up</div>
                <div className="text-lg font-black text-ink leading-tight">{order.pickup_name}</div>
-               {isHeadingToPickup && <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} />}
             </div>
           </div>
           <div className={`flex items-start gap-5 relative transition-opacity ${isHeadingToPickup ? 'opacity-30' : 'opacity-100'}`}>
@@ -203,18 +202,9 @@ export default function ActiveJobPage() {
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-ink leading-tight mb-2">{order.dropoff_name}</div>
                <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
-               {!isHeadingToPickup && <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} />}
             </div>
           </div>
         </div>
-
-        {/* Package photo - shown once picked up so the rider can confirm
-            they're carrying the right item */}
-        {!isHeadingToPickup && order.package_photo_url && (
-          <div className="rounded-2xl overflow-hidden border border-white/10">
-            <img src={order.package_photo_url} alt="Package" className="w-full h-32 object-cover" />
-          </div>
-        )}
 
         {/* Contact Actions */}
         <div className="grid grid-cols-2 gap-4">
@@ -231,35 +221,6 @@ export default function ActiveJobPage() {
               <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">Call Receiver</span>
            </a>
         </div>
-
-        {/* Delivery photo - encouraged, not required, right before the final
-            confirm. Cheap insurance for a "no one home" or "wrong item"
-            dispute later, without blocking a rider's income over an optional
-            step they may not always be able to do (gate handoffs, etc). */}
-        {order.status === 'in_transit' && (
-          <div>
-            <input ref={deliveryPhotoInputRef} type="file" accept="image/*" capture="environment" onChange={handleDeliveryPhotoSelect} className="hidden" id="delivery-photo-input" />
-            {deliveryPhotoUrl ? (
-              <div className="relative rounded-2xl overflow-hidden border border-emerald-500/30">
-                <img src={deliveryPhotoUrl} alt="Delivery proof" className="w-full h-28 object-cover" />
-                <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-emerald-500 text-charcoal-950 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
-                  <CheckCircle2 size={11} /> Saved
-                </div>
-                <button onClick={() => setDeliveryPhotoUrl(null)} className="absolute top-2 left-2 w-7 h-7 bg-charcoal-950/80 rounded-lg flex items-center justify-center text-ink">
-                  <X size={13} />
-                </button>
-              </div>
-            ) : (
-              <label htmlFor="delivery-photo-input" className="flex items-center justify-center gap-2 py-4 bg-white/5 border border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all">
-                {uploadingDeliveryPhoto ? (
-                  <><Loader2 size={16} className="animate-spin text-emerald-500" /> <span className="text-charcoal-400 text-xs font-bold">Uploading...</span></>
-                ) : (
-                  <><Camera size={16} className="text-charcoal-500" /> <span className="text-charcoal-400 text-xs font-bold">Add a delivery photo (recommended)</span></>
-                )}
-              </label>
-            )}
-          </div>
-        )}
 
         {/* Progress Action - SLIDE TO CONFIRM */}
         <div className="pt-4">
