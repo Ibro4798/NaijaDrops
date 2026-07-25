@@ -7,6 +7,7 @@ import {
   ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2, Sparkles
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { estimateSizeFromFile } from "@/utils/clientSizeEstimate";
 
 const DRAFT_KEY = "nd_order_draft";
 
@@ -127,9 +128,20 @@ export default function Step2Page() {
             setSize(result.size);
             setSizeSource("ai");
             setEstimateReasoning(result.reasoning);
+            return;
           }
-          // On failure, we simply say nothing - manual sizing already works
-          // fine and always did, this is a bonus when it works.
+
+          // Server estimate unavailable (no ANTHROPIC_API_KEY, rate limit,
+          // network issue, etc). Fall back to a free, on-device guess using
+          // TensorFlow.js + COCO-SSD instead of giving up silently.
+          const clientResult = await estimateSizeFromFile(file);
+          if (clientResult.success) {
+            setSize(clientResult.size);
+            setSizeSource("client-cv");
+            setEstimateReasoning(clientResult.reasoning);
+          }
+          // If that also fails, we say nothing - manual sizing already
+          // works fine and always did, this is a bonus when it works.
         } catch {
           // Same as above - silent fallback to manual sizing.
         } finally {
@@ -265,6 +277,11 @@ export default function Step2Page() {
             {sizeSource === "ai" && (
               <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
                 <Sparkles size={10} /> Estimated from photo
+              </span>
+            )}
+            {sizeSource === "client-cv" && (
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
+                <Sparkles size={10} /> Estimated on-device
               </span>
             )}
           </div>
