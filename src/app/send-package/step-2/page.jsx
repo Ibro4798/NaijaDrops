@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { estimateSizeFromFile } from "@/utils/clientSizeEstimate";
+import imageCompression from "browser-image-compression";
 
 const DRAFT_KEY = "nd_order_draft";
 
@@ -108,16 +109,27 @@ export default function Step2Page() {
     setEstimateReasoning(null);
 
     try {
+      // Phone camera photos routinely come in at 4-10MB, well over the
+      // delivery-photos bucket's size limit. Compress first (same settings
+      // used for rider onboarding docs elsewhere in the app) so uploads
+      // stop failing on large images, and reuse the compressed copy for
+      // both the upload and the size estimate below - faster and smaller.
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      });
+
       // Upload the actual photo for the rider to see later, and run the
       // (much smaller, resized) version through the size-estimate API in
       // parallel - neither one blocks the other.
       const fileName = `package_${Date.now()}.jpg`;
-      const uploadPromise = supabase.storage.from("delivery-photos").upload(fileName, file, { contentType: file.type || "image/jpeg" });
+      const uploadPromise = supabase.storage.from("delivery-photos").upload(fileName, compressedFile, { contentType: "image/jpeg" });
 
       const estimatePromise = (async () => {
         setEstimating(true);
         try {
-          const base64 = await fileToResizedBase64(file);
+          const base64 = await fileToResizedBase64(compressedFile);
           const res = await fetch("/api/estimate-package", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -134,7 +146,7 @@ export default function Step2Page() {
           // Server estimate unavailable (no ANTHROPIC_API_KEY, rate limit,
           // network issue, etc). Fall back to a free, on-device guess using
           // TensorFlow.js + COCO-SSD instead of giving up silently.
-          const clientResult = await estimateSizeFromFile(file);
+          const clientResult = await estimateSizeFromFile(compressedFile);
           if (clientResult.success) {
             setSize(clientResult.size);
             setSizeSource("client-cv");
