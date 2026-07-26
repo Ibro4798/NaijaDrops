@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Instagram, Mail, Phone, ArrowLeft, MessageCircle, Clock, MapPin } from "lucide-react";
+import { Instagram, Phone, ArrowLeft, MessageCircle, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -23,14 +23,6 @@ export default function Contact() {
       link: "https://www.instagram.com/naija.drops?igsh=bW5nN3ExbXJrZGo4",
       label: "@naija.drops",
       color: "bg-pink-50 text-pink-700"
-    },
-    {
-      name: "Email Us",
-      icon: <Mail className="w-8 h-8 text-blue-600" />,
-      description: "Send us a detailed message",
-      link: "mailto:yahaya.usama@naijadrops.tech",
-      label: "yahaya.usama@naijadrops.tech",
-      color: "bg-blue-50 text-blue-700"
     },
     {
       name: "Call Support",
