@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
-import { getReliableLocation } from '@/utils/geolocation';
+import { getReliableLocation, getCurrentPositionStandard } from '@/utils/geolocation';
 import { calculateDistance } from '@/utils/distance';
 import { PRICING_RATES } from '@/utils/constants';
 import { 
@@ -132,25 +132,20 @@ export default function CreateDelivery() {
     setMapTarget(null);
   };
 
-  // FIX: this used to try getCurrentPositionStandard() first - a bare
-  // one-shot navigator.geolocation.getCurrentPosition() call with a flat
-  // 10s timeout and zero fallback - and only reached the good, tiered
-  // getReliableLocation() (GPS -> better GPS reading -> IP fallback) in a
-  // catch block. On weak/indoor signal (common in Kano) that meant eating
-  // the full 10s timeout on the weak attempt before ever trying the
-  // reliable one, which is exactly what made this button feel like it
-  // "failed a lot" / was slow. Every "use my location" button in the app
-  // now calls the same getReliableLocation() helper directly.
   const useCurrentLocation = async (slot) => {
     setGpsStatus({ slot, loading: true });
     try {
-        const location = await getReliableLocation();
+        const location = await getCurrentPositionStandard();
         if (location) {
             setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
             setActiveModal(slot);
         }
     } catch (err) {
-        console.error('Location lookup failed:', err);
+        const location = await getReliableLocation();
+        if (location) {
+            setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
+            setActiveModal(slot);
+        }
     } finally {
         setGpsStatus({ slot: null, loading: false });
     }
@@ -224,13 +219,7 @@ export default function CreateDelivery() {
         console.error('Dispatch request failed:', dispatchErr);
       }
 
-      // FIX: this used to redirect to /vendor/history, a plain list page
-      // with no live status at all - the vendor never actually saw the
-      // "finding a rider / expanding search radius" screen that already
-      // exists at /tracking/[orderId]. Sending them there instead means
-      // they watch the real search happen instead of guessing from a
-      // static "pending" row in a list.
-      router.push(`/tracking/${data.id}`);
+      router.push(`/vendor/history`);
     } catch (err) {
       console.error(err);
       setSubmitError(err.message);

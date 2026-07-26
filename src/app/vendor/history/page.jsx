@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { ArrowLeft, Clock, MapPin, Package, History as HistoryIcon, ChevronRight, Navigation } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Package, History as HistoryIcon, ChevronRight, Navigation, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -12,6 +12,9 @@ export default function VendorHistoryPage() {
     const supabase = createClient();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [vendorId, setVendorId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     useEffect(() => {
         async function fetchHistory() {
@@ -34,6 +37,7 @@ export default function VendorHistoryPage() {
                     setLoading(false);
                     return;
                 }
+                setVendorId(vendorProfile.id);
 
                 const { data, error } = await supabase
                     .from('orders')
@@ -60,6 +64,30 @@ export default function VendorHistoryPage() {
             default: return 'bg-white/10 text-charcoal-400 border-white/10';
         }
     };
+
+    // Cancelled orders are just noise once they're done - the vendor asked to
+    // be able to clear them out so only real (delivered / still in-flight)
+    // history remains. Scoped to vendor_id again here even though RLS
+    // already allows it, so this can never touch another vendor's row.
+    async function handleDeleteCancelled(orderId) {
+        setDeletingId(orderId);
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId)
+                .eq('vendor_id', vendorId)
+                .eq('status', 'cancelled');
+            if (error) throw error;
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+        } catch (err) {
+            console.error("Failed to delete order:", err);
+            alert("Couldn't delete this order. Try again.");
+        } finally {
+            setDeletingId(null);
+            setConfirmDeleteId(null);
+        }
+    }
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -121,56 +149,102 @@ export default function VendorHistoryPage() {
             ) : (
                 <div className="space-y-4">
                     {orders.map((order) => (
-                        <Link 
-                            href={`/tracking/${order.id}`} 
+                        <div
                             key={order.id}
-                            className="group block bg-white/[0.03] hover:bg-white/[0.05] rounded-[2rem] p-6 border border-white/10 transition-all hover:border-emerald-500/30 overflow-hidden relative"
+                            className="group relative bg-white/[0.03] hover:bg-white/[0.05] rounded-[2rem] border border-white/10 transition-all hover:border-emerald-500/30 overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 p-6 flex flex-col items-end">
-                                <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${getStatusStyle(order.status)}`}>
-                                    {order.status}
+                            <Link
+                                href={`/tracking/${order.id}`}
+                                className="block p-6"
+                            >
+                                {/* FIX: the status pill + price used to be absolutely
+                                    positioned over this row with no reserved space,
+                                    so on anything narrower than a wide tablet the
+                                    package icon/title and the price/status pill
+                                    physically overlapped each other. This now lays
+                                    out as a normal flex row - title truncates and
+                                    the price/status block keeps a fixed width next
+                                    to it instead of floating on top. */}
+                                <div className="flex items-start justify-between gap-3 mb-6">
+                                    <div className="flex items-start gap-4 min-w-0">
+                                        <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
+                                            <Package size={24} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1 truncate">
+                                                ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
+                                            </div>
+                                            <h3 className="text-lg font-black text-ink font-outfit uppercase tracking-tight truncate">{order.item_category || 'General Package'}</h3>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border whitespace-nowrap ${getStatusStyle(order.status)}`}>
+                                            {order.status}
+                                        </div>
+                                        <div className="text-xl font-black text-ink italic tracking-tighter whitespace-nowrap">₦{order.agreed_price?.toLocaleString()}</div>
+                                    </div>
                                 </div>
-                                <div className="mt-2 text-2xl font-black text-ink italic tracking-tighter">₦{order.agreed_price?.toLocaleString()}</div>
-                            </div>
 
-                            <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                                    <Package size={24} />
-                                </div>
-                                <div>
-                                    <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1">
-                                        ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-6">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 rounded-lg bg-charcoal-900 flex items-center justify-center text-emerald-500 border border-white/5 shrink-0">
+                                            <MapPin size={16} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit">Origin</div>
+                                            <div className="text-sm font-bold text-ink truncate">{order.pickup_name}</div>
+                                        </div>
                                     </div>
-                                    <h3 className="text-lg font-black text-ink font-outfit uppercase tracking-tight">{order.item_category || 'General Package'}</h3>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 rounded-lg bg-charcoal-900 flex items-center justify-center text-emerald-500 border border-white/5 shrink-0">
+                                            <Navigation size={16} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit italic">Terminal</div>
+                                            <div className="text-sm font-bold text-ink truncate">{order.dropoff_name}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-charcoal-900 flex items-center justify-center text-emerald-500 border border-white/5">
-                                        <MapPin size={16} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit">Origin</div>
-                                        <div className="text-sm font-bold text-ink truncate max-w-[200px]">{order.pickup_name}</div>
-                                    </div>
+                                <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-charcoal-400 group-hover:text-emerald-500 transition-colors">
+                                    <span className="truncate">Rider ID: {order.rider_id ? order.rider_id.slice(0, 8) : 'AWAITING ASSIGNMENT'}</span>
+                                    <div className="flex items-center gap-2 shrink-0">View Analysis <ChevronRight size={14} /></div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-charcoal-900 flex items-center justify-center text-emerald-500 border border-white/5">
-                                        <Navigation size={16} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <div className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest font-outfit italic">Terminal</div>
-                                        <div className="text-sm font-bold text-ink truncate max-w-[200px]">{order.dropoff_name}</div>
-                                    </div>
+                            </Link>
+
+                            {/* Only cancelled orders are deletable - delivered history
+                                and anything still in-flight stays put. */}
+                            {order.status === 'cancelled' && (
+                                <div className="px-6 pb-6 -mt-2">
+                                    {confirmDeleteId === order.id ? (
+                                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl p-3">
+                                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest flex-1">Delete this record?</span>
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); setConfirmDeleteId(null); }}
+                                                className="px-3 py-2 rounded-xl bg-white/5 text-charcoal-300 text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                Keep
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); handleDeleteCancelled(order.id); }}
+                                                disabled={deletingId === order.id}
+                                                className="px-3 py-2 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 disabled:opacity-60"
+                                            >
+                                                {deletingId === order.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                                Delete
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); setConfirmDeleteId(order.id); }}
+                                            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-charcoal-500 hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash2 size={12} /> Remove from history
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
-                            
-                            <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-charcoal-400 group-hover:text-emerald-500 transition-colors">
-                                <span>Rider ID: {order.rider_id ? order.rider_id.slice(0, 8) : 'AWAITING ASSIGNMENT'}</span>
-                                <div className="flex items-center gap-2">View Analysis <ChevronRight size={14} /></div>
-                            </div>
-                        </Link>
+                            )}
+                        </div>
                     ))}
                 </div>
             )}

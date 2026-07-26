@@ -28,7 +28,6 @@ import {
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { warmMapBundle } from "@/utils/warmMapBundle";
-import { getReliableLocation } from "@/utils/geolocation";
 
 const KANO_CENTER = { lat: 12.0022, lng: 8.5920 };
 
@@ -321,16 +320,12 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
 
-    // FIX: standardized on the same reliable/tiered location helper used
-    // everywhere else in the app (GPS -> better GPS reading -> IP
-    // fallback) instead of a bare getCurrentPosition() call with no
-    // timeout and no fallback, which could hang indefinitely on a weak
-    // signal and never resolve at all. This is a passive background fetch
-    // (no button, no error shown) so it just quietly does nothing if
-    // location truly can't be resolved.
-    getReliableLocation().then(loc => {
-      if (loc) setUserLocation({ lat: loc.lat, lng: loc.lng });
-    });
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      );
+    }
   }, []);
 
   const handleUpdateProfile = async (name, avatar) => {

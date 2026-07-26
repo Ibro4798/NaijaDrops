@@ -6,7 +6,6 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
   const [customOffer, setCustomOffer] = useState(order?.agreed_price ? parseInt(order.agreed_price) : 0);
   const [showDetails, setShowDetails] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
-  const [confirmingAccept, setConfirmingAccept] = useState(false);
 
   if (!order) return null;
 
@@ -82,96 +81,13 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
            </div>
         </div>
 
-        {/* Tap-to-expand full details - the collapsed card above only ever
-            showed price, size, distance and the two addresses. The rider
-            had no way to see item description, delivery notes, or recipient
-            info before committing. Tapping this bar reveals everything else
-            on the order without cluttering the default view. */}
-        <button
-          type="button"
-          onClick={() => setShowDetails(v => !v)}
-          className="w-full flex items-center justify-center gap-2 py-3 mb-6 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-charcoal-400 text-[10px] font-black uppercase tracking-widest transition-all"
+        {/* Primary Action */}
+        <button 
+          onClick={onAcceptBase}
+          className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-[0.25em] shadow-glow transition-all active:scale-95 flex items-center justify-center gap-3"
         >
-          {showDetails ? <>Hide Full Details <ChevronUp size={14} /></> : <>View Full Details <ChevronDown size={14} /></>}
+          Accept Signal <ChevronRight size={24} />
         </button>
-
-        <AnimatePresence initial={false}>
-          {showDetails && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mb-8 space-y-4 bg-charcoal-950/60 border border-white/10 rounded-2xl p-5">
-                {order.item_description && (
-                  <div>
-                    <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Item</p>
-                    <p className="text-sm font-bold text-ink">{order.item_description}</p>
-                  </div>
-                )}
-                {order.delivery_type && (
-                  <div>
-                    <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Delivery Type</p>
-                    <p className="text-sm font-bold text-ink capitalize">{order.delivery_type}</p>
-                  </div>
-                )}
-                {order.recipient_name && (
-                  <div>
-                    <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Recipient</p>
-                    <p className="text-sm font-bold text-ink">{order.recipient_name}{order.recipient_phone ? ` • ${order.recipient_phone}` : ''}</p>
-                  </div>
-                )}
-                {order.pickup_details && (
-                  <div>
-                    <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Pickup Note</p>
-                    <p className="text-sm text-ink/90">{order.pickup_details}</p>
-                  </div>
-                )}
-                {order.dropoff_details && (
-                  <div>
-                    <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1">Dropoff Note</p>
-                    <p className="text-sm text-ink/90">{order.dropoff_details}</p>
-                  </div>
-                )}
-                {!order.item_description && !order.delivery_type && !order.recipient_name && !order.pickup_details && !order.dropoff_details && (
-                  <p className="text-sm text-charcoal-500 italic">No additional details provided for this job.</p>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Primary Action - now a two-step confirm. Tapping "Accept Signal"
-            no longer instantly commits the rider to the job; it opens a
-            second, explicit confirmation so a mis-tap doesn't lock someone
-            into a job they didn't mean to take. */}
-        {!confirmingAccept ? (
-          <button
-            onClick={() => setConfirmingAccept(true)}
-            className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-[0.25em] shadow-glow transition-all active:scale-95 flex items-center justify-center gap-3"
-          >
-            Accept Signal <ChevronRight size={24} />
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <div className="text-center text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">
-              Confirm - this job is yours once accepted
-            </div>
-            <button
-              onClick={onAcceptBase}
-              className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-[0.25em] shadow-glow transition-all active:scale-95 flex items-center justify-center gap-3"
-            >
-              <Check size={22} /> Yes, This Job Is Mine
-            </button>
-            <button
-              onClick={() => setConfirmingAccept(false)}
-              className="w-full py-4 bg-white/5 hover:bg-white/10 text-charcoal-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Full-scale photo viewer - true full size, not object-cover cropped,

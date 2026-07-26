@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, MapPin, Package, CheckCircle2, Clock, MessageCircle, Star, Share2, Printer, Radar, X, AlertTriangle, CreditCard } from 'lucide-react';
+import { Loader2, MapPin, Package, CheckCircle2, Clock, MessageCircle, Star, Share2, Printer, Radar, X, AlertTriangle } from 'lucide-react';
 import MapCanvas from '@/components/MapCanvas';
 import OrderChat from '@/components/OrderChat';
 import ReviewModal from '@/components/ReviewModal';
@@ -34,7 +34,6 @@ export default function TrackingPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const expandPollRef = useRef(null);
 
   useEffect(() => {
     let channel;
@@ -77,68 +76,6 @@ export default function TrackingPage() {
     load();
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [orderId, supabase]);
-
-  // FIX: the "expanding search radius" shown below only ever actually
-  // expanded if the sender happened to still have the send-package
-  // confirmation screen open in the same tab - vendor-created orders (and
-  // anyone who navigated away and came back to this tracking page instead)
-  // had no path that ever grew the radius or re-triggered dispatch, so
-  // riders outside the initial radius were never found even though the UI
-  // implied a live, growing search. This runs the same expand + re-dispatch
-  // cycle here instead, so it works from whichever screen is actually being
-  // watched. It only runs while genuinely waiting (pending/looking_for_driver)
-  // and stops itself as soon as the order leaves that state.
-  useEffect(() => {
-    if (!order || !orderId) return;
-    const waiting = order.status === 'pending' || order.status === 'looking_for_driver';
-    if (!waiting) {
-      if (expandPollRef.current) { clearInterval(expandPollRef.current); expandPollRef.current = null; }
-      return;
-    }
-    if (expandPollRef.current) return; // already polling
-
-    const triggerDispatch = async () => {
-      try {
-        await fetch('/api/dispatch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId })
-        });
-      } catch (e) {
-        console.error('Dispatch retry failed:', e);
-      }
-    };
-
-    expandPollRef.current = setInterval(async () => {
-      const { data: fresh, error: freshErr } = await supabase
-        .from('orders')
-        .select('status, broadcast_radius_km, max_broadcast_radius_km')
-        .eq('id', orderId)
-        .single();
-      if (freshErr || !fresh) return;
-      if (fresh.status !== 'pending' && fresh.status !== 'looking_for_driver') {
-        clearInterval(expandPollRef.current);
-        expandPollRef.current = null;
-        return;
-      }
-
-      const currentRadius = Number(fresh.broadcast_radius_km) || 1.5;
-      const maxRadius = Number(fresh.max_broadcast_radius_km) || 8;
-      if (currentRadius >= maxRadius) {
-        // Already at max - just keep re-broadcasting in case a rider has
-        // come online/back in range since the last attempt.
-        await triggerDispatch();
-        return;
-      }
-
-      await supabase.rpc('expand_order_radius', { p_order_id: orderId });
-      await triggerDispatch();
-    }, 15000);
-
-    return () => {
-      if (expandPollRef.current) { clearInterval(expandPollRef.current); expandPollRef.current = null; }
-    };
-  }, [order?.status, orderId, supabase]);
 
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -409,27 +346,6 @@ export default function TrackingPage() {
             </div>
           ))}
         </div>
-
-        {/* Payment gate: a rider is assigned but the vendor hasn't paid yet.
-            The rider's app is deliberately locked from heading to pickup
-            until payment_status flips to 'paid' (see /api/verify-payment),
-            so this needs to be impossible to miss here. */}
-        {isVendorView && order.status === 'matched' && order.payment_status !== 'paid' && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest">
-              <CreditCard size={16} /> Payment required
-            </div>
-            <p className="text-charcoal-300 text-sm leading-relaxed">
-              A rider has been assigned. Complete payment now so they can head to pickup - this order stays paused until then.
-            </p>
-            <button
-              onClick={() => router.push(`/payment?orderId=${order.id}`)}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
-            >
-              Pay ₦{order.agreed_price?.toLocaleString()} Now
-            </button>
-          </div>
-        )}
 
         <div className="border-t border-white/10 pt-6 space-y-3">
           <div className="flex items-center gap-2 text-sm"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold">{order.item_description}</span></div>

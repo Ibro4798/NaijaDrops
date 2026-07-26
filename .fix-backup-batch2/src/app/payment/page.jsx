@@ -43,16 +43,10 @@ function PaymentContent() {
                 setOrderData(order);
 
                 if (order.rider_id) {
-                    // FIX: orders.rider_id is a foreign key to riders.id, not
-                    // riders.user_id - querying by user_id here meant this
-                    // .single() lookup almost never matched anything, threw,
-                    // and got swallowed by the outer catch, so the assigned
-                    // rider's name silently never showed up (fell back to
-                    // the generic "Carrier" label instead).
                     const { data: driver, error: driverErr } = await supabase
                         .from('riders')
                         .select('*, users(full_name)')
-                        .eq('id', order.rider_id)
+                        .eq('user_id', order.rider_id)
                         .single();
                     
                     if (driverErr) throw driverErr;
@@ -108,7 +102,7 @@ function PaymentContent() {
             setIsProcessing(false);
 
             setTimeout(() => {
-                router.push(`/tracking/${orderId}`);
+                router.push(`/track/${orderId}`);
             }, 2000);
         } catch (err) {
             console.error(err);
@@ -117,41 +111,34 @@ function PaymentContent() {
         }
     };
 
-    // FIX: this used to do its own separate update - setting status:
-    // 'confirmed' (not a real value anywhere in the order status machine)
-    // and never touching payment_status at all. That meant paying through
-    // the OPay mock flow left payment_status stuck on 'unpaid' forever,
-    // so the rider's payment gate never unlocked and this page's own
-    // redirect target (/track/...) was also a dead route. Now it goes
-    // through the same /api/verify-payment endpoint the real Paystack path
-    // uses, with a mock reference - that endpoint already has a built-in
-    // dev fallback (simulateSuccess) for whenever PAYSTACK_SECRET_KEY isn't
-    // configured, so both payment paths now converge on one source of
-    // truth for marking an order paid.
     const handleMockPaymentSuccess = async () => {
         setIsProcessing(true);
-        try {
-            const reference = `ND_OPAY_${Date.now()}_${orderId.slice(0, 5)}`;
-            const verifyRes = await fetch('/api/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference, orderId })
-            });
-            const verifyData = await verifyRes.json();
-            if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.error || 'Verification failed');
+        const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
 
-            setShowGateway(null);
-            setIsSuccess(true);
-            setIsProcessing(false);
+        setTimeout(async () => {
+            try {
+                const { error: updateErr } = await supabase
+                    .from('orders')
+                    .update({
+                        status: 'confirmed',
+                        delivery_pin: generatedPin
+                    })
+                    .eq('id', orderId);
 
-            setTimeout(() => {
-                router.push(`/tracking/${orderId}`);
-            }, 2000);
-        } catch (err) {
-            console.error(err);
-            alert(`Payment verification failed: ${err.message}`);
-            setIsProcessing(false);
-        }
+                if (updateErr) throw updateErr;
+
+                setShowGateway(null);
+                setIsSuccess(true);
+                setIsProcessing(false);
+
+                setTimeout(() => {
+                    router.push(`/track/${orderId}`);
+                }, 2000);
+            } catch (err) {
+                console.error(err);
+                setIsProcessing(false);
+            }
+        }, 1500);
     };
 
     const handleCancelOrder = async () => {
