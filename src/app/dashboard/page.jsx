@@ -204,16 +204,6 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
               <span className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest">Support</span>
            </div>
 
-           <a href="mailto:yahaya.usama@naijadrops.tech" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-300 transition-all">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                <FileText size={20} />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-sm">Contact Support</div>
-                <div className="text-[10px] opacity-60">yahaya.usama@naijadrops.tech</div>
-              </div>
-           </a>
-
            <a href="https://wa.me/2349118267433" target="_blank" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-emerald-500/10 text-emerald-400 transition-all">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                 <Phone size={20} />
