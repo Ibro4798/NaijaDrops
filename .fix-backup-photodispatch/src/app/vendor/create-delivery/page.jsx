@@ -195,30 +195,7 @@ export default function CreateDelivery() {
 
       const { data, error } = await supabase.from('orders').insert(orderData).select().single();
       if (error) throw error;
-
-      // FIX: this insert used to be the last step - the order was created
-      // but nothing ever told the dispatch engine about it, so it just sat
-      // in the DB as "pending" forever and no rider ever saw it. The
-      // send-package (customer) flow already calls /api/dispatch after
-      // creating its order; the vendor flow needs the same trigger, or
-      // vendor-created jobs never broadcast to riders at all.
-      try {
-        const dispatchRes = await fetch('/api/dispatch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: data.id })
-        });
-        const dispatchJson = await dispatchRes.json();
-        if (dispatchJson && (dispatchJson.success === false || dispatchJson.error)) {
-          // Order was created successfully either way - surface the dispatch
-          // problem but don't block navigation on it, matching how
-          // send-package handles the same failure mode.
-          console.error('Dispatch failed after order creation:', dispatchJson.message || dispatchJson.error);
-        }
-      } catch (dispatchErr) {
-        console.error('Dispatch request failed:', dispatchErr);
-      }
-
+      
       router.push(`/vendor/history`);
     } catch (err) {
       console.error(err);

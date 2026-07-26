@@ -89,33 +89,6 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
           Accept Signal <ChevronRight size={24} />
         </button>
       </div>
-
-      {/* Full-scale photo viewer - true full size, not object-cover cropped,
-          so the rider can actually judge what they're picking up. */}
-      <AnimatePresence>
-        {photoExpanded && order.package_photo_url && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPhotoExpanded(false)}
-            className="fixed inset-0 z-[200] bg-charcoal-950/95 backdrop-blur-md flex items-center justify-center p-6"
-          >
-            <button
-              onClick={() => setPhotoExpanded(false)}
-              className="absolute top-6 right-6 w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-ink"
-            >
-              <X size={20} />
-            </button>
-            <img
-              src={order.package_photo_url}
-              alt="Package full size"
-              className="max-w-full max-h-full object-contain rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
