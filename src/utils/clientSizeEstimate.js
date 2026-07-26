@@ -2,24 +2,24 @@
 
 /**
  * Client-side, no-API-key package size estimator, calibrated for a
- * tricycle-only delivery fleet.
+ * motorcycle-only delivery fleet.
  *
  * Loads TensorFlow.js + the pretrained COCO-SSD object detection model from
  * a CDN (once per page load, cached on `window`), runs it entirely in the
  * vendor's browser, and maps what it sees into Small / Medium / Large - or
- * flags it as likely too big for a single tricycle trip.
+ * flags it as likely too big for a single motorcycle trip.
  *
  * v3 changes:
  *  - Combines ALL confident detections into one bounding region instead of
  *    trusting a single top guess, which is more robust for photos with
  *    several visible items.
- *  - Adds an `oversizedForTricycle` signal for object categories that a
- *    keke's cargo tray genuinely cannot carry (fridge, bed, couch, dining
- *    table, motorcycle) - previously these silently landed in "Large" as if
- *    deliverable. The threshold is intentionally generous: it only fires
- *    for categories that are unambiguous, since a false "too big" costs a
- *    bookable job, while an occasional under-estimate just costs the rider
- *    a bit of extra room.
+ *  - Adds an `oversizedForBike` signal for object categories that
+ *    a dispatch bike genuinely cannot carry (fridge, bed, couch, dining
+ *    table, another bicycle/motorcycle) - previously these silently landed
+ *    in "Large" as if deliverable. The threshold is intentionally generous:
+ *    it only fires for categories that are unambiguous, since a false "too
+ *    big" costs a bookable job, while an occasional under-estimate just
+ *    costs the rider a bit of extra strapping.
  *
  * Still a heuristic, not a measurement - stated plainly, same as before:
  *  - COCO-SSD only recognizes ~90 everyday object categories and has no
@@ -36,7 +36,7 @@
  *
  * Returns the same { success, size, reasoning } shape as
  * /api/estimate-package, plus `source: "client-cv"` and
- * `oversizedForTricycle`, so callers can treat both interchangeably.
+ * `oversizedForBike`, so callers can treat both interchangeably.
  */
 
 const TFJS_SRC = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
@@ -87,13 +87,16 @@ function getModel() {
 // Known COCO-SSD categories mapped to a delivery bucket. Anything not
 // listed here falls through to the frame-coverage heuristic below instead.
 //
-// A Keke Napep's rated payload runs roughly 250-400kg depending on model
-// (rider + fuel + cargo combined, not one parcel alone), and its open cargo
-// tray comfortably fits things up to roughly a large suitcase or a
-// mid-size generator. "oversized" is reserved for categories that plainly
-// exceed that - a full-size fridge, bed frame, dining table, or a second
-// motor vehicle - not just "big." Kept deliberately short and generous:
-// when in doubt, an item stays in "large" rather than getting turned away.
+// Nigeria's Courier and Logistics Services (Operations) Regulations 2020
+// legally define "Courier" as door-to-door cargo of 0.5-50kg - anything
+// heavier is "Logistics" (haulage), a different service class entirely.
+// A solo rider strapping cargo to a bike's rear rack realistically tops
+// out well under that regulatory ceiling anyway, and we can't measure
+// weight from a photo either way, so "oversized" here is reserved for
+// categories that are obviously undeliverable on a motorcycle regardless
+// of weight - a full-size fridge, bed frame, dining table, or another
+// vehicle - not just "big." Kept deliberately short and generous: when in
+// doubt, an item stays in "large" rather than getting turned away.
 const CATEGORY_BUCKET = {
   cell_phone: "small",
   book: "small",
@@ -113,8 +116,8 @@ const CATEGORY_BUCKET = {
   skateboard: "medium",
   microwave: "medium",
   tv: "large",
-  bicycle: "large",
   chair: "large",
+  bicycle: "oversized",
   couch: "oversized",
   bed: "oversized",
   "dining_table": "oversized",
@@ -177,7 +180,7 @@ export async function estimateSizeOnDevice(imgEl) {
     const oversized = bucket === "oversized";
 
     const reasoning = oversized
-      ? `On-device guess: looks like "${best.class}" - this may be too big for one tricycle trip. Double-check before booking.`
+      ? `On-device guess: looks like "${best.class}" - this may be too big for one motorcycle trip. Double-check before booking.`
       : `On-device guess: looks like "${best.class}", about ${pct}% of the frame.`;
 
     return {
@@ -186,7 +189,7 @@ export async function estimateSizeOnDevice(imgEl) {
       // an oversized item still needs a size bucket selected, it just also
       // carries a warning the UI can choose to show.
       size: oversized ? "large" : bucket,
-      oversizedForTricycle: oversized,
+      oversizedForBike: oversized,
       reasoning,
       source: "client-cv",
       detectedLabel: best.class,

@@ -153,7 +153,7 @@ export default function Step2Page() {
             setSize(clientResult.size);
             setSizeSource("client-cv");
             setEstimateReasoning(clientResult.reasoning);
-            setOversizedWarning(!!clientResult.oversizedForTricycle);
+            setOversizedWarning(!!clientResult.oversizedForBike);
           }
           // If that also fails, we say nothing - manual sizing already
           // works fine and always did, this is a bonus when it works.
