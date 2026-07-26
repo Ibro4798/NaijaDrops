@@ -24,8 +24,8 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "NaijaDrops | Precise Logistics in Kano",
-  description: "The next-generation logistics platform for Kano. Drop a pin, send a load, track in real-time. No address needed.",
+  title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
+  description: "No more chasing riders on the phone. NaijaDrops brings trackable, reliable delivery to Kano vendors and customers. Launching August 10.",
   metadataBase: new URL('https://naijadrops.tech'),
   manifest: "/manifest.json",
   icons: {
@@ -33,12 +33,26 @@ export const metadata = {
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "NaijaDrops | Precise Logistics in Kano",
-    description: "Mapping out Kano seamlessly with Precise Pin logistics.",
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
+    description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
     url: 'https://naijadrops.tech',
     siteName: 'NaijaDrops',
     locale: 'en_NG',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'NaijaDrops — Reliable delivery, finally trackable. Launching August 10 in Kano.',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
+    description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
+    images: ['/og-image.png'],
   },
 };
 

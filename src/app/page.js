@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import ShareButton from "@/components/ui/ShareButton";
 
 const STEPS = [
   { icon: MapPin,     label: "Pin your locations",  sub: "Pickup & drop-off in seconds" },
@@ -123,6 +124,10 @@ export default function LandingPage() {
           <p className="text-charcoal-600 text-xs font-bold uppercase tracking-widest mt-4">
             No sign-up required to get a quote
           </p>
+
+          <div className="mt-6">
+            <ShareButton />
+          </div>
         </motion.div>
       </section>
 
