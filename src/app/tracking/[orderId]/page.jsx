@@ -386,9 +386,12 @@ export default function TrackingPage() {
 
       <div className="px-6 py-8 space-y-8">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          {/* FIX: text block had no min-w-0, so a longer status label had
+              nowhere to go but push against/under the 48px chat button on
+              narrow screens instead of truncating cleanly. */}
+          <div className="min-w-0">
             <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
-            <p className="text-ink font-black text-2xl font-outfit">{STATUS_LABELS[order.status] || order.status}</p>
+            <p className="text-ink font-black text-2xl font-outfit truncate">{STATUS_LABELS[order.status] || order.status}</p>
           </div>
           {isVendorView && (
             <button

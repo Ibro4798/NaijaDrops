@@ -11,6 +11,7 @@ import {
 import { getMapboxSuggestions, reverseGeocodeMapbox, getMapboxRoute } from "@/utils/mapbox";
 import { extractFirstUrl } from "@/utils/MapResolver";
 import { createClient } from "@/utils/supabase/client";
+import { getReliableLocation } from "@/utils/geolocation";
 
 const Map = dynamic(() => import("react-map-gl").then(m => m.default), { ssr: false });
 const Marker = dynamic(() => import("react-map-gl").then(m => m.Marker), { ssr: false });
@@ -248,25 +249,38 @@ export default function Step1Page() {
     setActiveInput(null);
   }
 
+  // FIX: this used to call navigator.geolocation.getCurrentPosition()
+  // directly with a flat 10s timeout and no fallback at all - if GPS didn't
+  // resolve cleanly (weak signal, indoors, first-run permission prompt
+  // eating into the timeout) the whole thing just failed with no recovery.
+  // Standardized on the shared getReliableLocation() helper used elsewhere
+  // in the app, which tries for a good GPS reading briefly and falls back
+  // to IP-based location rather than failing outright.
   async function handleUseMyLocation() {
     setGpsLoading(true);
     setGpsError(null);
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
+    try {
+      const loc = await getReliableLocation();
+      if (!loc) {
+        setGpsError("Couldn't get your location. Check your GPS/network and try again.");
+        setGpsLoading(false);
+        return;
+      }
+      const { lat, lng } = loc;
       const name = await reverseGeocodeMapbox(lat, lng, mapboxToken);
       const point = { name, lat, lng };
       setPickup(point);
       setPickupInput(name);
       setMapViewState(v => ({ ...v, longitude: lng, latitude: lat, zoom: 14 }));
-      setGpsLoading(false);
-    }, (err) => {
-      setGpsLoading(false);
+    } catch (err) {
       setGpsError(
-        err.code === err.PERMISSION_DENIED
+        err?.code === err?.PERMISSION_DENIED
           ? "Location access denied. Enable it in your browser settings and try again."
           : "Couldn't get your location. Check your GPS/network and try again."
       );
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    } finally {
+      setGpsLoading(false);
+    }
   }
 
   async function handleLinkPaste() {

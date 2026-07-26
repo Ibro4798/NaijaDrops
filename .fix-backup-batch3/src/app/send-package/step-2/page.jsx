@@ -99,13 +99,7 @@ export default function Step2Page() {
     }
   }, []);
 
-  // FIX: a package photo used to be optional - canContinue never checked
-  // packagePhotoUrl at all, so a rider could be asked to accept a job with
-  // zero visual on what they're picking up. Now it's required: the button
-  // stays disabled until a photo has actually finished uploading (not just
-  // been selected - packagePhotoUrl is only set once the upload succeeds).
-  const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8 && !!packagePhotoUrl;
-  const [photoUploadError, setPhotoUploadError] = useState(null);
+  const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8;
 
   async function handlePhotoSelect(e) {
     const file = e.target.files?.[0];
@@ -113,7 +107,6 @@ export default function Step2Page() {
 
     setPhotoPreview(URL.createObjectURL(file));
     setUploadingPhoto(true);
-    setPhotoUploadError(null);
     setEstimateReasoning(null);
 
     try {
@@ -176,16 +169,7 @@ export default function Step2Page() {
         const { data: publicUrlData } = supabase.storage.from("delivery-photos").getPublicUrl(fileName);
         setPackagePhotoUrl(publicUrlData.publicUrl);
       } else {
-        // FIX: a photo is now required to continue, so silently letting the
-        // rider proceed without one (the old alert said "you can still
-        // continue without it") is no longer correct. Clear the preview so
-        // the disabled Continue button and the upload prompt honestly
-        // reflect that no photo is actually attached yet, and show an
-        // inline error with a retry affordance instead of a blocking alert.
-        setPhotoPreview(null);
-        setPackagePhotoUrl("");
-        setPhotoUploadError("Couldn't upload the photo. Please try again - a package photo is required.");
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        alert("Couldn't upload the photo. You can still continue without it.");
       }
     } finally {
       setUploadingPhoto(false);
@@ -198,7 +182,6 @@ export default function Step2Page() {
     setEstimateReasoning(null);
     setSizeSource(null);
     setOversizedWarning(false);
-    setPhotoUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -271,7 +254,7 @@ export default function Step2Page() {
       <div className="flex-1 px-5 overflow-y-auto pb-6 space-y-6">
         {/* Package Photo */}
         <div>
-          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Photo <span className="text-emerald-500 normal-case tracking-normal">- required</span></label>
+          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Photo</label>
           <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" id="package-photo-input" />
           {photoPreview ? (
             <div className="relative rounded-2xl overflow-hidden border border-white/10">
@@ -292,13 +275,8 @@ export default function Step2Page() {
             <label htmlFor="package-photo-input" className="flex flex-col items-center justify-center gap-2 py-8 bg-charcoal-900 border border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all">
               <Camera size={24} className="text-charcoal-500" />
               <span className="text-charcoal-400 text-xs font-bold">Add a photo - we'll suggest a size for you</span>
-              <span className="text-charcoal-600 text-[10px]">Required - so your rider knows what they're picking up</span>
+              <span className="text-charcoal-600 text-[10px]">Optional, but helps set the right price</span>
             </label>
-          )}
-          {photoUploadError && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border bg-red-500/10 border-red-500/20">
-              <span className="text-red-400 text-xs font-medium leading-relaxed">{photoUploadError}</span>
-            </div>
           )}
           {estimateReasoning && (
             <div className={`mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border ${oversizedWarning

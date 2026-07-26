@@ -28,6 +28,7 @@ import {
 import Map, { Marker } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { warmMapBundle } from "@/utils/warmMapBundle";
+import { getReliableLocation } from "@/utils/geolocation";
 
 const KANO_CENTER = { lat: 12.0022, lng: 8.5920 };
 
@@ -203,16 +204,6 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
               <span className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest">Support</span>
            </div>
 
-           <a href="mailto:yahaya.usama@naijadrops.tech" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-300 transition-all">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                <FileText size={20} />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-sm">Contact Support</div>
-                <div className="text-[10px] opacity-60">yahaya.usama@naijadrops.tech</div>
-              </div>
-           </a>
-
            <a href="https://wa.me/2349118267433" target="_blank" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-emerald-500/10 text-emerald-400 transition-all">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                 <Phone size={20} />
@@ -320,12 +311,16 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
 
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}
-      );
-    }
+    // FIX: standardized on the same reliable/tiered location helper used
+    // everywhere else in the app (GPS -> better GPS reading -> IP
+    // fallback) instead of a bare getCurrentPosition() call with no
+    // timeout and no fallback, which could hang indefinitely on a weak
+    // signal and never resolve at all. This is a passive background fetch
+    // (no button, no error shown) so it just quietly does nothing if
+    // location truly can't be resolved.
+    getReliableLocation().then(loc => {
+      if (loc) setUserLocation({ lat: loc.lat, lng: loc.lng });
+    });
   }, []);
 
   const handleUpdateProfile = async (name, avatar) => {

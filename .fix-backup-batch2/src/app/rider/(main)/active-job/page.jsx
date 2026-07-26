@@ -263,7 +263,25 @@ export default function ActiveJobPage() {
 
         {/* Progress Action - SLIDE TO CONFIRM */}
         <div className="pt-4">
-           {order.status === 'matched' && (
+           {/* FIX: previously a rider could slide straight to "picked up" the
+               moment a job was matched, with no payment step in between at
+               all. Now, once matched, the rider sees a locked "waiting for
+               payment" state until order.payment_status flips to 'paid'
+               (set server-side by /api/verify-payment once the vendor pays
+               on /payment). The realtime subscription above already updates
+               `order` in place, so this unlocks live without a refresh. */}
+           {order.status === 'matched' && order.payment_status !== 'paid' && (
+             <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-3">
+               <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                 <Loader2 size={22} className="animate-spin" />
+               </div>
+               <p className="text-amber-500 font-black text-sm uppercase tracking-widest">Waiting for vendor payment</p>
+               <p className="text-charcoal-400 text-xs leading-relaxed">
+                 The vendor needs to complete payment before you head to pickup. This will unlock automatically the moment it's confirmed.
+               </p>
+             </div>
+           )}
+           {order.status === 'matched' && order.payment_status === 'paid' && (
              <SlideToConfirm 
                text="Slide to confirm Pickup" 
                color="bg-amber-500" 

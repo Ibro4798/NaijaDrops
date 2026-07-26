@@ -24,24 +24,15 @@ export const loadPaystackScript = () => {
   });
 };
 
-export const initializePaystack = ({ email, amount, reference, onSuccess, onClose, onError }) => {
+export const initializePaystack = ({ email, amount, reference, onSuccess, onClose }) => {
   if (!window.PaystackPop) {
     console.error("Paystack script not loaded");
-    if (onError) onError("Payment gateway failed to load. Check your connection and try again.");
     return;
   }
 
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
-  // FIX: this used to only console.warn on a missing/placeholder key and
-  // then call PaystackPop.setup() anyway with an undefined/dummy key -
-  // Paystack's inline widget just fails silently in that case (no popup,
-  // no visible error), which is exactly why "Pay Now" looked like it did
-  // nothing. Now it stops before ever opening the iframe and reports a
-  // real, visible error back to the page instead.
   if (!publicKey || publicKey.includes('dummy')) {
-    console.error("NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY is missing or a placeholder - set it in .env.local (and in Vercel's Production env vars, then redeploy, since NEXT_PUBLIC_ vars are baked in at build time).");
-    if (onError) onError("Payments aren't configured yet on this deployment.");
-    return;
+    console.warn("Using placeholder Paystack key. Please set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY in .env.local");
   }
 
   const handler = window.PaystackPop.setup({

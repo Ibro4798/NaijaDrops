@@ -18,6 +18,7 @@ function PaymentContent() {
     const [driverData, setDriverData] = useState(null);
     const [orderData, setOrderData] = useState(null);
     const [method, setMethod] = useState('');
+    const [paystackError, setPaystackError] = useState(null);
     const [showGateway, setShowGateway] = useState(null); // 'paystack' | 'opay'
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -72,6 +73,7 @@ function PaymentContent() {
         if (!method) return;
 
         if (method === 'paystack') {
+            setPaystackError(null);
             const userEmail = orderData.user_id ? `${orderData.user_id}@naijadrops.com` : 'customer@naijadrops.com';
             
             initializePaystack({
@@ -83,6 +85,9 @@ function PaymentContent() {
                 },
                 onClose: () => {
                     console.log("Paystack closed");
+                },
+                onError: (message) => {
+                    setPaystackError(message);
                 }
             });
             return;
@@ -298,6 +303,13 @@ function PaymentContent() {
                                 transition={{ delay: 0.2 }}
                                 className="pt-4 space-y-6"
                             >
+                                {paystackError && (
+                                    <div className="flex items-start gap-2.5 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                                        <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={16} />
+                                        <p className="text-red-400 text-xs font-medium leading-relaxed">{paystackError}</p>
+                                    </div>
+                                )}
+
                                 <button 
                                     onClick={handleInitiatePayment}
                                     disabled={!method}

@@ -17,20 +17,26 @@ export default function IncomingOrderCard({ order, onAcceptBase, onCounterOffer,
       exit={!isEmbedded ? { y: 100, opacity: 0 } : { opacity: 0, y: 30 }}
       className={`${!isEmbedded ? 'fixed inset-x-6 bottom-[calc(8rem+var(--safe-bottom))] z-50' : 'relative w-full'} bg-charcoal-900 border border-white/10 rounded-[2.8rem] shadow-premium overflow-hidden transition-all`}
     >
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         {/* Header: Type and Price */}
-        <div className="flex justify-between items-start mb-10">
-           <div className="flex flex-col gap-1">
+        {/* FIX: on narrow phones (360-390px wide) the huge text-5xl price
+            next to the fixed 48px reject button had no min-w-0/shrink
+            handling, so a long price (e.g. 6+ digits) could push under or
+            crowd the button instead of just wrapping/shrinking. Padding
+            also dropped from p-8 to p-6 on small screens to give a bit
+            more breathing room. */}
+        <div className="flex justify-between items-start mb-10 gap-3">
+           <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow"></div>
+                 <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow shrink-0"></div>
                  <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
               </div>
-              <div className="text-5xl font-black text-white font-outfit tracking-tighter italic">₦{order.agreed_price?.toLocaleString()}</div>
+              <div className="text-4xl sm:text-5xl font-black text-white font-outfit tracking-tighter italic truncate">₦{order.agreed_price?.toLocaleString()}</div>
            </div>
            
            <button 
              onClick={onReject}
-             className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-charcoal-500 hover:text-white transition-all border border-white/5 active:scale-90"
+             className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-charcoal-500 hover:text-white transition-all border border-white/5 active:scale-90 shrink-0"
            >
              <X size={20} />
            </button>

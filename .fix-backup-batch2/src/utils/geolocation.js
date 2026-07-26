@@ -116,6 +116,13 @@ export async function getReliableLocation(onProgress) {
     });
 }
 /**
+ * @deprecated No longer used anywhere in the app as of this fix. This was a
+ * bare one-shot navigator.geolocation.getCurrentPosition() call with a flat
+ * 10s timeout and zero fallback - on weak/indoor GPS signal it just failed
+ * outright, which is what made "use my location" buttons feel unreliable.
+ * Every location button in the app now calls getReliableLocation() above
+ * instead. Left in place only in case anything outside this codebase still
+ * imports it directly - safe to delete once confirmed unused.
  * Industry Standard Geolocation (One-shot)
  * Used for "Use Current Location" buttons
  */
