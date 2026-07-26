@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, Clock, MapPin, Package, History as HistoryIcon, ChevronRight, Navigation } from 'lucide-react';
 import Link from 'next/link';
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function VendorHistoryPage() {
     const router = useRouter();
@@ -78,7 +79,32 @@ export default function VendorHistoryPage() {
             {loading ? (
                 <div className="space-y-4">
                     {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="bg-white/[0.03] rounded-[2rem] p-6 border border-white/10 h-32 animate-pulse" />
+                        <div key={i} className="bg-white/[0.03] rounded-[2rem] p-6 border border-white/10 space-y-6">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-4">
+                                    <Skeleton className="w-12 h-12 rounded-2xl shrink-0" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-2.5 w-32" />
+                                        <Skeleton className="h-5 w-40" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                    <Skeleton className="h-5 w-16 rounded-lg" />
+                                    <Skeleton className="h-6 w-20" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-6">
+                                {[1, 2].map((j) => (
+                                    <div key={j} className="flex items-center gap-3">
+                                        <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                                        <div className="space-y-1.5 flex-1">
+                                            <Skeleton className="h-2.5 w-12" />
+                                            <Skeleton className="h-3.5 w-28" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : orders.length === 0 ? (

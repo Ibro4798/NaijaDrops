@@ -200,3 +200,25 @@
 .leaflet-marker-icon {
     transition: transform 0.3s ease-in-out;
 }
+
+/* Skeleton loading shimmer - a sweeping highlight over a static base block.
+   Uses mix-blend-mode: overlay so the same gradient reads correctly in both
+   light and dark mode (lightens dark blocks, still visible on light ones)
+   without needing separate light/dark shimmer colors. */
+@keyframes skeleton-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+.skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    mix-blend-mode: overlay;
+    animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2 } from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
 import IncomingOrderCard from '@/components/rider/IncomingOrderCard';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import { getReliableLocation } from '@/utils/geolocation';
@@ -136,7 +137,38 @@ export default function RiderDashboard() {
     setJobs(jobs.filter(j => j.id !== order.id));
   }
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-32">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-14" />
+            <Skeleton className="h-7 w-24" />
+          </div>
+          <Skeleton className="h-12 w-32 rounded-2xl" />
+        </div>
+        <div className="space-y-6">
+          {[1, 2].map((i) => (
+            <div key={i} className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-12 h-12 rounded-2xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-2.5 w-1/3" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+              <div className="flex gap-3 pt-2">
+                <Skeleton className="h-10 flex-1 rounded-xl" />
+                <Skeleton className="h-10 flex-1 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (rider?.status !== 'approved') {
     const status = rider?.status;

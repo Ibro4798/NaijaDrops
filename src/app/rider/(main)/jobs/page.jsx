@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { MapPin, Clock, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Skeleton from "@/components/ui/Skeleton";
 
 export default function RiderJobsPage() {
   const [jobs, setJobs] = useState([]);
@@ -69,13 +70,9 @@ export default function RiderJobsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-ink flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500" />
-      </div>
-    );
-  }
+  // Full-page spinner gate removed - header/tabs render immediately now,
+  // list-level skeleton (below) handles the loading state instead.
+
 
   return (
     <div className="min-h-screen bg-black text-ink p-6 font-mono">
@@ -104,7 +101,23 @@ export default function RiderJobsPage() {
       </div>
 
       {/* Jobs List */}
-      {jobs.length > 0 ? (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-charcoal-900/40 border border-white/5 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Skeleton className="h-4 w-16 rounded" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Skeleton className="w-4 h-4 rounded-full" />
+                <Skeleton className="h-5 w-40" />
+              </div>
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      ) : jobs.length > 0 ? (
         <div className="space-y-4">
           {jobs.map((job) => (
             <div

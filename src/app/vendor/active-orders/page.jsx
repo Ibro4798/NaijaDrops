@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft, Package, MapPin, Clock, Loader2, X, ChevronRight, AlertTriangle } from "lucide-react";
+import Skeleton from "@/components/ui/Skeleton";
 import { cancelOrder } from "./actions";
 
 const STATUS_LABELS = {
@@ -137,7 +138,27 @@ export default function ActiveOrdersPage() {
 
       <div className="px-5 py-6 space-y-4">
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" /></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-4 h-4 rounded" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-4/5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-7 w-20 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20">
             <Package className="mx-auto text-charcoal-700 mb-4" size={40} />

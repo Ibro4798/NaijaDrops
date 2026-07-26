@@ -8,6 +8,7 @@ import MapCanvas from '@/components/MapCanvas';
 import OrderChat from '@/components/OrderChat';
 import ReviewModal from '@/components/ReviewModal';
 import { cancelOrder } from '@/app/vendor/active-orders/actions';
+import Skeleton from '@/components/ui/Skeleton';
 
 const STATUS_STEPS = ['pending', 'looking_for_driver', 'matched', 'picked_up', 'in_transit', 'delivered'];
 const STATUS_LABELS = {
@@ -92,7 +93,26 @@ export default function TrackingPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-charcoal-950"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-charcoal-950">
+        <Skeleton className="h-64 w-full rounded-none" />
+        <div className="px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-14" />
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-3 w-64" />
+            <Skeleton className="h-1.5 w-full rounded-full mt-3" />
+          </div>
+          <div className="border-t border-white/10 pt-6 space-y-4">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex justify-between"><Skeleton className="h-3 w-10" /><Skeleton className="h-3 w-32" /></div>
+            <div className="flex justify-between"><Skeleton className="h-3 w-10" /><Skeleton className="h-3 w-32" /></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (notFound || !order) {
     return (
