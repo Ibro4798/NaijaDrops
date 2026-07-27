@@ -96,13 +96,10 @@ export default function CreateDelivery() {
     }
   }, [pickup, dropoff, vehicleType, size]);
 
-  const latestSearchRef = useRef({});
-
   const handleSearchChange = (val, slot) => {
     setSearchInputs(prev => ({ ...prev, [slot]: val }));
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    latestSearchRef.current[slot] = val;
-
+    
     if (val.length < 2) {
       setSuggestions(prev => ({ ...prev, [slot]: [] }));
       return;
@@ -126,38 +123,6 @@ export default function CreateDelivery() {
           isWeb: true
         }));
         setSuggestions(prev => ({ ...prev, [slot]: [...localResults, ...webResults].slice(0, 5) }));
-
-        // FIX: falls back to an AI-assisted search only when both the
-        // hardcoded local list and Mapbox itself come up completely empty -
-        // this is exactly where colloquial/shorthand local names (e.g.
-        // "Brigade" for Brigade Market) were failing outright before. Claude
-        // only ever proposes a fuller name for Mapbox to re-geocode; it
-        // never supplies a coordinate itself, so an unrecognized query just
-        // yields nothing extra instead of a guessed pin.
-        if (localResults.length === 0 && webResults.length === 0 && val.trim().length >= 3) {
-          try {
-            const res = await fetch('/api/smart-location-search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: val, mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN }),
-            });
-            const data = await res.json();
-            if (latestSearchRef.current[slot] !== val) return; // stale
-            if (data.success && data.results?.length) {
-              const aiResults = data.results.map(s => ({
-                name: s.name,
-                area: s.description,
-                lat: s.lat,
-                lng: s.lng,
-                isWeb: true,
-                isAI: true
-              }));
-              setSuggestions(prev => ({ ...prev, [slot]: aiResults.slice(0, 5) }));
-            }
-          } catch (e) {
-            console.error('Smart location search failed:', e);
-          }
-        }
       } catch (e) {
         console.error("Search failed", e);
       } finally {
@@ -342,12 +307,7 @@ export default function CreateDelivery() {
                         {suggestions.pickup.map((loc, i) => (
                           <button key={i} onClick={() => handleSelectSuggestion(loc, 'pickup')} className="w-full p-4 text-left hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-3 transition-colors">
                             <MapPin size={14} className="text-emerald-500" />
-                            <div className="text-sm font-bold text-ink flex items-center gap-1.5">
-                              {loc.name}
-                              {loc.isAI && (
-                                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                              )}
-                            </div>
+                            <div className="text-sm font-bold text-ink">{loc.name}</div>
                           </button>
                         ))}
                       </div>
@@ -389,12 +349,7 @@ export default function CreateDelivery() {
                         {suggestions.dropoff.map((loc, i) => (
                           <button key={i} onClick={() => handleSelectSuggestion(loc, 'dropoff')} className="w-full p-4 text-left hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-3 transition-colors">
                             <MapPin size={14} className="text-emerald-500" />
-                            <div className="text-sm font-bold text-ink flex items-center gap-1.5">
-                              {loc.name}
-                              {loc.isAI && (
-                                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                              )}
-                            </div>
+                            <div className="text-sm font-bold text-ink">{loc.name}</div>
                           </button>
                         ))}
                       </div>

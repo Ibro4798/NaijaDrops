@@ -227,44 +227,15 @@ export default function Step1Page() {
   }, [pickup, dropoff]);
 
   // Search handler
-  const latestQuery = useRef({ pickup: "", dropoff: "" });
   async function handleSearch(val, type) {
     if (type === "pickup") { setPickupInput(val); setPickup(null); }
     else { setDropoffInput(val); setDropoff(null); }
-    latestQuery.current[type] = val;
     clearTimeout(searchTimeout.current);
     if (val.length < 2) { type === "pickup" ? setPickupSuggestions([]) : setDropoffSuggestions([]); return; }
     searchTimeout.current = setTimeout(async () => {
       const results = await getMapboxSuggestions(val, mapboxToken, { lat: mapViewState.latitude, lng: mapViewState.longitude });
       if (type === "pickup") setPickupSuggestions(results);
       else setDropoffSuggestions(results);
-
-      // FIX: direct Mapbox search comes back empty for a lot of real,
-      // well-known local names that just aren't in its index for Kano
-      // (e.g. "Brigade" for Brigade Market). Only in that empty-result
-      // case, fall back to an AI-assisted search that asks Claude to
-      // expand the shorthand into a fuller, geocoder-friendly name and
-      // re-queries Mapbox with that - Claude never supplies coordinates
-      // itself, so a wrong/unrecognized query just yields nothing extra
-      // rather than a guessed pin. This only fires on searches that were
-      // already failing outright, not on every keystroke.
-      if (results.length === 0 && val.trim().length >= 3) {
-        try {
-          const res = await fetch("/api/smart-location-search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: val, mapboxToken }),
-          });
-          const data = await res.json();
-          if (latestQuery.current[type] !== val) return; // stale - user kept typing
-          if (data.success && data.results?.length) {
-            if (type === "pickup") setPickupSuggestions(data.results);
-            else setDropoffSuggestions(data.results);
-          }
-        } catch (e) {
-          console.error("Smart location search failed:", e);
-        }
-      }
     }, 280);
   }
 
@@ -482,12 +453,7 @@ export default function Step1Page() {
                     className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
                     <MapPin className="text-charcoal-500 shrink-0 mt-0.5" size={14} />
                     <div>
-                      <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
-                        {s.name}
-                        {s.source === "ai-assisted" && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                        )}
-                      </div>
+                      <div className="text-ink text-sm font-semibold leading-tight">{s.name}</div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>
                     </div>
                   </button>
@@ -549,12 +515,7 @@ export default function Step1Page() {
                     className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
                     <MapPin className="text-emerald-500 shrink-0 mt-0.5" size={14} />
                     <div>
-                      <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
-                        {s.name}
-                        {s.source === "ai-assisted" && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                        )}
-                      </div>
+                      <div className="text-ink text-sm font-semibold leading-tight">{s.name}</div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>
                     </div>
                   </button>
