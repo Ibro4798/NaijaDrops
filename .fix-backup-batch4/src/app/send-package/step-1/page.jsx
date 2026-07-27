@@ -233,7 +233,7 @@ export default function Step1Page() {
     clearTimeout(searchTimeout.current);
     if (val.length < 2) { type === "pickup" ? setPickupSuggestions([]) : setDropoffSuggestions([]); return; }
     searchTimeout.current = setTimeout(async () => {
-      const results = await getMapboxSuggestions(val, mapboxToken, { lat: mapViewState.latitude, lng: mapViewState.longitude });
+      const results = await getMapboxSuggestions(val, mapboxToken);
       if (type === "pickup") setPickupSuggestions(results);
       else setDropoffSuggestions(results);
     }, 280);

@@ -21,28 +21,12 @@ const MapModal = dynamic(() => import('@/components/MapModal'), {
 
 const MiniRouteMap = dynamic(() => import('@/components/MiniRouteMap'), { ssr: false });
 
-// Small set of well-known Kano landmarks kept locally so the most common
-// searches suggest instantly (no network round-trip) while the fuller
-// Mapbox results load in behind them. Not meant to be exhaustive - just
-// covers the names people are most likely to type first.
 const KANO_LOCATIONS = [
   { name: "Kantin Kwari (Main)", area: "Fagge, Kano", lat: 11.9961, lng: 8.5182 },
   { name: "Sabon Gari Market", area: "Fagge, Kano", lat: 11.9655, lng: 8.5280 },
   { name: "BUK New Campus", area: "Gwarzo Road, Kano", lat: 11.9753, lng: 8.4166 },
-  { name: "BUK Old Campus", area: "Kabuga, Kano", lat: 11.9370, lng: 8.4700 },
   { name: "Nassarawa GRA", area: "Nassarawa, Kano", lat: 12.0022, lng: 8.5167 },
   { name: "Hotoro GRA", area: "Nassarawa, Kano", lat: 12.0375, lng: 8.4762 },
-  { name: "Murtala Mohammed Specialist Hospital", area: "Kano Municipal, Kano", lat: 12.0004, lng: 8.5220 },
-  { name: "Aminu Kano Teaching Hospital (AKTH)", area: "Zaria Road, Kano", lat: 11.9805, lng: 8.5292 },
-  { name: "Kano State Government House", area: "Kano Municipal, Kano", lat: 12.0018, lng: 8.5266 },
-  { name: "Murtala Mohammed International Airport", area: "Airport Road, Kano", lat: 12.0475, lng: 8.5245 },
-  { name: "Ado Bayero Mall", area: "Bompai, Kano", lat: 12.0028, lng: 8.5333 },
-  { name: "Kano Central Mosque (Jumu'a Masjid)", area: "Kano Municipal, Kano", lat: 12.0028, lng: 8.5140 },
-  { name: "Kofar Wambai Market", area: "Kano Municipal, Kano", lat: 11.9989, lng: 8.5150 },
-  { name: "Kurmi Market", area: "Kano Municipal, Kano", lat: 11.9994, lng: 8.5177 },
-  { name: "Kano State Secretariat", area: "Kano Municipal, Kano", lat: 12.0037, lng: 8.5233 },
-  { name: "Trade Fair Complex", area: "Zoo Road, Kano", lat: 11.9832, lng: 8.5178 },
-  { name: "Kano Race Course", area: "Kano Municipal, Kano", lat: 12.0056, lng: 8.5121 },
 ];
 
 export default function CreateDelivery() {
@@ -114,7 +98,7 @@ export default function CreateDelivery() {
       setIsSearching(prev => ({ ...prev, [slot]: true }));
       try {
         const { getMapboxSuggestions } = await import('@/utils/mapbox');
-        const mapboxSugs = await getMapboxSuggestions(val, process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN, mapTarget?.coords || null);
+        const mapboxSugs = await getMapboxSuggestions(val, process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
         const webResults = mapboxSugs.map(s => ({
           name: s.name,
           area: s.description,

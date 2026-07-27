@@ -10,39 +10,13 @@ const DEMO_LOCATION = {
     source: 'demo'
 };
 
-// FIX: this whole timing policy was backwards, and it's the actual reason
-// "use my location" was landing kilometers off. Two separate bugs:
-//
-// 1. The race against GPS was cut off after a flat 2.5s. Real GPS chips
-//    (especially a "cold start" - first fix after the phone's location
-//    radio has been idle) routinely take 5-15+ seconds to converge on
-//    anything better than a rough cell-tower-level estimate. Bailing at
-//    2.5s meant almost every call fell through to the IP fallback below
-//    instead of ever giving GPS a real chance.
-// 2. Worse, the fallback logic then EXPLICITLY PREFERRED that IP-based
-//    location over a real (if imperfect) GPS reading, as long as the GPS
-//    reading's accuracy wasn't under an unreasonably tight 200m. IP
-//    geolocation is only ever accurate to city-level - ipapi.co's own
-//    response is hardcoded to a flat 5000m (5km) accuracy figure here -
-//    and can be wildly wrong depending on the user's ISP/routing. A 250m
-//    or even 800m GPS reading is virtually always far closer to the truth
-//    than a 5km-accuracy IP guess, but the old code threw the GPS reading
-//    away in exactly that situation.
-//
-// Fixed policy: give GPS up to 9 seconds to converge (resolving instantly
-// the moment a genuinely good reading arrives), and once time is up, pick
-// whichever of {best GPS reading, IP location} actually has the smaller
-// (better) accuracy value instead of always trusting one source over the
-// other. IP is now only ever used as a true last resort - when GPS
-// produced nothing at all.
-const EXCELLENT_ACCURACY_M = 50;   // resolve immediately, waiting longer won't help
-const ACCEPTABLE_ACCURACY_M = 150; // good enough once time's up, no need for IP
-const MAX_WAIT_MS = 9000;          // real budget for GPS to actually converge
-
 export async function getReliableLocation(onProgress) {
     return new Promise(async (resolve) => {
+        const hasMapbox = typeof process !== 'undefined' && !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        
         let locationFound = false;
         let bestReading = null;
+        let pingsReceived = 0;
 
         const updateStatus = (msg) => {
             if (onProgress) onProgress(msg);
@@ -74,6 +48,7 @@ export async function getReliableLocation(onProgress) {
 
             const watchId = navigator.geolocation.watchPosition(
                 (pos) => {
+                    pingsReceived++;
                     if (!bestReading || pos.coords.accuracy < bestReading.accuracy) {
                         bestReading = {
                             lat: pos.coords.latitude,
@@ -84,7 +59,15 @@ export async function getReliableLocation(onProgress) {
                         updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
-                    if (pos.coords.accuracy < EXCELLENT_ACCURACY_M) {
+                    // FIX: previously required accuracy < 20m AND a second ping
+                    // before resolving early - on a phone that only ever reports
+                    // ~30-40m accuracy (common indoors/under cloud cover in Kano)
+                    // this condition never fired, so every single request paid
+                    // the full 5-second forced wait below. 50m is still a solid,
+                    // usable fix for picking a delivery address, and firing on
+                    // the very first ping (not just the second) saves real time
+                    // on a clean GPS lock.
+                    if (pos.coords.accuracy < 50) {
                         cleanup();
                         resolve(bestReading);
                     }
@@ -92,7 +75,7 @@ export async function getReliableLocation(onProgress) {
                 (err) => {
                     console.warn("GPS Watch failed:", err.message);
                 },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: MAX_WAIT_MS }
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
             );
 
             const cleanup = () => {
@@ -100,30 +83,31 @@ export async function getReliableLocation(onProgress) {
                 navigator.geolocation.clearWatch(watchId);
             };
 
+            // FIX: reduced from 5000ms to 2500ms. This was a flat wait applied
+            // on every call regardless of how good the reading already was -
+            // the single biggest contributor to "the location button is slow."
+            // Readings that don't stabilize to a usable accuracy in 2.5s are
+            // unlikely to improve much by waiting longer anyway; the IP
+            // fallback below still catches anything genuinely bad.
             setTimeout(async () => {
                 if (locationFound) return;
                 cleanup();
 
-                if (bestReading && bestReading.accuracy <= ACCEPTABLE_ACCURACY_M) {
-                    // Solid GPS reading in hand - no reason to touch IP at all.
+                if (bestReading && bestReading.accuracy < 200) {
                     resolve(bestReading);
-                    return;
-                }
-
-                const ipLoc = await getIPLocation();
-
-                if (bestReading && (!ipLoc || bestReading.accuracy <= ipLoc.accuracy)) {
-                    // Even an imperfect GPS reading beats (or ties) IP's
-                    // accuracy in basically every real case - use it.
-                    resolve(bestReading);
-                } else if (ipLoc) {
-                    // GPS produced nothing usable at all - genuine last resort.
-                    resolve(ipLoc);
                 } else {
-                    updateStatus("❌ Location failed.");
-                    resolve(null);
+                    const ipLoc = await getIPLocation();
+                    if (ipLoc) {
+                        resolve(ipLoc);
+                    } else if (bestReading) {
+                        resolve(bestReading); // Use the poor GPS reading if IP fails too
+                    } else {
+                        // Ultimate fallback: Null or let user know
+                        updateStatus("❌ Location failed.");
+                        resolve(null);
+                    }
                 }
-            }, MAX_WAIT_MS);
+            }, 2500); 
 
         } else {
             const ipLoc = await getIPLocation();

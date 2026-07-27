@@ -1,51 +1,18 @@
 ﻿// Mapbox Utilities for Kano Precision Search
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-// Kano metro core, kept as a soft geographic anchor - see getMapboxSuggestions
-// below for why this is no longer used as a hard bbox cutoff.
+// Kano Bounding Box [minLng, minLat, maxLng, maxLat]
 const KANO_BBOX = "8.4000,11.9000,8.6500,12.1000";
-
-// FIX: the old hard `bbox` param made Mapbox reject (zero results) anything
-// outside a very tight box around Kano city center - real landmarks in
-// surrounding LGAs/suburbs, or even places just past that box's edge,
-// simply couldn't be found at all, which is a big part of "doesn't know
-// location names like Google Maps." Widened to cover Greater Kano and the
-// immediately surrounding metro area (~40-50km buffer) instead of just the
-// city core, so real local landmarks aren't silently excluded.
-const KANO_METRO_BBOX = "8.1500,11.6500,8.9500,12.3500";
 
 /**
  * Get address suggestions from Mapbox Geocoding API v5
- *
- * FIX: also added `proximity` biasing (rank results closer to wherever the
- * user actually is/was searching from higher, the way Google Maps does)
- * and explicit `types` covering POIs/addresses/neighborhoods/landmarks
- * instead of Mapbox's untargeted default mix - the two changes together are
- * what actually make results feel like they "know" local places instead of
- * only matching exact street/city names.
  */
-export const getMapboxSuggestions = async (query, providedToken = null, proximity = null) => {
+export const getMapboxSuggestions = async (query, providedToken = null) => {
     const activeToken = providedToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
     if (!activeToken || !query || query.length < 2) return [];
 
     try {
-        const params = new URLSearchParams({
-            access_token: activeToken,
-            bbox: KANO_METRO_BBOX,
-            country: "ng",
-            limit: "8",
-            autocomplete: "true",
-            language: "en",
-            types: "poi,address,neighborhood,locality,place,district",
-        });
-        // Bias ranking toward the user's current/last-known location, same
-        // way Google Maps' autocomplete favors nearby results first without
-        // outright excluding farther ones.
-        if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
-            params.set("proximity", `${proximity.lng},${proximity.lat}`);
-        }
-
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${activeToken}&bbox=${KANO_BBOX}&country=ng&limit=6&autocomplete=true`;
         
         const response = await fetch(url);
         const data = await response.json();
