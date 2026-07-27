@@ -1,75 +1,120 @@
 ﻿// Mapbox Utilities for Kano Precision Search
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-// Kano metro core, kept as a soft geographic anchor - see getMapboxSuggestions
-// below for why this is no longer used as a hard bbox cutoff.
+// Kano Bounding Box [minLng, minLat, maxLng, maxLat]
 const KANO_BBOX = "8.4000,11.9000,8.6500,12.1000";
 
-// FIX: the old hard `bbox` param made Mapbox reject (zero results) anything
-// outside a very tight box around Kano city center - real landmarks in
-// surrounding LGAs/suburbs, or even places just past that box's edge,
-// simply couldn't be found at all, which is a big part of "doesn't know
-// location names like Google Maps." Widened to cover Greater Kano and the
-// immediately surrounding metro area (~40-50km buffer) instead of just the
-// city core, so real local landmarks aren't silently excluded.
-const KANO_METRO_BBOX = "8.1500,11.6500,8.9500,12.3500";
-
 /**
- * Get address suggestions from Mapbox Geocoding API v5
+ * FIX: Mapbox's Geocoding API (used below) no longer returns POI data at
+ * all - Mapbox removed it from v5/v6 and now points developers at a
+ * separate "Search Box" product for POI search. That's the actual reason
+ * named places like markets ("Brigade", "Kantin Kwari") never showed up
+ * here - it's not a Kano-specific coverage gap, Mapbox Geocoding simply
+ * doesn't carry that data type anymore for ANY location.
  *
- * FIX: also added `proximity` biasing (rank results closer to wherever the
- * user actually is/was searching from higher, the way Google Maps does)
- * and explicit `types` covering POIs/addresses/neighborhoods/landmarks
- * instead of Mapbox's untargeted default mix - the two changes together are
- * what actually make results feel like they "know" local places instead of
- * only matching exact street/city names.
+ * Search Box API would be the natural fix, but its documented coverage is
+ * currently limited to the US, Canada, and Europe - it does not cover
+ * Nigeria, so switching to it would silently return nothing for Kano
+ * searches. Not usable here.
+ *
+ * Practical workaround: query OpenStreetMap's Nominatim search alongside
+ * Mapbox's geocoder and merge the results. Nominatim does carry POI/business
+ * tags (coverage depends on how well local contributors have mapped Kano,
+ * which varies, but it's the only free option that can plausibly know about
+ * a specific market by name). Results are merged and de-duplicated, with
+ * Mapbox results first since they're generally more reliable for addresses
+ * and roads.
+ *
+ * Note for later: the public Nominatim endpoint has a strict usage policy
+ * (max ~1 request/second, no heavy automated use) - fine at pilot volume,
+ * but if this app has real production traffic later, swap NOMINATIM_URL for
+ * a paid OSM-based provider (e.g. LocationIQ, Geoapify) or a self-hosted
+ * Nominatim instance to stay within terms.
  */
-export const getMapboxSuggestions = async (query, providedToken = null, proximity = null) => {
-    const activeToken = providedToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    if (!activeToken || !query || query.length < 2) return [];
+const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
+async function getNominatimSuggestions(query) {
     try {
-        const params = new URLSearchParams({
-            access_token: activeToken,
-            bbox: KANO_METRO_BBOX,
-            country: "ng",
-            limit: "8",
-            autocomplete: "true",
-            language: "en",
-            types: "poi,address,neighborhood,locality,place,district",
-        });
-        // Bias ranking toward the user's current/last-known location, same
-        // way Google Maps' autocomplete favors nearby results first without
-        // outright excluding farther ones.
-        if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
-            params.set("proximity", `${proximity.lng},${proximity.lat}`);
-        }
-
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
-        
-        const response = await fetch(url);
+        const url = `${NOMINATIM_URL}?format=json&q=${encodeURIComponent(query + ", Kano, Nigeria")}&countrycodes=ng&limit=5&addressdetails=1`;
+        const response = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (!response.ok) return [];
         const data = await response.json();
-        
-        if (!response.ok) {
-            console.error("Mapbox API Error:", data);
-            return [];
-        }
-        
-        if (data && data.features) {
-            return data.features.map(feature => ({
-                name: feature.text,
-                description: feature.place_name,
-                lat: feature.center[1], // Mapbox uses [lng, lat]
-                lng: feature.center[0],
-                id: feature.id,
-                isMapbox: true
-            }));
-        }
-        return [];
+        if (!Array.isArray(data)) return [];
+
+        return data.map(item => ({
+            name: item.display_name.split(',')[0],
+            description: item.display_name,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+            id: `osm-${item.osm_type}-${item.osm_id}`,
+            isMapbox: false,
+            isOSM: true
+        }));
     } catch (error) {
-        console.error("Mapbox suggestion error:", error);
+        console.error("Nominatim suggestion error:", error);
         return [];
     }
+}
+
+// Rough duplicate check: same-ish name within ~150m of an existing result
+function isDuplicate(candidate, existing) {
+    return existing.some(item => {
+        const nameMatch = item.name?.toLowerCase().trim() === candidate.name?.toLowerCase().trim();
+        if (!nameMatch) return false;
+        const dLat = Math.abs(item.lat - candidate.lat);
+        const dLng = Math.abs(item.lng - candidate.lng);
+        return dLat < 0.0015 && dLng < 0.0015; // ~150m
+    });
+}
+
+/**
+ * Get address + POI suggestions, merging Mapbox Geocoding (addresses,
+ * roads, neighborhoods) with OpenStreetMap/Nominatim (fills in named
+ * places/markets that Mapbox no longer returns). See note above.
+ */
+export const getMapboxSuggestions = async (query, providedToken = null) => {
+    const activeToken = providedToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    if (!query || query.length < 2) return [];
+
+    const mapboxPromise = (async () => {
+        if (!activeToken) return [];
+        try {
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${activeToken}&bbox=${KANO_BBOX}&country=ng&limit=6&autocomplete=true`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!response.ok) {
+                console.error("Mapbox API Error:", data);
+                return [];
+            }
+            if (data && data.features) {
+                return data.features.map(feature => ({
+                    name: feature.text,
+                    description: feature.place_name,
+                    lat: feature.center[1], // Mapbox uses [lng, lat]
+                    lng: feature.center[0],
+                    id: feature.id,
+                    isMapbox: true
+                }));
+            }
+            return [];
+        } catch (error) {
+            console.error("Mapbox suggestion error:", error);
+            return [];
+        }
+    })();
+
+    const nominatimPromise = getNominatimSuggestions(query);
+
+    const [mapboxResults, osmResults] = await Promise.all([mapboxPromise, nominatimPromise]);
+
+    const merged = [...mapboxResults];
+    for (const candidate of osmResults) {
+        if (!isDuplicate(candidate, merged)) {
+            merged.push(candidate);
+        }
+    }
+
+    return merged.slice(0, 8);
 };
 
 /**

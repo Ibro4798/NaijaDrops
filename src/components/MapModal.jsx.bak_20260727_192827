@@ -73,17 +73,8 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     }
   };
 
-  // FIX: getMapboxSuggestions() now merges Mapbox + OpenStreetMap results
-  // internally (see src/utils/mapbox.js) and handles a missing token on its
-  // own, so the separate raw-Nominatim fallback branch that used to live
-  // here is no longer needed - one code path for both cases.
   const handleSearch = async (query) => {
     setSearchQuery(query);
-    // FIX: clear a stale "couldn't find your location" error as soon as the
-    // user starts typing - trying another method should never leave the old
-    // error sitting on screen.
-    setLocationError(null);
-
     if (!query || query.length < 2) {
       setSuggestions([]);
       return;
@@ -93,8 +84,23 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const sugs = await getMapboxSuggestions(query, mapboxToken);
-        setSuggestions(sugs);
+        if (mapboxToken) {
+           const sugs = await getMapboxSuggestions(query, mapboxToken);
+           setSuggestions(sugs);
+        } else {
+          // Fallback to OSM Search for demo mode if no token
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Kano, Nigeria")}&limit=5`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          setSuggestions(data.map(item => ({
+            name: item.display_name.split(',')[0],
+            description: item.display_name,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon)
+          })));
+        }
         setShowSuggestions(true);
       } catch (err) {
         console.error("Search failed", err);
@@ -103,7 +109,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   };
 
   const selectSuggestion = async (sug) => {
-    setLocationError(null); // FIX: clear stale error when a location is picked via search
     setMarkerPosition({ lat: sug.lat, lng: sug.lng });
     setViewState({ ...viewState, longitude: sug.lng, latitude: sug.lat, zoom: 14.5 });
     setAddress(sug.name || sug.description);
@@ -144,7 +149,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   }, []);
 
   const handleMoveEnd = useCallback(async (evt) => {
-      setLocationError(null); // FIX: clear stale error once the user drags the pin themselves
       const lat = evt.viewState.latitude;
       const lng = evt.viewState.longitude;
       setMarkerPosition({ lat, lng });

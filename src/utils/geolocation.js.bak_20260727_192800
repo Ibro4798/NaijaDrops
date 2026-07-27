@@ -10,13 +10,39 @@ const DEMO_LOCATION = {
     source: 'demo'
 };
 
+// FIX: this whole timing policy was backwards, and it's the actual reason
+// "use my location" was landing kilometers off. Two separate bugs:
+//
+// 1. The race against GPS was cut off after a flat 2.5s. Real GPS chips
+//    (especially a "cold start" - first fix after the phone's location
+//    radio has been idle) routinely take 5-15+ seconds to converge on
+//    anything better than a rough cell-tower-level estimate. Bailing at
+//    2.5s meant almost every call fell through to the IP fallback below
+//    instead of ever giving GPS a real chance.
+// 2. Worse, the fallback logic then EXPLICITLY PREFERRED that IP-based
+//    location over a real (if imperfect) GPS reading, as long as the GPS
+//    reading's accuracy wasn't under an unreasonably tight 200m. IP
+//    geolocation is only ever accurate to city-level - ipapi.co's own
+//    response is hardcoded to a flat 5000m (5km) accuracy figure here -
+//    and can be wildly wrong depending on the user's ISP/routing. A 250m
+//    or even 800m GPS reading is virtually always far closer to the truth
+//    than a 5km-accuracy IP guess, but the old code threw the GPS reading
+//    away in exactly that situation.
+//
+// Fixed policy: give GPS up to 9 seconds to converge (resolving instantly
+// the moment a genuinely good reading arrives), and once time is up, pick
+// whichever of {best GPS reading, IP location} actually has the smaller
+// (better) accuracy value instead of always trusting one source over the
+// other. IP is now only ever used as a true last resort - when GPS
+// produced nothing at all.
+const EXCELLENT_ACCURACY_M = 50;   // resolve immediately, waiting longer won't help
+const ACCEPTABLE_ACCURACY_M = 150; // good enough once time's up, no need for IP
+const MAX_WAIT_MS = 9000;          // real budget for GPS to actually converge
+
 export async function getReliableLocation(onProgress) {
     return new Promise(async (resolve) => {
-        const hasMapbox = typeof process !== 'undefined' && !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        
         let locationFound = false;
         let bestReading = null;
-        let pingsReceived = 0;
 
         const updateStatus = (msg) => {
             if (onProgress) onProgress(msg);
@@ -48,7 +74,6 @@ export async function getReliableLocation(onProgress) {
 
             const watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    pingsReceived++;
                     if (!bestReading || pos.coords.accuracy < bestReading.accuracy) {
                         bestReading = {
                             lat: pos.coords.latitude,
@@ -59,30 +84,7 @@ export async function getReliableLocation(onProgress) {
                         updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
-                    // FIX 2 (reverting part of FIX 1 above, which went too far):
-                    // FIX 1 made this resolve on the very FIRST ping whenever
-                    // accuracy < 50m. That's the actual bug behind "my last
-                    // update made it inaccurate" - a phone's first GPS fix from
-                    // a cold start is very often a low-quality "quick fix" that
-                    // still reports a deceptively OK accuracy number, then
-                    // improves sharply on the 2nd/3rd ping as the chip locks
-                    // onto more satellites. Resolving on ping #1 was locking in
-                    // that early, less-accurate reading instead of letting it
-                    // refine.
-                    //
-                    // Two-tier fix:
-                    //  - An excellent single reading (<25m) is trustworthy on
-                    //    its own - GPS chips rarely report that tight by fluke.
-                    //  - A merely "good" reading (25-60m, the common case on
-                    //    Kano's budget Android phones indoors/under cloud
-                    //    cover) now requires a 2nd ping before we trust it,
-                    //    restoring the original stabilization safety net but
-                    //    with a realistic threshold instead of the old 20m
-                    //    (which real phones here rarely hit at all).
-                    const isExcellent = pos.coords.accuracy < 25;
-                    const isGoodAndStable = pos.coords.accuracy < 60 && pingsReceived >= 2;
-
-                    if (isExcellent || isGoodAndStable) {
+                    if (pos.coords.accuracy < EXCELLENT_ACCURACY_M) {
                         cleanup();
                         resolve(bestReading);
                     }
@@ -90,7 +92,7 @@ export async function getReliableLocation(onProgress) {
                 (err) => {
                     console.warn("GPS Watch failed:", err.message);
                 },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+                { enableHighAccuracy: true, maximumAge: 0, timeout: MAX_WAIT_MS }
             );
 
             const cleanup = () => {
@@ -98,40 +100,30 @@ export async function getReliableLocation(onProgress) {
                 navigator.geolocation.clearWatch(watchId);
             };
 
-            // FIX 2: extended back from 2500ms to 4500ms. FIX 1's 2500ms window
-            // was too short for weak-signal conditions (indoors, cloud cover)
-            // to ever produce a 2nd stabilizing ping at all, so most requests
-            // in those conditions never got a chance to reach the tier-2 check
-            // above - they just timed out early on whatever the first
-            // (possibly bad) reading was. 4500ms is a middle ground: still
-            // meaningfully faster than the original 5000ms, but leaves enough
-            // room for a real 2nd ping to arrive.
             setTimeout(async () => {
                 if (locationFound) return;
                 cleanup();
 
-                // FIX 2: raised from 200m to 500m. A 200-500m GPS reading is
-                // still an order of magnitude better than the ~5000m-accuracy
-                // IP fallback below - for last-mile delivery pin placement,
-                // "somewhere on the right street" beats "somewhere in the
-                // right city." Falling back to IP here was actively making
-                // location worse in the exact cases (weak GPS signal) it was
-                // meant to rescue.
-                if (bestReading && bestReading.accuracy < 500) {
+                if (bestReading && bestReading.accuracy <= ACCEPTABLE_ACCURACY_M) {
+                    // Solid GPS reading in hand - no reason to touch IP at all.
                     resolve(bestReading);
-                } else {
-                    const ipLoc = await getIPLocation();
-                    if (ipLoc) {
-                        resolve(ipLoc);
-                    } else if (bestReading) {
-                        resolve(bestReading); // Use the poor GPS reading if IP fails too
-                    } else {
-                        // Ultimate fallback: Null or let user know
-                        updateStatus("❌ Location failed.");
-                        resolve(null);
-                    }
+                    return;
                 }
-            }, 4500); 
+
+                const ipLoc = await getIPLocation();
+
+                if (bestReading && (!ipLoc || bestReading.accuracy <= ipLoc.accuracy)) {
+                    // Even an imperfect GPS reading beats (or ties) IP's
+                    // accuracy in basically every real case - use it.
+                    resolve(bestReading);
+                } else if (ipLoc) {
+                    // GPS produced nothing usable at all - genuine last resort.
+                    resolve(ipLoc);
+                } else {
+                    updateStatus("❌ Location failed.");
+                    resolve(null);
+                }
+            }, MAX_WAIT_MS);
 
         } else {
             const ipLoc = await getIPLocation();

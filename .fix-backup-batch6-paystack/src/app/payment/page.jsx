@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { ArrowLeft, CheckCircle2, CreditCard, Lock, ShieldCheck, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, CreditCard, Lock, X, QrCode, ShieldCheck, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { loadPaystackScript, initializePaystack } from '@/utils/paystack';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,17 +17,9 @@ function PaymentContent() {
     
     const [driverData, setDriverData] = useState(null);
     const [orderData, setOrderData] = useState(null);
+    const [method, setMethod] = useState('');
     const [paystackError, setPaystackError] = useState(null);
-    // FIX: this used to fire loadPaystackScript() and forget about it - no
-    // state tracked whether it actually finished, so a fast click on "Pay
-    // Now" (or a slow connection) could hit initializePaystack() before
-    // window.PaystackPop existed yet, showing "gateway failed to load" even
-    // though it would have worked a moment later. Now the button itself
-    // reflects real load state: disabled + spinning while loading, a clear
-    // error if the script genuinely fails to load, and only enabled once
-    // Paystack's SDK has actually confirmed ready.
-    const [paystackReady, setPaystackReady] = useState(false);
-    const [paystackLoadFailed, setPaystackLoadFailed] = useState(false);
+    const [showGateway, setShowGateway] = useState(null); // 'paystack' | 'opay'
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -39,21 +31,7 @@ function PaymentContent() {
         }
 
         async function fetchPaymentDetails() {
-            loadPaystackScript().then((ok) => {
-                setPaystackReady(!!ok);
-                setPaystackLoadFailed(!ok);
-            });
-            // Safety net: if the script request itself never fires onload or
-            // onerror at all (e.g. blocked entirely by an ad/tracker
-            // blocker rather than cleanly failing), the button would
-            // otherwise be stuck on "Loading Secure Gateway..." forever
-            // with no way forward.
-            setTimeout(() => {
-                setPaystackReady((ready) => {
-                    if (!ready) setPaystackLoadFailed(true);
-                    return ready;
-                });
-            }, 8000);
+            loadPaystackScript();
             
             try {
                 const { data: order, error: orderErr } = await supabase
@@ -92,24 +70,30 @@ function PaymentContent() {
     }, [orderId, supabase, router]);
 
     const handleInitiatePayment = () => {
-        if (!paystackReady) return;
-        setPaystackError(null);
-        const userEmail = orderData.user_id ? `${orderData.user_id}@naijadrops.com` : 'customer@naijadrops.com';
-        
-        initializePaystack({
-            email: userEmail,
-            amount: orderData.agreed_price,
-            reference: `ND_${Date.now()}_${orderId.slice(0, 5)}`,
-            onSuccess: (response) => {
-                handleRealPaymentSuccess(response.reference);
-            },
-            onClose: () => {
-                console.log("Paystack closed");
-            },
-            onError: (message) => {
-                setPaystackError(message);
-            }
-        });
+        if (!method) return;
+
+        if (method === 'paystack') {
+            setPaystackError(null);
+            const userEmail = orderData.user_id ? `${orderData.user_id}@naijadrops.com` : 'customer@naijadrops.com';
+            
+            initializePaystack({
+                email: userEmail,
+                amount: orderData.agreed_price,
+                reference: `ND_${Date.now()}_${orderId.slice(0, 5)}`,
+                onSuccess: (response) => {
+                    handleRealPaymentSuccess(response.reference);
+                },
+                onClose: () => {
+                    console.log("Paystack closed");
+                },
+                onError: (message) => {
+                    setPaystackError(message);
+                }
+            });
+            return;
+        }
+
+        setShowGateway(method);
     };
 
     const handleRealPaymentSuccess = async (reference) => {
@@ -124,6 +108,7 @@ function PaymentContent() {
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.error || 'Verification failed');
 
+            setShowGateway(null);
             setIsSuccess(true);
             setIsProcessing(false);
 
@@ -132,25 +117,47 @@ function PaymentContent() {
             }, 2000);
         } catch (err) {
             console.error(err);
-            setPaystackError(`Payment verification failed: ${err.message}`);
+            alert(`Payment verification failed: ${err.message}`);
             setIsProcessing(false);
         }
     };
 
-    // FIX: removed the fake "OPay" payment path entirely. It used to fake
-    // a Paystack-style reference (ND_OPAY_...) and mark the order paid via
-    // /api/verify-payment's dev-only simulateSuccess fallback - but the
-    // moment a real PAYSTACK_SECRET_KEY is configured (which is the whole
-    // point of "fully wiring up" this integration), that verify call tries
-    // to check the fake reference against Paystack's real API, which
-    // correctly rejects it as a transaction that never happened. So this
-    // button would go from "fake-successful" in dev to permanently broken
-    // the moment real payments were turned on - and even before that, no
-    // actual money was ever collected through it, just a UI simulation.
-    // Paystack's own real checkout already supports card, bank transfer,
-    // USSD, and mobile money as channels within one verified transaction,
-    // so there's no coverage lost by removing the separate fake button -
-    // just one single, real, fully verified payment path now.
+    // FIX: this used to do its own separate update - setting status:
+    // 'confirmed' (not a real value anywhere in the order status machine)
+    // and never touching payment_status at all. That meant paying through
+    // the OPay mock flow left payment_status stuck on 'unpaid' forever,
+    // so the rider's payment gate never unlocked and this page's own
+    // redirect target (/track/...) was also a dead route. Now it goes
+    // through the same /api/verify-payment endpoint the real Paystack path
+    // uses, with a mock reference - that endpoint already has a built-in
+    // dev fallback (simulateSuccess) for whenever PAYSTACK_SECRET_KEY isn't
+    // configured, so both payment paths now converge on one source of
+    // truth for marking an order paid.
+    const handleMockPaymentSuccess = async () => {
+        setIsProcessing(true);
+        try {
+            const reference = `ND_OPAY_${Date.now()}_${orderId.slice(0, 5)}`;
+            const verifyRes = await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reference, orderId })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok || !verifyData.success) throw new Error(verifyData.error || 'Verification failed');
+
+            setShowGateway(null);
+            setIsSuccess(true);
+            setIsProcessing(false);
+
+            setTimeout(() => {
+                router.push(`/tracking/${orderId}`);
+            }, 2000);
+        } catch (err) {
+            console.error(err);
+            alert(`Payment verification failed: ${err.message}`);
+            setIsProcessing(false);
+        }
+    };
 
     const handleCancelOrder = async () => {
         if (!window.confirm("Are you sure you want to terminate this mission? The courier will be notified.")) return;
@@ -184,7 +191,7 @@ function PaymentContent() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-12">
                     <button 
-                        onClick={() => router.back()} 
+                        onClick={() => !showGateway && router.back()} 
                         className="w-12 h-12 glass-dark rounded-2xl flex items-center justify-center text-charcoal-400 hover:text-white transition-all border border-white/5 group shadow-premium"
                     >
                         <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />
@@ -241,25 +248,51 @@ function PaymentContent() {
                                 </div>
                             </motion.div>
 
-                            {/* Payment Action - single, real Paystack path. Paystack's own
-                                checkout already presents card, bank transfer, USSD, and
-                                mobile money as channels inside one verified transaction,
-                                so there's nothing missing by not having a separate fake
-                                "OPay" button next to it. */}
+                            {/* Method Selection */}
                             <motion.div 
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
                                 className="space-y-4"
                             >
-                                <div className="glass rounded-[2.5rem] p-6 flex items-center gap-5 border-2 border-blue-500/30 bg-white">
-                                    <div className="w-16 h-16 bg-blue-50 rounded-[1.4rem] flex items-center justify-center border border-blue-100 text-blue-500 shrink-0">
-                                        <CreditCard size={32} />
-                                    </div>
-                                    <div>
-                                        <div className="font-black text-xl tracking-tighter italic text-[#18181b]">Pay with Paystack</div>
-                                        <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-widest mt-1">Card, Bank Transfer, USSD & Mobile Money</div>
-                                    </div>
+                                <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] ml-6 mb-4">Transfer Protocol</h3>
+                                
+                                <div className="grid grid-cols-1 gap-4">
+                                    {/* OPAY */}
+                                    <button 
+                                        onClick={() => setMethod('opay')}
+                                        className={`glass rounded-[2.5rem] p-6 text-left transition-all border-2 flex items-center justify-between group ${method === 'opay' ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-white/20 hover:border-white/50'}`}
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-16 h-16 bg-emerald-50 rounded-[1.4rem] flex items-center justify-center border border-emerald-100 text-emerald-600 font-black text-2xl group-hover:scale-105 transition-transform italic">O</div>
+                                            <div>
+                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'opay' ? 'text-charcoal-950' : 'text-[#18181b]'}`}>OPay Digital</div>
+                                                <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-widest mt-1">Instant App Transfer</div>
+                                            </div>
+                                        </div>
+                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${method === 'opay' ? 'border-emerald-500 bg-emerald-500' : 'border-charcoal-200'}`}>
+                                            {method === 'opay' && <CheckCircle2 size={18} className="text-white stroke-[3]" />}
+                                        </div>
+                                    </button>
+
+                                    {/* PAYSTACK */}
+                                    <button 
+                                        onClick={() => setMethod('paystack')}
+                                        className={`glass rounded-[2.5rem] p-6 text-left transition-all border-2 flex items-center justify-between group ${method === 'paystack' ? 'border-blue-500 bg-white ring-4 ring-blue-500/10' : 'border-white/20 hover:border-white/50'}`}
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-16 h-16 bg-blue-50 rounded-[1.4rem] flex items-center justify-center border border-blue-100 text-blue-500 group-hover:scale-105 transition-transform">
+                                                <CreditCard size={32} />
+                                            </div>
+                                            <div>
+                                                <div className={`font-black text-xl tracking-tighter italic ${method === 'paystack' ? 'text-charcoal-950' : 'text-[#18181b]'}`}>Card / USSD</div>
+                                                <div className="text-[9px] font-black text-charcoal-400 uppercase tracking-widest mt-1">Multi-Channel Terminal</div>
+                                            </div>
+                                        </div>
+                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${method === 'paystack' ? 'border-blue-500 bg-blue-500' : 'border-charcoal-200'}`}>
+                                            {method === 'paystack' && <CheckCircle2 size={18} className="text-white stroke-[3]" />}
+                                        </div>
+                                    </button>
                                 </div>
                             </motion.div>
 
@@ -277,30 +310,15 @@ function PaymentContent() {
                                     </div>
                                 )}
 
-                                {paystackLoadFailed && (
-                                    <div className="flex items-start gap-2.5 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                                        <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={16} />
-                                        <p className="text-red-400 text-xs font-medium leading-relaxed">Couldn't load the payment gateway. Check your connection and reload this page.</p>
-                                    </div>
-                                )}
-
                                 <button 
                                     onClick={handleInitiatePayment}
-                                    disabled={!paystackReady || isProcessing}
+                                    disabled={!method}
                                     className={`w-full py-6 rounded-[2.5rem] font-black text-xl uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 shadow-premium active:scale-95 overflow-hidden relative group ${
-                                        (!paystackReady || isProcessing) ? 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5' : 
+                                        !method ? 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5' : 
                                         'bg-[#18181b] hover:bg-black text-white hover:shadow-glow hover:shadow-black/20'
                                     }`}
                                 >
-                                    <span className="relative z-10 flex items-center gap-3">
-                                        {isProcessing ? (
-                                            <><Loader2 size={24} className="animate-spin" /> Verifying...</>
-                                        ) : !paystackReady ? (
-                                            <><Loader2 size={24} className="animate-spin" /> Loading Secure Gateway...</>
-                                        ) : (
-                                            <>Pay ₦{orderData.agreed_price?.toLocaleString()} Now <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" /></>
-                                        )}
-                                    </span>
+                                    <span className="relative z-10 flex items-center gap-3">Commit Protocol <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" /></span>
                                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </button>
 
@@ -315,6 +333,56 @@ function PaymentContent() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* OPay Gateway Overlay */}
+            <AnimatePresence>
+                {showGateway === 'opay' && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-charcoal-950/80 backdrop-blur-xl"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="glass bg-white w-full max-w-sm rounded-[3.5rem] overflow-hidden shadow-2xl overflow-hidden relative"
+                        >
+                            <div className="bg-emerald-50 p-8 flex items-center justify-between border-b border-emerald-100">
+                                <div className="font-black text-xl text-emerald-600 flex items-center gap-3 italic">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm not-italic">O</div>
+                                    OPay Web
+                                </div>
+                                <button onClick={() => !isProcessing && setShowGateway(null)} className="w-10 h-10 glass flex items-center justify-center text-charcoal-400 hover:text-[#18181b] transition-colors border border-black/5 rounded-2xl"><X size={20} /></button>
+                            </div>
+                            <div className="p-8 text-center">
+                                <div className="mb-10">
+                                    <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest mb-2">Protocol Fee</div>
+                                    <div className="text-5xl font-black text-[#18181b] tracking-tighter italic">₦{orderData.agreed_price?.toLocaleString()}</div>
+                                </div>
+                                
+                                <div className="bg-white border-8 border-emerald-50 rounded-[3rem] p-10 mx-auto w-60 h-60 mb-10 flex items-center justify-center shadow-inner relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
+                                    <QrCode size={160} className="text-[#18181b] relative z-10 opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute top-1/2 left-0 w-full h-1 bg-emerald-500 shadow-[0_0_15px_4px_#10b981] animate-scan z-20"></div>
+                                </div>
+
+                                <p className="text-xs font-bold text-charcoal-500 uppercase tracking-widest mb-10 leading-relaxed px-4">
+                                    Open your OPay Hub, select <strong className="text-[#18181b]">Scan</strong>, and authorize the transmission.
+                                </p>
+
+                                <button 
+                                    onClick={handleMockPaymentSuccess} 
+                                    disabled={isProcessing}
+                                    className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-3xl text-sm uppercase tracking-[0.2em] flex justify-center items-center transition-all shadow-glow active:scale-95"
+                                >
+                                    {isProcessing ? <Loader2 className="animate-spin" size={24} /> : 'Acknowledge Scan'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Background Decor */}
             <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-emerald-500/10 rounded-full blur-[160px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
