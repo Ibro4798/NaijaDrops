@@ -32,6 +32,34 @@ function PaymentContent() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // FIX: this used to be inlined directly in the mount effect below with
+    // no way to run it again - if the Paystack script genuinely failed to
+    // load (ad-blocker, flaky connection, anything blocking a third-party
+    // script), the "Couldn't load the payment gateway" error would show,
+    // but the only way forward was a full page reload, and the "Pay Now"
+    // button itself just stayed on "Loading Secure Gateway..." forever with
+    // no click doing anything - which is exactly what looks like "I click
+    // it and nothing happens." Pulling this out into its own function lets
+    // the retry button below re-run the exact same load attempt in place.
+    const attemptLoadPaystack = () => {
+        setPaystackLoadFailed(false);
+        loadPaystackScript().then((ok) => {
+            setPaystackReady(!!ok);
+            setPaystackLoadFailed(!ok);
+        });
+        // Safety net: if the script request itself never fires onload or
+        // onerror at all (e.g. blocked entirely by an ad/tracker
+        // blocker rather than cleanly failing), the button would
+        // otherwise be stuck on "Loading Secure Gateway..." forever
+        // with no way forward.
+        setTimeout(() => {
+            setPaystackReady((ready) => {
+                if (!ready) setPaystackLoadFailed(true);
+                return ready;
+            });
+        }, 8000);
+    };
+
     useEffect(() => {
         if (!orderId) {
             router.push('/send');
@@ -39,22 +67,8 @@ function PaymentContent() {
         }
 
         async function fetchPaymentDetails() {
-            loadPaystackScript().then((ok) => {
-                setPaystackReady(!!ok);
-                setPaystackLoadFailed(!ok);
-            });
-            // Safety net: if the script request itself never fires onload or
-            // onerror at all (e.g. blocked entirely by an ad/tracker
-            // blocker rather than cleanly failing), the button would
-            // otherwise be stuck on "Loading Secure Gateway..." forever
-            // with no way forward.
-            setTimeout(() => {
-                setPaystackReady((ready) => {
-                    if (!ready) setPaystackLoadFailed(true);
-                    return ready;
-                });
-            }, 8000);
-            
+            attemptLoadPaystack();
+
             try {
                 const { data: order, error: orderErr } = await supabase
                     .from('orders')
@@ -286,7 +300,15 @@ function PaymentContent() {
                                 {paystackLoadFailed && (
                                     <div className="flex items-start gap-2.5 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
                                         <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={16} />
-                                        <p className="text-red-400 text-xs font-medium leading-relaxed">Couldn't load the payment gateway. Check your connection and reload this page.</p>
+                                        <div className="flex-1">
+                                            <p className="text-red-400 text-xs font-medium leading-relaxed mb-2">Couldn't load the payment gateway. This is usually an ad-blocker or privacy extension blocking a third-party script, or a flaky connection. Try disabling any ad-blocker for this site, then retry.</p>
+                                            <button
+                                                onClick={attemptLoadPaystack}
+                                                className="text-red-400 hover:text-red-300 text-[10px] font-black uppercase tracking-widest underline underline-offset-2 transition-colors"
+                                            >
+                                                Retry
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
