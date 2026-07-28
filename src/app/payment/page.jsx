@@ -94,7 +94,13 @@ function PaymentContent() {
     const handleInitiatePayment = () => {
         if (!paystackReady) return;
         setPaystackError(null);
-        const userEmail = orderData.user_id ? `${orderData.user_id}@naijadrops.com` : 'customer@naijadrops.com';
+        // FIX: orders has no user_id column at all (never has - vendor and
+        // customer flows both only ever set vendor_id), so this was always
+        // undefined and every transaction showed up in Paystack's dashboard
+        // under the exact same generic email, making real transactions
+        // impossible to tell apart. Keying it to the order's actual
+        // vendor_id at least makes each vendor's payments distinguishable.
+        const userEmail = orderData.vendor_id ? `vendor-${orderData.vendor_id}@naijadrops.com` : 'customer@naijadrops.com';
         
         initializePaystack({
             email: userEmail,
