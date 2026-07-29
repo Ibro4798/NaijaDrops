@@ -202,21 +202,12 @@ export default function ActiveOrdersPage() {
                       Cancel
                     </button>
                   )}
-                  {order.status === "matched" && order.payment_status !== "paid" ? (
-                    <button
-                      onClick={() => router.push(`/payment?orderId=${order.id}`)}
-                      className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 px-3 py-2 rounded-lg transition-all active:scale-95"
-                    >
-                      Pay Now <ChevronRight size={12} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => router.push(`/tracking/${order.id}`)}
-                      className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-lg hover:bg-emerald-500/10 transition-all"
-                    >
-                      Track <ChevronRight size={12} />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => router.push(`/tracking/${order.id}`)}
+                    className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-lg hover:bg-emerald-500/10 transition-all"
+                  >
+                    Track <ChevronRight size={12} />
+                  </button>
                 </div>
               </div>
             </div>
