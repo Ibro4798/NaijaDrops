@@ -1,4 +1,4 @@
-﻿ï»¿"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,6 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [receiptDisplayName, setReceiptDisplayName] = useState("");
   const router = useRouter();
   const supabase = createClient();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
@@ -34,7 +33,6 @@ export default function ProfilePage() {
       setProfile(p);
       setFullName(p?.name || "");
       setAvatarUrl(p?.avatar_url || "");
-      setReceiptDisplayName(p?.receipt_display_name || "");
       setIsLoading(false);
     }
     loadProfile();
@@ -47,8 +45,7 @@ export default function ProfilePage() {
         .from("users")
         .update({
           name: fullName,
-          avatar_url: avatarUrl,
-          receipt_display_name: receiptDisplayName || null
+          avatar_url: avatarUrl
         })
         .eq("id", user.id);
 
@@ -126,21 +123,6 @@ export default function ProfilePage() {
                       placeholder="Aliyu Ibrahim"
                       className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all"
                     />
-                 </div>
-                 <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block">Name Shown on Delivery Receipts</label>
-                    <input 
-                      type="text" 
-                      value={receiptDisplayName}
-                      onChange={(e) => setReceiptDisplayName(e.target.value)}
-                      placeholder={role === 'vendor' ? 'e.g. your business name' : 'e.g. your preferred display name'}
-                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all placeholder:text-charcoal-700"
-                    />
-                    <p className="text-charcoal-600 text-[10px] mt-2 font-medium px-1">
-                      {role === 'vendor'
-                        ? "Shown to customers on their delivery receipt instead of your account name. Leave blank to use your business name."
-                        : "Shown on receipts as the rider who delivered the order. Leave blank to use your full name."}
-                    </p>
                  </div>
                  <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block">Registered Email Address (Locked)</label>

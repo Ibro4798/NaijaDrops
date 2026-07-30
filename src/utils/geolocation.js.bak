@@ -1,30 +1,6 @@
 ﻿/**
  * Reliable Geolocation Utility
  * Tiered fetching: GPS -> Wifi/Cell -> IP-API Fallback
- *
- * Deterministic accuracy rules used across the app (both the one-time
- * "Use My Location" flow below AND the rider's live-tracking heartbeat in
- * DriverHeartbeat.jsx), tuned for Nigerian mobile networks specifically:
- *
- * 1. GPS/device readings are ALWAYS preferred over IP-based location.
- *    IP geolocation on Nigerian mobile networks resolves to the carrier's
- *    gateway city, not the device - it can be tens of kilometers off, in a
- *    different part of the state entirely. It's used only as an absolute
- *    last resort when the device returns nothing at all.
- * 2. A reading is only trusted immediately if it's excellent (<25m). A
- *    "good enough" reading (25-60m - the common case on budget Android
- *    phones here, indoors or under cloud cover) needs a second confirming
- *    ping first, since a phone's very first GPS fix after a cold start is
- *    often a low-quality "quick fix" that still reports a deceptively
- *    reasonable accuracy number.
- * 3. Give it real time. 12 seconds, not the ~4.5s this used to allow -
- *    enough for a real device fix to come back before ever considering the
- *    IP fallback.
- * 4. For CONTINUOUS tracking (not just a one-time button press - see
- *    isPlausibleMove below), a single wildly-off reading is rejected by a
- *    speed sanity check rather than blindly overwriting the last known-good
- *    position. A rider/vendor physically cannot teleport 10km in 20
- *    seconds; a reading that implies that is noise, not movement.
  */
 
 const DEMO_LOCATION = {
@@ -36,6 +12,8 @@ const DEMO_LOCATION = {
 
 export async function getReliableLocation(onProgress) {
     return new Promise(async (resolve) => {
+        const hasMapbox = typeof process !== 'undefined' && !!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        
         let locationFound = false;
         let bestReading = null;
         let pingsReceived = 0;
@@ -47,7 +25,7 @@ export async function getReliableLocation(onProgress) {
         // Real IP-based Geolocation Fallback
         const getIPLocation = async () => {
             try {
-                updateStatus("ðŸŒ Resolving city via IP...");
+                updateStatus("🌍 Resolving city via IP...");
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
                 if (data.latitude && data.longitude) {
@@ -66,7 +44,7 @@ export async function getReliableLocation(onProgress) {
         };
 
         if ("geolocation" in navigator) {
-            updateStatus("ðŸ›°ï¸ Synchronizing GPS...");
+            updateStatus("🛰️ Synchronizing GPS...");
 
             const watchId = navigator.geolocation.watchPosition(
                 (pos) => {
@@ -78,9 +56,29 @@ export async function getReliableLocation(onProgress) {
                             accuracy: pos.coords.accuracy,
                             source: 'gps'
                         };
-                        updateStatus(`ðŸŽ¯ Precision Lock: Â±${Math.round(pos.coords.accuracy)}m`);
+                        updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                     }
 
+                    // FIX 2 (reverting part of FIX 1 above, which went too far):
+                    // FIX 1 made this resolve on the very FIRST ping whenever
+                    // accuracy < 50m. That's the actual bug behind "my last
+                    // update made it inaccurate" - a phone's first GPS fix from
+                    // a cold start is very often a low-quality "quick fix" that
+                    // still reports a deceptively OK accuracy number, then
+                    // improves sharply on the 2nd/3rd ping as the chip locks
+                    // onto more satellites. Resolving on ping #1 was locking in
+                    // that early, less-accurate reading instead of letting it
+                    // refine.
+                    //
+                    // Two-tier fix:
+                    //  - An excellent single reading (<25m) is trustworthy on
+                    //    its own - GPS chips rarely report that tight by fluke.
+                    //  - A merely "good" reading (25-60m, the common case on
+                    //    Kano's budget Android phones indoors/under cloud
+                    //    cover) now requires a 2nd ping before we trust it,
+                    //    restoring the original stabilization safety net but
+                    //    with a realistic threshold instead of the old 20m
+                    //    (which real phones here rarely hit at all).
                     const isExcellent = pos.coords.accuracy < 25;
                     const isGoodAndStable = pos.coords.accuracy < 60 && pingsReceived >= 2;
 
@@ -100,34 +98,40 @@ export async function getReliableLocation(onProgress) {
                 navigator.geolocation.clearWatch(watchId);
             };
 
-            // FIX: extended from 4500ms to 12000ms. 4500ms was still too
-            // short for a device (especially a laptop/desktop or a phone
-            // relying on WiFi-based positioning rather than a cold GPS fix)
-            // to ever land a reading tight enough to beat the threshold
-            // below - so most requests were timing out onto the IP fallback
-            // by default. That's exactly what made "Use My Location" (and
-            // "Go Online" for riders) resolve to essentially random places.
-            // 12s is still fast enough to not feel broken, but gives real
-            // device positioning a genuine chance to report back first.
+            // FIX 2: extended back from 2500ms to 4500ms. FIX 1's 2500ms window
+            // was too short for weak-signal conditions (indoors, cloud cover)
+            // to ever produce a 2nd stabilizing ping at all, so most requests
+            // in those conditions never got a chance to reach the tier-2 check
+            // above - they just timed out early on whatever the first
+            // (possibly bad) reading was. 4500ms is a middle ground: still
+            // meaningfully faster than the original 5000ms, but leaves enough
+            // room for a real 2nd ping to arrive.
             setTimeout(async () => {
                 if (locationFound) return;
                 cleanup();
 
-                // ANY real device reading is preferred over the IP fallback,
-                // not just tight ones - IP is used only when we truly got
-                // nothing from the device at all.
-                if (bestReading) {
+                // FIX 2: raised from 200m to 500m. A 200-500m GPS reading is
+                // still an order of magnitude better than the ~5000m-accuracy
+                // IP fallback below - for last-mile delivery pin placement,
+                // "somewhere on the right street" beats "somewhere in the
+                // right city." Falling back to IP here was actively making
+                // location worse in the exact cases (weak GPS signal) it was
+                // meant to rescue.
+                if (bestReading && bestReading.accuracy < 500) {
                     resolve(bestReading);
                 } else {
                     const ipLoc = await getIPLocation();
                     if (ipLoc) {
                         resolve(ipLoc);
+                    } else if (bestReading) {
+                        resolve(bestReading); // Use the poor GPS reading if IP fails too
                     } else {
-                        updateStatus("âŒ Location failed.");
+                        // Ultimate fallback: Null or let user know
+                        updateStatus("❌ Location failed.");
                         resolve(null);
                     }
                 }
-            }, 12000);
+            }, 4500); 
 
         } else {
             const ipLoc = await getIPLocation();
@@ -135,43 +139,6 @@ export async function getReliableLocation(onProgress) {
         }
     });
 }
-
-/**
- * Haversine distance between two lat/lng points, in meters.
- */
-export function distanceMeters(lat1, lng1, lat2, lng2) {
-    const R = 6371000;
-    const toRad = (d) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-/**
- * Deterministic jump-rejection for continuous tracking (the rider
- * heartbeat). Returns false if the implied speed between two readings is
- * physically impossible for a bike/car courier, meaning the NEW reading is
- * almost certainly noise (a bad single-shot GPS fix, or a network-position
- * fallback landing far away) and should be discarded in favor of keeping
- * the last known-good position.
- *
- * maxSpeedKph defaults to 100 - generous enough to never reject genuine
- * motorbike/car movement in city traffic, but tight enough to catch the
- * multi-kilometer "teleports" that show up as a rider's dot jumping across
- * the map on a bad reading.
- */
-export function isPlausibleMove(prev, next, maxSpeedKph = 100) {
-    if (!prev || !next) return true; // nothing to compare against yet - accept it
-    const elapsedHours = (next.timestamp - prev.timestamp) / 3600000;
-    if (elapsedHours <= 0) return true;
-    const meters = distanceMeters(prev.lat, prev.lng, next.lat, next.lng);
-    const impliedKph = (meters / 1000) / elapsedHours;
-    return impliedKph <= maxSpeedKph;
-}
-
 /**
  * @deprecated No longer used anywhere in the app as of this fix. This was a
  * bare one-shot navigator.geolocation.getCurrentPosition() call with a flat

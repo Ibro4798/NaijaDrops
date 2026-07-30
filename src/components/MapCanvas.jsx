@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
-import { useState, useRef, useEffect } from "react";
-import Map, { Marker, NavigationControl } from "react-map-gl";
+import { useState, useRef, useEffect, useMemo } from "react";
+import Map, { Marker, NavigationControl, Source, Layer } from "react-map-gl";
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, Flag } from "lucide-react";
 
 /**
  * Reusable MapCanvas Component 
@@ -11,18 +11,21 @@ import { MapPin, Navigation } from "lucide-react";
  * 1. Viewing live markers (Rider tracking)
  * 2. Picking locations (Create Delivery)
  *
- * @param {Array} markers - Array of {lat, lng, color, type} objects
+ * @param {Array} markers - Array of {lat, lng, color, type, label} objects.
+ *   type: 'rider' | 'pickup' | 'dropoff' | undefined - controls icon/label.
  * @param {boolean} interactive - Whether the user can click to drop a pin
  * @param {function} onLocationSelect - Callback when pin is dropped (returns {lat, lng})
- * @param {object} center - Default center {lat, lng} 
+ * @param {object} center - Default center {lat, lng}
+ * @param {boolean} showRoute - Draw a connecting line between markers, in the order given
  */
-export default function MapCanvas({ 
-  markers = [], 
+export default function MapCanvas({
+  markers = [],
   orders = [],
-  interactive = false, 
+  interactive = false,
   onLocationSelect = () => {},
   center = null,
-  zoom: initialZoom = 12
+  zoom: initialZoom = 12,
+  showRoute = false,
 }) {
   // Merge markers and orders (orders get converted to marker format)
   const allMarkers = [
@@ -38,7 +41,7 @@ export default function MapCanvas({
 
   // Default to Kano Center if not provided
   const [viewState, setViewState] = useState({
-    longitude: center?.lng || 8.5200, 
+    longitude: center?.lng || 8.5200,
     latitude: center?.lat || 11.9964,
     zoom: initialZoom
   });
@@ -55,14 +58,77 @@ export default function MapCanvas({
            zoom: 14
         }));
      }
-  }, [allMarkers, interactive]);
+  }, [allMarkers.length === 1 ? `${allMarkers[0].lat},${allMarkers[0].lng}` : null, interactive]);
+
+  // FIX: with multiple markers (pickup + dropoff + rider together, which is
+  // the whole point of showing them all at once), the map used to just sit
+  // on the Kano-center default and never actually frame what was on
+  // screen - the caller had to already know where to look. Fit the camera
+  // to whatever's actually being shown instead.
+  useEffect(() => {
+    if (allMarkers.length < 2 || interactive || !mapRef.current) return;
+    const lats = allMarkers.map(m => m.lat);
+    const lngs = allMarkers.map(m => m.lng);
+    const bounds = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+    try {
+      mapRef.current.fitBounds(bounds, { padding: 64, duration: 800, maxZoom: 15 });
+    } catch {
+      // map not fully ready yet - safe to skip, next update will retry
+    }
+  }, [JSON.stringify(allMarkers.map(m => [m.lat, m.lng])), interactive]);
+
+  const routeGeoJson = useMemo(() => {
+    if (!showRoute || allMarkers.length < 2) return null;
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: allMarkers.map(m => [m.lng, m.lat]),
+      },
+    };
+  }, [showRoute, JSON.stringify(allMarkers.map(m => [m.lat, m.lng]))]);
 
   const handleMapClick = (e) => {
     if (!interactive) return;
-    
+
     const { lng, lat } = e.lngLat;
     setActivePin({ lng, lat });
     onLocationSelect({ lng, lat });
+  };
+
+  const markerVisual = (m) => {
+    if (m.type === 'rider') {
+      return (
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-11 h-11 rounded-full bg-emerald-500/30 animate-ping" />
+          <div className="relative w-9 h-9 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center">
+            <Navigation size={16} className="text-charcoal-950" />
+          </div>
+        </div>
+      );
+    }
+    if (m.type === 'dropoff') {
+      return (
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center -mb-1">
+            <Flag size={14} className="text-white" />
+          </div>
+          <div className="w-2 h-2 bg-rose-500 rotate-45 -mt-1" />
+        </div>
+      );
+    }
+    // pickup / default
+    return (
+      <div className="flex flex-col items-center">
+        <div className="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center -mb-1">
+          <MapPin size={14} className="text-charcoal-950" />
+        </div>
+        <div className="w-2 h-2 bg-emerald-500 rotate-45 -mt-1" />
+      </div>
+    );
   };
 
   return (
@@ -78,11 +144,27 @@ export default function MapCanvas({
       >
         <NavigationControl position="top-right" />
 
-        {/* Render fixed markers (e.g. Riders, Dropoffs) */}
+        {routeGeoJson && (
+          <Source id="route" type="geojson" data={routeGeoJson}>
+            <Layer
+              id="route-line"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{ 'line-color': '#10b981', 'line-width': 3, 'line-dasharray': [0.2, 1.5], 'line-opacity': 0.8 }}
+            />
+          </Source>
+        )}
+
+        {/* Render fixed markers (e.g. Riders, Pickup, Dropoff) */}
         {allMarkers.map((m, idx) => (
-          <Marker key={idx} longitude={m.lng} latitude={m.lat} anchor="bottom">
-            <div className={`p-2 rounded-full ${m.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'}`}>
-               {m.type === 'rider' ? <Navigation size={24} className="animate-pulse" /> : <MapPin size={24} />}
+          <Marker key={idx} longitude={m.lng} latitude={m.lat} anchor={m.type === 'rider' ? 'center' : 'bottom'}>
+            <div className="relative group">
+              {markerVisual(m)}
+              {m.label && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap bg-charcoal-950/90 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg pointer-events-none">
+                  {m.label}
+                </div>
+              )}
             </div>
           </Marker>
         ))}

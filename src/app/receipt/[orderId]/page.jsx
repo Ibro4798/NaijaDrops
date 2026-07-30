@@ -1,0 +1,188 @@
+﻿"use client";
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { CheckCircle2, Package, Printer, Star, ArrowRight, Sparkles } from 'lucide-react';
+import ReceiptShareButton from '@/components/ui/ReceiptShareButton';
+import ReviewModal from '@/components/ReviewModal';
+
+export default function ReceiptPage() {
+  const { orderId } = useParams();
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [order, setOrder] = useState(null);
+  const [isVendorView, setIsVendorView] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        const { data: authedOrder } = await supabase
+          .from('orders')
+          .select('*, riders(users(full_name, receipt_display_name)), vendors(business_name, logo_url, users(receipt_display_name))')
+          .eq('id', orderId)
+          .single();
+        if (authedOrder) {
+          setOrder(authedOrder);
+          setIsVendorView(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch(`/api/track/${orderId}`);
+        const json = await res.json();
+        if (!res.ok || !json.success) { setNotFound(true); setLoading(false); return; }
+        setOrder(json.order);
+        setIsVendorView(false);
+      } catch {
+        setNotFound(true);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [orderId, supabase]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (notFound || !order) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-charcoal-950 text-center px-6">
+        <p className="text-ink font-black text-xl mb-2">Receipt not found</p>
+        <p className="text-charcoal-400 text-sm">Check the link and try again.</p>
+      </div>
+    );
+  }
+
+  if (order.status !== 'delivered') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-charcoal-950 text-center px-6 gap-6">
+        <div>
+          <p className="text-ink font-black text-xl mb-2">This order hasn't been delivered yet</p>
+          <p className="text-charcoal-400 text-sm">The receipt shows up here as soon as it's marked delivered.</p>
+        </div>
+        <button
+          onClick={() => router.push(`/tracking/${orderId}`)}
+          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black text-sm px-6 py-3 rounded-2xl transition-all active:scale-95"
+        >
+          Track this delivery <ArrowRight size={16} />
+        </button>
+      </div>
+    );
+  }
+
+  const riderName = order.riders?.users?.receipt_display_name || order.riders?.users?.full_name || order.rider?.first_name || null;
+  // Deliberately: anonymous (customer-side) receipts only ever see a
+  // sender name the vendor explicitly opted into showing on receipts
+  // (sender_display_name from the public track API) - never their real
+  // business_name unless that's what they chose to set as their receipt name.
+  const senderName = isVendorView
+    ? (order.vendors?.users?.receipt_display_name || order.vendors?.business_name || null)
+    : (order.sender_display_name || null);
+  const senderLogo = isVendorView ? (order.vendors?.logo_url || null) : null;
+  const commission = isVendorView && order.agreed_price ? Math.round(order.agreed_price * 0.20) : null;
+  const total = Number(order.agreed_price ?? order.total_price ?? 0);
+
+  return (
+    <div className="min-h-screen bg-charcoal-950 print:bg-white">
+      {/* Vibrant hero */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-charcoal-950 pt-16 pb-24 px-6 print:hidden">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-charcoal-950/30 rounded-full blur-3xl"></div>
+        <Sparkles className="absolute top-8 right-10 text-white/20" size={40} />
+        <Sparkles className="absolute bottom-16 left-16 text-white/20" size={24} />
+
+        <div className="relative max-w-md mx-auto text-center">
+          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <CheckCircle2 className="text-emerald-500" size={44} />
+          </div>
+          <p className="text-white/70 font-black text-[10px] uppercase tracking-[0.3em] mb-2">Delivered Successfully</p>
+          <p className="text-white font-black text-5xl tracking-tighter">â‚¦{total.toLocaleString()}</p>
+          <p className="text-white/60 text-xs font-bold mt-2">{new Date(order.updated_at).toLocaleString()}</p>
+        </div>
+      </div>
+
+      <div className="max-w-md mx-auto px-6 -mt-14 pb-16 print:mt-0 print:px-0">
+        <div className="bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 space-y-6 shadow-premium print:bg-white print:border-none print:shadow-none print:text-black">
+
+          {(senderName || senderLogo) && (
+            <div className="flex flex-col items-center text-center gap-3 pb-4 border-b border-white/10 print:border-charcoal-300">
+              {senderLogo ? (
+                <img src={senderLogo} alt={senderName || 'Sender'} className="w-14 h-14 rounded-2xl object-cover border border-white/10" />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black text-lg">
+                  {(senderName || 'ND').slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              {senderName && <p className="text-ink font-black text-lg print:text-black">{senderName}</p>}
+              <p className="text-charcoal-500 text-[10px] font-black uppercase tracking-widest">Sent via NaijaDrops</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm mb-1"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold print:text-black">{order.item_description}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink font-bold print:text-black text-right">{order.pickup_name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink font-bold print:text-black text-right">{order.dropoff_name}</span></div>
+            {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold print:text-black">{riderName}</span></div>}
+            <div className="flex justify-between text-sm pt-3 border-t border-white/10 print:border-charcoal-300"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black text-lg print:text-black">â‚¦{total.toLocaleString()}</span></div>
+            {isVendorView && commission !== null && (
+              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-ink print:text-black">â‚¦{commission.toLocaleString()}</span></div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2 print:hidden">
+            <div className="grid grid-cols-2 gap-3">
+              <ReceiptShareButton itemDescription={order.item_description} price={total} />
+              <button
+                onClick={() => window.print()}
+                className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+              >
+                <Printer size={16} /> Print
+              </button>
+            </div>
+            {isVendorView && riderName && (
+              <button
+                onClick={() => setShowReview(true)}
+                className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all active:scale-95"
+              >
+                <Star size={16} /> Rate this delivery
+              </button>
+            )}
+            {isVendorView && (
+              <button
+                onClick={() => router.push('/vendor/active-orders')}
+                className="text-charcoal-400 hover:text-ink text-xs font-bold text-center pt-1 transition-colors"
+              >
+                Back to active orders
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isVendorView && riderName && (
+        <ReviewModal
+          order={order}
+          driverProfile={{ full_name: riderName }}
+          reviewerId={currentUserId}
+          isOpen={showReview}
+          onClose={() => setShowReview(false)}
+        />
+      )}
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-﻿ï»¿import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase with the SERVICE ROLE key to bypass RLS for secure updates
@@ -13,11 +13,6 @@ export async function POST(req) {
 
     if (!reference || !orderId) {
       return NextResponse.json({ error: 'Missing reference or orderId' }, { status: 400 });
-    }
-
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY.includes('dummy')) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL is missing/placeholder - verify-payment cannot look up or update orders. Set it in .env.local and in Vercel Production env vars, then redeploy.');
-      return NextResponse.json({ error: 'Payment verification is misconfigured on the server (missing Supabase service role key). Contact support before retrying.' }, { status: 500 });
     }
 
     if (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY.includes('dummy')) {
@@ -87,14 +82,13 @@ export async function POST(req) {
       .single();
 
     if (orderErr || !order) {
-        console.error('verify-payment: order lookup failed for orderId', orderId, orderErr);
-        return NextResponse.json({ error: orderErr ? `Order lookup failed: ${orderErr.message}` : 'Order not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
     // FIX: agreed_price is a nullable column. If it were ever null here,
     // `null * 100` evaluates to 0, and the amount check below
     // (`paidAmount < expectedAmountKobo`) would then pass for literally any
-    // paid amount, including â‚¦0 - the check would exist in the code but be
+    // paid amount, including ₦0 - the check would exist in the code but be
     // silently meaningless for that order. Fail loudly instead.
     if (!order.agreed_price || order.agreed_price <= 0) {
       console.error(`Order ${orderId} has no valid agreed_price (${order.agreed_price}) - refusing to verify payment against it.`);

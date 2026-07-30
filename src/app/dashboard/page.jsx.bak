@@ -1,4 +1,4 @@
-﻿ï»¿"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ const STATUS_CONFIG = {
 
 import { Camera, Image as ImageIcon } from "lucide-react";
 
-// â”€â”€â”€ Profile Completion Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Profile Completion Modal ────────────────────────────────────────────────
 function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
   const [name, setName] = useState(currentName || "");
   const [avatar, setAvatar] = useState(currentAvatar || "");
@@ -154,7 +154,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
   );
 }
 
-// â”€â”€â”€ Menu Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Menu Modal ─────────────────────────────────────────────────────────────
 function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
   const router = useRouter();
   if (!isOpen) return null;
@@ -203,6 +203,16 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
            <div className="px-4 py-2">
               <span className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest">Support</span>
            </div>
+
+           <a href="mailto:yahaya.usama@naijadrops.tech" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-300 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <FileText size={20} />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-sm">Contact Support</div>
+                <div className="text-[10px] opacity-60">yahaya.usama@naijadrops.tech</div>
+              </div>
+           </a>
 
            <a href="https://wa.me/2349118267433" target="_blank" className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-emerald-500/10 text-emerald-400 transition-all">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -447,11 +457,12 @@ export default function DashboardPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none"
         >
           <div className="bg-charcoal-950/60 backdrop-blur-sm border border-emerald-500/20 rounded-full px-4 py-1.5">
-            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">ðŸŸ¢ Kano Pilot Zone Active</span>
+            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">🟢 Kano Pilot Zone Active</span>
           </div>
         </motion.div>
       )}
     </div>
   );
 }
+
 

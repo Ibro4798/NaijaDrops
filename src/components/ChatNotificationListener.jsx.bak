@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -6,7 +6,7 @@ import { MessageSquare, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Toast Notification Component Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Toast Notification Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ChatToast({ notification, onClose, onTap }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 6000);
@@ -54,7 +54,7 @@ function ChatToast({ notification, onClose, onTap }) {
   );
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Global Listener Component Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// â”€â”€â”€ Global Listener Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function ChatNotificationListener() {
   const supabase = createClient();
   const router = useRouter();
@@ -66,25 +66,11 @@ export default function ChatNotificationListener() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // FIX: vendor_id/rider_id on orders are foreign keys to vendors.id
-      // and riders.id - NOT the user's own id - so this always matched zero
-      // orders for a vendor and silently did nothing. Resolve the user's
-      // actual vendor_id/rider_id row first.
-      const [{ data: vendorRow }, { data: riderRow }] = await Promise.all([
-        supabase.from('vendors').select('id').eq('user_id', user.id).single(),
-        supabase.from('riders').select('id').eq('user_id', user.id).single(),
-      ]);
-
-      const orFilters = [];
-      if (vendorRow) orFilters.push(`vendor_id.eq.${vendorRow.id}`);
-      if (riderRow) orFilters.push(`rider_id.eq.${riderRow.id}`);
-      if (orFilters.length === 0) return;
-
       // Find any active orders for this user
       const { data: activeOrders } = await supabase
         .from('orders')
         .select('id, vendor_id, rider_id')
-        .or(orFilters.join(','))
+        .or(`vendor_id.eq.${user.id},rider_id.eq.${user.id}`) // Note: vendor_id and rider_id are user IDs in this context or mapped
         .not('status', 'in', '("delivered")')
         .order('created_at', { ascending: false });
 
