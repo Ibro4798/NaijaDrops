@@ -1,4 +1,4 @@
-﻿ï»¿
+
 import "./globals.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Outfit, Inter } from "next/font/google";

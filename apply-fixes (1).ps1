@@ -1,6 +1,20 @@
 <#
-    NaijaDrops - apply-fixes.ps1  (consolidated)
+    NaijaDrops - apply-fixes.ps1  (consolidated, BOM-fixed)
     ------------------------------------------------------------------
+    FIX (this version): the previous version of this script broke the
+    build with "Unexpected character '»'" on every file it touched. Cause:
+    several source files carried a stray literal BOM character (as actual
+    TEXT, not a real file-level BOM) baked into their first line, left
+    over from Windows-edited copies. Combined with PowerShell's
+    `-Encoding UTF8` (which ALSO silently prepends its own real BOM), that
+    produced a doubled/mis-decoded BOM sequence at the top of each file
+    ("ï»¿" - classic UTF-8-bytes-read-as-Latin-1 mojibake) that Next.js's
+    parser correctly rejected as invalid JS. Fixed two ways: the stray
+    text-BOM is stripped from every file's content below, AND this script
+    now writes with .NET's UTF8Encoding(false) directly instead of
+    PowerShell's -Encoding UTF8, so no BOM gets added at all, from either
+    source.
+
     NONE of the fixes from recent sessions have made it into a live
     deploy yet, so this script is now the single, complete source of
     truth - it fully overwrites each file listed below with its final,
@@ -51,6 +65,14 @@ $ErrorActionPreference = "Stop"
 # PowerShell's default -Path parameter, so EVERY path operation below
 # uses -LiteralPath explicitly - without that, Test-Path/Copy-Item would
 # silently fail to find files inside those folders.
+#
+# NOTE 2: files are written with .NET's UTF8Encoding($false) - UTF-8, NO
+# byte-order-mark - instead of PowerShell's `Set-Content -Encoding UTF8`,
+# which silently adds a BOM and was the root cause of the last build
+# failure. $NewContent also has any stray leading BOM character stripped
+# defensively, in case it's ever present in source content again.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
 function Set-WholeFile {
     param(
         [string]$RelativePath,
@@ -65,8 +87,17 @@ function Set-WholeFile {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
 
+    # Defensive: strip a leading BOM character if the content string
+    # happens to carry one literally (U+FEFF as the first character).
+    if ($NewContent.Length -gt 0 -and [int]$NewContent[0] -eq 0xFEFF) {
+        $NewContent = $NewContent.Substring(1)
+    }
+
     if (Test-Path -LiteralPath $fullPath) {
-        $existing = Get-Content -Raw -Encoding UTF8 -LiteralPath $fullPath
+        $existing = [System.IO.File]::ReadAllText($fullPath, [System.Text.Encoding]::UTF8)
+        if ($existing.Length -gt 0 -and [int]$existing[0] -eq 0xFEFF) {
+            $existing = $existing.Substring(1)
+        }
         if ($existing -eq $NewContent) {
             Write-Host "[OK]   $Label - already applied, nothing to do." -ForegroundColor Green
             return
@@ -75,17 +106,17 @@ function Set-WholeFile {
         if (-not (Test-Path -LiteralPath $backupPath)) {
             Copy-Item -LiteralPath $fullPath -Destination $backupPath
         }
-        Set-Content -LiteralPath $fullPath -Value $NewContent -Encoding UTF8 -NoNewline
+        [System.IO.File]::WriteAllText($fullPath, $NewContent, $Utf8NoBom)
         Write-Host "[DONE] $Label - updated. Backup saved as $(Split-Path $backupPath -Leaf)" -ForegroundColor Cyan
     } else {
-        Set-Content -LiteralPath $fullPath -Value $NewContent -Encoding UTF8 -NoNewline
+        [System.IO.File]::WriteAllText($fullPath, $NewContent, $Utf8NoBom)
         Write-Host "[NEW]  $Label - created $RelativePath" -ForegroundColor Magenta
     }
 }
 
 Write-Host ""
-Write-Host "NaijaDrops - consolidated fix pass" -ForegroundColor White
-Write-Host "-----------------------------------"
+Write-Host "NaijaDrops - consolidated fix pass (BOM-fixed)" -ForegroundColor White
+Write-Host "-----------------------------------------------"
 Write-Host "Run this from your project ROOT (the folder containing 'src')." -ForegroundColor DarkGray
 Write-Host ""
 
@@ -93,7 +124,7 @@ Write-Host ""
 # Pay Now button on Active Orders
 # ------------------------------------------------------------------
 $content_0 = @'
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -553,7 +584,7 @@ Set-WholeFile -RelativePath "src\utils\geolocation.js" -NewContent $content_1 -L
 # Remove Contact Support email
 # ------------------------------------------------------------------
 $content_2 = @'
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -1019,7 +1050,7 @@ Set-WholeFile -RelativePath "src\app\dashboard\page.jsx" -NewContent $content_2 
 # verify-payment real error messages
 # ------------------------------------------------------------------
 $content_3 = @'
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase with the SERVICE ROLE key to bypass RLS for secure updates
@@ -1873,7 +1904,7 @@ Set-WholeFile -RelativePath "src\app\receipt\[orderId]\page.jsx" -NewContent $co
 # Tracking page - stepper, map, share link, redirect to receipt
 # ------------------------------------------------------------------
 $content_8 = @'
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -2889,7 +2920,7 @@ Set-WholeFile -RelativePath "src\components\ChatNotificationListener.jsx" -NewCo
 # Mount notification listeners globally
 # ------------------------------------------------------------------
 $content_12 = @'
-﻿
+
 import "./globals.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Outfit, Inter } from "next/font/google";
@@ -2981,7 +3012,7 @@ Set-WholeFile -RelativePath "src\app\layout.js" -NewContent $content_12 -Label "
 # Add receipt display name field
 # ------------------------------------------------------------------
 $content_13 = @'
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -3236,7 +3267,7 @@ Set-WholeFile -RelativePath "src\app\profile\page.jsx" -NewContent $content_13 -
 # Link delivered orders to receipt page
 # ------------------------------------------------------------------
 $content_14 = @'
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -3623,7 +3654,7 @@ Set-WholeFile -RelativePath "src\components\rider\DriverHeartbeat.jsx" -NewConte
 # Fix back-button-after-delivery bug + wording
 # ------------------------------------------------------------------
 $content_16 = @'
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
