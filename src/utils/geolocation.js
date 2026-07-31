@@ -1,25 +1,30 @@
-﻿/**
+/**
  * Reliable Geolocation Utility
- * Tiered fetching: GPS -> Wifi/Cell -> IP-API Fallback
  *
  * Deterministic accuracy rules used across the app (both the one-time
  * "Use My Location" flow below AND the rider's live-tracking heartbeat in
  * DriverHeartbeat.jsx), tuned for Nigerian mobile networks specifically:
  *
- * 1. GPS/device readings are ALWAYS preferred over IP-based location.
- *    IP geolocation on Nigerian mobile networks resolves to the carrier's
- *    gateway city, not the device - it can be tens of kilometers off, in a
- *    different part of the state entirely. It's used only as an absolute
- *    last resort when the device returns nothing at all.
+ * 1. IP-based location has been removed entirely from the interactive
+ *    "Use My Location" flow. It was kept as a last-resort fallback before,
+ *    but repeated real-world testing showed it is simply not reliable
+ *    enough to ever hand back as a real answer here: it resolves to the
+ *    mobile carrier's gateway city, not the device, and on Nigerian mobile
+ *    networks that can be a different part of the state entirely - this
+ *    was the single biggest source of "location is completely wrong."
+ *    GPS-only now. If GPS genuinely can't get a fix, this returns null and
+ *    the caller shows a clear "couldn't get your location" message asking
+ *    the person to retry or check location permissions, rather than
+ *    silently handing back a guess that might be tens of kilometers off.
  * 2. A reading is only trusted immediately if it's excellent (<25m). A
  *    "good enough" reading (25-60m - the common case on budget Android
  *    phones here, indoors or under cloud cover) needs a second confirming
  *    ping first, since a phone's very first GPS fix after a cold start is
  *    often a low-quality "quick fix" that still reports a deceptively
  *    reasonable accuracy number.
- * 3. Give it real time. 12 seconds, not the ~4.5s this used to allow -
- *    enough for a real device fix to come back before ever considering the
- *    IP fallback.
+ * 3. Give it real time - 15 seconds - for a genuine device fix to come
+ *    back, since there's no fallback to fall through to anymore if it
+ *    gives up too early.
  * 4. For CONTINUOUS tracking (not just a one-time button press - see
  *    isPlausibleMove below), a single wildly-off reading is rejected by a
  *    speed sanity check rather than blindly overwriting the last known-good
@@ -27,15 +32,8 @@
  *    seconds; a reading that implies that is noise, not movement.
  */
 
-const DEMO_LOCATION = {
-    lat: 12.0022,
-    lng: 8.5167,
-    accuracy: 10,
-    source: 'demo'
-};
-
 export async function getReliableLocation(onProgress) {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
         let locationFound = false;
         let bestReading = null;
         let pingsReceived = 0;
@@ -44,95 +42,62 @@ export async function getReliableLocation(onProgress) {
             if (onProgress) onProgress(msg);
         };
 
-        // Real IP-based Geolocation Fallback
-        const getIPLocation = async () => {
-            try {
-                updateStatus("ðŸŒ Resolving city via IP...");
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                if (data.latitude && data.longitude) {
-                    return {
-                        lat: data.latitude,
-                        lng: data.longitude,
-                        city: data.city,
-                        accuracy: 5000,
-                        source: 'ip-api'
-                    };
-                }
-            } catch (e) {
-                console.error("IP Geolocate failed:", e);
-            }
-            return null;
+        if (!("geolocation" in navigator)) {
+            updateStatus("❌ This device/browser doesn't support location.");
+            resolve(null);
+            return;
+        }
+
+        updateStatus("🛰️ Getting your GPS location...");
+
+        const cleanup = () => {
+            locationFound = true;
+            navigator.geolocation.clearWatch(watchId);
         };
 
-        if ("geolocation" in navigator) {
-            updateStatus("ðŸ›°ï¸ Synchronizing GPS...");
-
-            const watchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    pingsReceived++;
-                    if (!bestReading || pos.coords.accuracy < bestReading.accuracy) {
-                        bestReading = {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
-                            accuracy: pos.coords.accuracy,
-                            source: 'gps'
-                        };
-                        updateStatus(`ðŸŽ¯ Precision Lock: Â±${Math.round(pos.coords.accuracy)}m`);
-                    }
-
-                    const isExcellent = pos.coords.accuracy < 25;
-                    const isGoodAndStable = pos.coords.accuracy < 60 && pingsReceived >= 2;
-
-                    if (isExcellent || isGoodAndStable) {
-                        cleanup();
-                        resolve(bestReading);
-                    }
-                },
-                (err) => {
-                    console.warn("GPS Watch failed:", err.message);
-                },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
-            );
-
-            const cleanup = () => {
-                locationFound = true;
-                navigator.geolocation.clearWatch(watchId);
-            };
-
-            // FIX: extended from 4500ms to 12000ms. 4500ms was still too
-            // short for a device (especially a laptop/desktop or a phone
-            // relying on WiFi-based positioning rather than a cold GPS fix)
-            // to ever land a reading tight enough to beat the threshold
-            // below - so most requests were timing out onto the IP fallback
-            // by default. That's exactly what made "Use My Location" (and
-            // "Go Online" for riders) resolve to essentially random places.
-            // 12s is still fast enough to not feel broken, but gives real
-            // device positioning a genuine chance to report back first.
-            setTimeout(async () => {
-                if (locationFound) return;
-                cleanup();
-
-                // ANY real device reading is preferred over the IP fallback,
-                // not just tight ones - IP is used only when we truly got
-                // nothing from the device at all.
-                if (bestReading) {
-                    resolve(bestReading);
-                } else {
-                    const ipLoc = await getIPLocation();
-                    if (ipLoc) {
-                        resolve(ipLoc);
-                    } else {
-                        updateStatus("âŒ Location failed.");
-                        resolve(null);
-                    }
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                pingsReceived++;
+                if (!bestReading || pos.coords.accuracy < bestReading.accuracy) {
+                    bestReading = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        source: 'gps'
+                    };
+                    updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                 }
-            }, 12000);
 
-        } else {
-            const ipLoc = await getIPLocation();
-            resolve(ipLoc);
-        }
+                const isExcellent = pos.coords.accuracy < 25;
+                const isGoodAndStable = pos.coords.accuracy < 60 && pingsReceived >= 2;
+
+                if (isExcellent || isGoodAndStable) {
+                    cleanup();
+                    resolve(bestReading);
+                }
+            },
+            (err) => {
+                console.warn("GPS Watch failed:", err.message);
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+        );
+
+        // 15 seconds to get a real device fix. If nothing usable came back
+        // by then, resolve with whatever the best reading so far was
+        // (even a so-so one is still real GPS, not a random guess) - or
+        // null if we truly got nothing at all, so the caller can show a
+        // clear retry prompt instead of silently using a bad location.
+        setTimeout(() => {
+            if (locationFound) return;
+            cleanup();
+
+            if (bestReading) {
+                resolve(bestReading);
+            } else {
+                updateStatus("❌ Couldn't get a GPS lock. Check location permissions and try again.");
+                resolve(null);
+            }
+        }, 15000);
     });
 }
 
@@ -170,39 +135,4 @@ export function isPlausibleMove(prev, next, maxSpeedKph = 100) {
     const meters = distanceMeters(prev.lat, prev.lng, next.lat, next.lng);
     const impliedKph = (meters / 1000) / elapsedHours;
     return impliedKph <= maxSpeedKph;
-}
-
-/**
- * @deprecated No longer used anywhere in the app as of this fix. This was a
- * bare one-shot navigator.geolocation.getCurrentPosition() call with a flat
- * 10s timeout and zero fallback - on weak/indoor GPS signal it just failed
- * outright, which is what made "use my location" buttons feel unreliable.
- * Every location button in the app now calls getReliableLocation() above
- * instead. Left in place only in case anything outside this codebase still
- * imports it directly - safe to delete once confirmed unused.
- * Industry Standard Geolocation (One-shot)
- * Used for "Use Current Location" buttons
- */
-export async function getCurrentPositionStandard() {
-    return new Promise((resolve, reject) => {
-        if (!("geolocation" in navigator)) {
-            reject(new Error("Location services not supported."));
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                resolve({
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    source: 'standard-gps'
-                });
-            },
-            (err) => {
-                reject(err);
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    });
 }

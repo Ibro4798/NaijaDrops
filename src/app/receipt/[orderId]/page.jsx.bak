@@ -1,12 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { CheckCircle2, Package, Printer, Star, ArrowRight, Sparkles, Download, Loader2 } from 'lucide-react';
+import { CheckCircle2, Package, Printer, Star, ArrowRight, Sparkles } from 'lucide-react';
 import ReceiptShareButton from '@/components/ui/ReceiptShareButton';
 import ReviewModal from '@/components/ReviewModal';
-import { renderReceiptImage } from '@/utils/receiptImage';
 
 export default function ReceiptPage() {
   const { orderId } = useParams();
@@ -19,7 +18,6 @@ export default function ReceiptPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showReview, setShowReview] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -96,37 +94,8 @@ export default function ReceiptPage() {
     ? (order.vendors?.users?.receipt_display_name || order.vendors?.business_name || null)
     : (order.sender_display_name || null);
   const senderLogo = isVendorView ? (order.vendors?.logo_url || null) : null;
+  const commission = isVendorView && order.agreed_price ? Math.round(order.agreed_price * 0.20) : null;
   const total = Number(order.agreed_price ?? order.total_price ?? 0);
-  const deliveredAt = new Date(order.updated_at).toLocaleString();
-
-  const receiptData = {
-    total,
-    itemDescription: order.item_description,
-    pickupName: order.pickup_name,
-    dropoffName: order.dropoff_name,
-    riderName,
-    senderName,
-    deliveredAt,
-    orderId: order.id,
-  };
-
-  async function handleDownload() {
-    setDownloading(true);
-    try {
-      const blob = await renderReceiptImage(receiptData);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `naijadrops-receipt-${String(order.id).slice(0, 8)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Receipt download failed:', err);
-    }
-    setDownloading(false);
-  }
 
   return (
     <div className="min-h-screen bg-charcoal-950 print:bg-white">
@@ -142,26 +111,16 @@ export default function ReceiptPage() {
             <CheckCircle2 className="text-emerald-500" size={44} />
           </div>
           <p className="text-white/70 font-black text-[10px] uppercase tracking-[0.3em] mb-2">Delivered Successfully</p>
-          <p className="text-white font-black text-5xl tracking-tighter">₦{total.toLocaleString()}</p>
-          <p className="text-white/60 text-xs font-bold mt-2">{deliveredAt}</p>
+          <p className="text-white font-black text-5xl tracking-tighter">â‚¦{total.toLocaleString()}</p>
+          <p className="text-white/60 text-xs font-bold mt-2">{new Date(order.updated_at).toLocaleString()}</p>
         </div>
       </div>
 
       <div className="max-w-md mx-auto px-6 -mt-14 pb-16 print:mt-0 print:px-0">
-        {/* Perforated tear-off edge - classic receipt look */}
-        <div
-          className="h-4 print:hidden"
-          style={{
-            background: 'radial-gradient(circle at 12px 0, transparent 8px, #18181b 8px)',
-            backgroundSize: '24px 16px',
-            backgroundRepeat: 'repeat-x',
-          }}
-        />
-
-        <div className="bg-charcoal-900 border border-white/10 border-t-0 rounded-b-[2rem] p-8 space-y-6 shadow-premium print:bg-white print:border-none print:shadow-none print:text-black print:rounded-none">
+        <div className="bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 space-y-6 shadow-premium print:bg-white print:border-none print:shadow-none print:text-black">
 
           {(senderName || senderLogo) && (
-            <div className="flex flex-col items-center text-center gap-3 pb-4 border-b border-dashed border-white/10 print:border-charcoal-300">
+            <div className="flex flex-col items-center text-center gap-3 pb-4 border-b border-white/10 print:border-charcoal-300">
               {senderLogo ? (
                 <img src={senderLogo} alt={senderName || 'Sender'} className="w-14 h-14 rounded-2xl object-cover border border-white/10" />
               ) : (
@@ -179,28 +138,20 @@ export default function ReceiptPage() {
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink font-bold print:text-black text-right">{order.pickup_name}</span></div>
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink font-bold print:text-black text-right">{order.dropoff_name}</span></div>
             {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold print:text-black">{riderName}</span></div>}
-            {/* Platform commission removed - a customer/vendor-facing receipt
-                should reflect what was paid, not NaijaDrops' internal cut.
-                Vendors can see commission breakdowns in their earnings/
-                history views instead. */}
-            <div className="flex justify-between text-sm pt-3 border-t border-dashed border-white/10 print:border-charcoal-300"><span className="text-charcoal-400 font-bold">Total Paid</span><span className="text-emerald-400 font-black text-lg print:text-black">₦{total.toLocaleString()}</span></div>
+            <div className="flex justify-between text-sm pt-3 border-t border-white/10 print:border-charcoal-300"><span className="text-charcoal-400">Total Paid</span><span className="text-emerald-400 font-black text-lg print:text-black">â‚¦{total.toLocaleString()}</span></div>
+            {isVendorView && commission !== null && (
+              <div className="flex justify-between text-sm opacity-70"><span className="text-charcoal-400">Platform Commission (20%)</span><span className="text-ink print:text-black">â‚¦{commission.toLocaleString()}</span></div>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 pt-2 print:hidden">
-            <div className="grid grid-cols-3 gap-3">
-              <ReceiptShareButton receiptData={receiptData} />
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 disabled:opacity-60"
-              >
-                {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              </button>
+            <div className="grid grid-cols-2 gap-3">
+              <ReceiptShareButton itemDescription={order.item_description} price={total} />
               <button
                 onClick={() => window.print()}
                 className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
               >
-                <Printer size={16} />
+                <Printer size={16} /> Print
               </button>
             </div>
             {isVendorView && riderName && (

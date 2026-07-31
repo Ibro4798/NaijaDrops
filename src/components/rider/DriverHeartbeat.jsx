@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -97,7 +97,7 @@ export default function DriverHeartbeat({ riderId, isOnline }) {
           });
 
         lastConfirmedRef.current = sample;
-        console.log("[HEARTBEAT] Location synced at", new Date().toLocaleTimeString(), `Â±${Math.round(sample.accuracy)}m`);
+        console.log("[HEARTBEAT] Location synced at", new Date().toLocaleTimeString(), `±${Math.round(sample.accuracy)}m`);
       } catch (err) {
         // Silent fail to preserve driver experience
       } finally {

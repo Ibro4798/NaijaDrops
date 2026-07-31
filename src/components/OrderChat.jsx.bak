@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Send, X, AlertCircle, DollarSign, Check, ChevronDown, Mic, Play, Square, Lock } from 'lucide-react';
+import { Send, X, AlertCircle, DollarSign, Check, ChevronDown, Mic, Play, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly = false, onPriceUpdated }) {
@@ -25,7 +25,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
       // Fetch order details to show current agreed price
       const { data: orderData } = await supabase
         .from('orders')
-        .select('agreed_price, status, payment_status, vendor_id, rider_id')
+        .select('agreed_price, status, vendor_id, rider_id')
         .eq('id', orderId)
         .single();
       if (orderData) setOrder(orderData);
@@ -67,9 +67,6 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
         if (payload.new.agreed_price !== payload.old.agreed_price) {
           setOrder(prev => ({ ...prev, agreed_price: payload.new.agreed_price }));
           onPriceUpdated?.(payload.new.agreed_price);
-        }
-        if (payload.new.payment_status !== payload.old.payment_status) {
-          setOrder(prev => ({ ...prev, payment_status: payload.new.payment_status }));
         }
       })
       .subscribe();
@@ -156,17 +153,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
     }
   };
 
-  // FIX: negotiation used to stay open for the entire order lifecycle up
-  // until delivered/cancelled - including well after payment_status
-  // flipped to 'paid'. The agreed_price at that point is literally what
-  // was charged through Paystack; changing it afterward via chat only
-  // updates the database record, not the actual transaction, silently
-  // creating a mismatch between what the customer paid and what the order
-  // says they agreed to. Negotiation is only meaningful (and only allowed)
-  // before payment is confirmed - available to both the vendor and the
-  // rider equally, since neither role is restricted here beyond that.
-  const canNegotiatePrice = order && order.status !== 'delivered' && order.status !== 'cancelled' && order.payment_status !== 'paid';
-  const priceLockedByPayment = order && order.payment_status === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled';
+  const canNegotiatePrice = order && order.status !== 'delivered' && order.status !== 'cancelled';
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col glass-dark sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 sm:rounded-t-[2.5rem] sm:max-h-[85vh] shadow-premium sm:border-t sm:border-white/10">
@@ -188,14 +175,10 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
             <button
               onClick={() => canNegotiatePrice && setShowPriceNegotiate(v => !v)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${canNegotiatePrice ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 active:scale-95' : 'bg-white/5 border-white/5 text-gray-500 cursor-default'}`}
-              title={canNegotiatePrice ? "Tap to negotiate price" : priceLockedByPayment ? "Payment already confirmed - price is locked" : "Order complete"}
+              title={canNegotiatePrice ? "Tap to negotiate price" : "Order complete"}
             >
               <span className="font-black text-xs">₦{order.agreed_price?.toLocaleString()}</span>
-              {canNegotiatePrice ? (
-                <ChevronDown size={14} className={`transition-transform ${showPriceNegotiate ? 'rotate-180' : ''}`} />
-              ) : priceLockedByPayment ? (
-                <Lock size={12} />
-              ) : null}
+              {canNegotiatePrice && <ChevronDown size={14} className={`transition-transform ${showPriceNegotiate ? 'rotate-180' : ''}`} />}
             </button>
           )}
           <button onClick={onClose} className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-gray-400 hover:text-white transition-all border border-white/5">
@@ -239,7 +222,7 @@ export default function OrderChat({ orderId, currentUserId, onClose, isReadOnly 
                   ) : 'Confirm'}
                 </button>
               </div>
-              <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest mt-3 pl-px">
+              <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest mt-3">
                 Both parties will be notified. This updates the final agreed payment.
               </p>
             </div>

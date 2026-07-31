@@ -26,7 +26,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "NaijaDrops | Reliable Delivery in Kano â€” Launching Aug 10",
+  title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
   description: "No more chasing riders on the phone. NaijaDrops brings trackable, reliable delivery to Kano vendors and customers. Launching August 10.",
   metadataBase: new URL('https://naijadrops.tech'),
   manifest: "/manifest.json",
@@ -35,7 +35,7 @@ export const metadata = {
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "NaijaDrops | Reliable Delivery in Kano â€” Launching Aug 10",
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
     description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
     url: 'https://naijadrops.tech',
     siteName: 'NaijaDrops',
@@ -46,13 +46,13 @@ export const metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'NaijaDrops â€” Reliable delivery, finally trackable. Launching August 10 in Kano.',
+        alt: 'NaijaDrops — Reliable delivery, finally trackable. Launching August 10 in Kano.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "NaijaDrops | Reliable Delivery in Kano â€” Launching Aug 10",
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 10",
     description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
     images: ['/og-image.png'],
   },

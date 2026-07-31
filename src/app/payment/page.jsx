@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -77,6 +77,27 @@ function PaymentContent() {
                     .single();
 
                 if (orderErr) throw orderErr;
+
+                // FIX ("closed circle" back-button bug): this page used to
+                // render its Pay Now form for ANY order it could fetch,
+                // with no check for whether payment had already gone
+                // through. Combined with the success redirect below using
+                // router.push (which leaves this page in browser history),
+                // pressing back after a completed order landed right back
+                // here showing a stale, already-paid order as if it still
+                // needed payment. Guard directly against that: if this
+                // order is already paid or delivered, this page has
+                // nothing to do - send the visitor to where the order
+                // actually is instead.
+                if (order.status === 'delivered') {
+                    router.replace(`/receipt/${orderId}`);
+                    return;
+                }
+                if (order.payment_status === 'paid') {
+                    router.replace(`/tracking/${orderId}`);
+                    return;
+                }
+
                 setOrderData(order);
 
                 if (order.rider_id) {
@@ -148,7 +169,7 @@ function PaymentContent() {
             setIsProcessing(false);
 
             setTimeout(() => {
-                router.push(`/tracking/${orderId}`);
+                router.replace(`/tracking/${orderId}`);
             }, 2000);
         } catch (err) {
             console.error(err);
@@ -246,7 +267,7 @@ function PaymentContent() {
                                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
                                 <div className="text-center mb-8">
                                     <div className="text-[10px] font-black text-charcoal-400 uppercase tracking-[0.3em] mb-2">Delivery Fare</div>
-                                    <div className="text-6xl font-black text-ink tracking-tighter">â‚¦{orderData.agreed_price?.toLocaleString()}</div>
+                                    <div className="text-6xl font-black text-ink tracking-tighter">₦{orderData.agreed_price?.toLocaleString()}</div>
                                 </div>
                                 <div className="bg-black/20 rounded-2xl p-5 space-y-3 border border-white/5">
                                     <div className="flex justify-between items-center">
@@ -327,7 +348,7 @@ function PaymentContent() {
                                         ) : !paystackReady ? (
                                             <><Loader2 size={22} className="animate-spin" /> Loading Secure Gateway...</>
                                         ) : (
-                                            <>Pay â‚¦{orderData.agreed_price?.toLocaleString()} Now <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" /></>
+                                            <>Pay ₦{orderData.agreed_price?.toLocaleString()} Now <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" /></>
                                         )}
                                     </span>
                                 </button>

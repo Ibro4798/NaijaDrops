@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { CheckCircle2, UserCheck, Package, Truck, PartyPopper, Search } from 'lucide-react';
 
@@ -18,25 +18,16 @@ const STEP_META = {
  * line that fills as the order advances.
  */
 export default function OrderStatusStepper({ steps, currentStatus }) {
-  // FIX: 'pending' and 'looking_for_driver' both display as "Finding a
-  // rider" - showing them as two separate steps duplicated the same label
-  // back to back. Collapse them into a single visual step.
-  const displaySteps = [];
-  for (const s of steps) {
-    if ((s === 'pending' || s === 'looking_for_driver') && displaySteps.includes('looking_for_driver')) continue;
-    displaySteps.push(s);
-  }
-  const effectiveStatus = currentStatus === 'pending' ? 'looking_for_driver' : currentStatus;
-  const currentIndex = displaySteps.indexOf(effectiveStatus);
+  const currentIndex = steps.indexOf(currentStatus);
 
   return (
     <div className="space-y-0">
-      {displaySteps.map((step, i) => {
+      {steps.map((step, i) => {
         const meta = STEP_META[step] || { label: step, icon: CheckCircle2 };
         const Icon = meta.icon;
         const isDone = i < currentIndex;
         const isCurrent = i === currentIndex;
-        const isLast = i === displaySteps.length - 1;
+        const isLast = i === steps.length - 1;
 
         return (
           <div key={step} className="flex gap-4">

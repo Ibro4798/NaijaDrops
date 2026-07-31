@@ -35,6 +35,7 @@ export default function TrackingPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [statusToast, setStatusToast] = useState(null);
   const expandPollRef = useRef(null);
   const anonPollRef = useRef(null);
@@ -43,14 +44,14 @@ export default function TrackingPage() {
   useEffect(() => {
     let channel;
     async function load() {
-      // Try the authenticated path first â€” covers vendors viewing their own order
+      // Try the authenticated path first - covers vendors viewing their own order
       // history (vendor/history links here) via normal RLS.
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
         const { data: authedOrder } = await supabase
           .from('orders')
-          .select('*, riders(current_lat, current_lng, users(full_name)), vendors(business_name, logo_url)')
+          .select('*, riders(id, current_lat, current_lng, users(full_name)), vendors(business_name, logo_url)')
           .eq('id', orderId)
           .single();
         if (authedOrder) {
@@ -86,6 +87,31 @@ export default function TrackingPage() {
     load();
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [orderId, supabase]);
+
+  // FIX: live rider location for the vendor's own (authenticated) view.
+  // The 'orders' realtime subscription above only ever delivers order
+  // columns - it never included the nested riders(...) join, so
+  // order.riders.current_lat/lng was frozen at whatever it was on first
+  // load, and the map's rider marker never actually moved without a full
+  // page refresh. This subscribes directly to the assigned rider's own row
+  // once it's known, and merges fresh coordinates in as they arrive.
+  useEffect(() => {
+    const riderId = order?.riders?.id;
+    if (!isVendorView || !riderId) return;
+
+    const riderChannel = supabase
+      .channel(`rider-location-${riderId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'riders', filter: `id=eq.${riderId}` },
+        (payload) => {
+          setOrder(prev => prev ? ({
+            ...prev,
+            riders: { ...prev.riders, current_lat: payload.new.current_lat, current_lng: payload.new.current_lng }
+          }) : prev);
+        })
+      .subscribe();
+
+    return () => supabase.removeChannel(riderChannel);
+  }, [isVendorView, order?.riders?.id, supabase]);
 
   function announceStatusChange(newStatus) {
     if (prevStatusRef.current === newStatus) return;
@@ -193,22 +219,41 @@ export default function TrackingPage() {
 
   // Shares the tracking link itself (this page's URL) - distinct from the
   // receipt page's own share button, which shares the finished receipt.
+  //
+  // FIX: this used to share window.location.href directly, which can carry
+  // stray query params/hash fragments depending on how the vendor arrived
+  // at this page - not necessarily "wrong" content-wise, but not the clean
+  // canonical link either. Now explicitly builds `${origin}/tracking/${id}`,
+  // which is always the exact same anonymous-accessible URL regardless of
+  // how this page was reached. Also: navigator.share/clipboard can both be
+  // unavailable or silently throw depending on the browser/webview (no
+  // permission, insecure context, etc.) - previously that meant nothing
+  // visibly happened at all. Now there's always a final fallback: a modal
+  // with the link in a selectable field, so there's never a silent dead end.
+  const trackingUrl = typeof window !== 'undefined' ? `${window.location.origin}/tracking/${orderId}` : '';
+
   const handleShareTrackingLink = async () => {
-    const url = typeof window !== 'undefined' ? window.location.href : '';
     const text = `Track your delivery live: ${order.item_description || 'your package'} is on its way.`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title: 'Track your NaijaDrops delivery', text, url });
+        await navigator.share({ title: 'Track your NaijaDrops delivery', text, url: trackingUrl });
         return;
       } catch (err) {
         if (err?.name === 'AbortError') return;
+        // fall through to clipboard/modal below
       }
     }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(trackingUrl);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+        return;
+      } catch {
+        // fall through to the modal below
+      }
     }
+    setShowLinkModal(true);
   };
 
   if (loading) {
@@ -314,7 +359,7 @@ export default function TrackingPage() {
             <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
             <p className="text-ink font-black text-2xl font-outfit">Finding a rider</p>
             <p className="text-charcoal-500 text-sm mt-2">
-              Searching within <span className="text-emerald-500 font-bold">{radius.toFixed(1)}km</span> of your pickup point{radius < maxRadius ? ' â€” expanding automatically' : ''}.
+              Searching within <span className="text-emerald-500 font-bold">{radius.toFixed(1)}km</span> of your pickup point{radius < maxRadius ? ' — expanding automatically' : ''}.
             </p>
             <div className="w-full h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden">
               <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${searchPct}%` }} />
@@ -403,7 +448,7 @@ export default function TrackingPage() {
           </>
         ) : (
           <div className="h-full flex items-center justify-center text-charcoal-500 text-sm bg-charcoal-900">
-            <MapPin className="mr-2" size={16} /> Waiting for rider locationâ€¦
+            <MapPin className="mr-2" size={16} /> Waiting for rider location…
           </div>
         )}
       </div>
@@ -457,7 +502,7 @@ export default function TrackingPage() {
               onClick={() => router.push(`/payment?orderId=${order.id}`)}
               className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
             >
-              Pay â‚¦{order.agreed_price?.toLocaleString()} Now
+              Pay ₦{order.agreed_price?.toLocaleString()} Now
             </button>
           </div>
         )}
@@ -476,6 +521,29 @@ export default function TrackingPage() {
           currentUserId={currentUserId}
           onClose={() => setShowChat(false)}
         />
+      )}
+
+      {/* Final fallback if native share AND clipboard both failed/were
+          unavailable - guarantees the link is always actually obtainable,
+          never a silent dead end. */}
+      {showLinkModal && (
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-ink font-black text-base">Tracking link</h3>
+              <button onClick={() => setShowLinkModal(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-charcoal-400 hover:text-ink">
+                <X size={14} />
+              </button>
+            </div>
+            <p className="text-charcoal-500 text-xs">Couldn't share or copy automatically - select the link below and copy it manually.</p>
+            <input
+              readOnly
+              value={trackingUrl}
+              onFocus={(e) => e.target.select()}
+              className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-ink text-xs font-mono"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

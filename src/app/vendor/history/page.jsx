@@ -172,7 +172,7 @@ export default function VendorHistoryPage() {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="text-[10px] font-black tracking-widest text-charcoal-500 uppercase mb-1 truncate">
-                                                ID: {order.id.slice(0, 8)} â€¢ {new Date(order.created_at).toLocaleDateString()}
+                                                ID: {order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
                                             </div>
                                             <h3 className="text-lg font-black text-ink font-outfit uppercase tracking-tight truncate">{order.item_category || 'General Package'}</h3>
                                         </div>
@@ -181,7 +181,7 @@ export default function VendorHistoryPage() {
                                         <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border whitespace-nowrap ${getStatusStyle(order.status)}`}>
                                             {order.status}
                                         </div>
-                                        <div className="text-xl font-black text-ink italic tracking-tighter whitespace-nowrap">â‚¦{order.agreed_price?.toLocaleString()}</div>
+                                        <div className="text-xl font-black text-ink italic tracking-tighter whitespace-nowrap">₦{order.agreed_price?.toLocaleString()}</div>
                                     </div>
                                 </div>
 

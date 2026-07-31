@@ -94,7 +94,7 @@ export async function POST(req) {
     // FIX: agreed_price is a nullable column. If it were ever null here,
     // `null * 100` evaluates to 0, and the amount check below
     // (`paidAmount < expectedAmountKobo`) would then pass for literally any
-    // paid amount, including â‚¦0 - the check would exist in the code but be
+    // paid amount, including ₦0 - the check would exist in the code but be
     // silently meaningless for that order. Fail loudly instead.
     if (!order.agreed_price || order.agreed_price <= 0) {
       console.error(`Order ${orderId} has no valid agreed_price (${order.agreed_price}) - refusing to verify payment against it.`);
