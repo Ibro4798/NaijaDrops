@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -30,7 +30,6 @@ export default function TrackingPage() {
   const [isVendorView, setIsVendorView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [expired, setExpired] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -76,7 +75,6 @@ export default function TrackingPage() {
       try {
         const res = await fetch(`/api/track/${orderId}`);
         const json = await res.json();
-        if (res.status === 410 || json?.expired) { setExpired(true); setLoading(false); return; }
         if (!res.ok || !json.success) { setNotFound(true); setLoading(false); return; }
         prevStatusRef.current = json.order.status;
         setOrder(json.order);
@@ -138,7 +136,6 @@ export default function TrackingPage() {
       try {
         const res = await fetch(`/api/track/${orderId}`);
         const json = await res.json();
-        if (res.status === 410 || json?.expired) { setExpired(true); return; }
         if (!res.ok || !json.success) return;
         announceStatusChange(json.order.status);
         setOrder(json.order);
@@ -276,18 +273,6 @@ export default function TrackingPage() {
             <div className="flex justify-between"><Skeleton className="h-3 w-10" /><Skeleton className="h-3 w-32" /></div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (expired) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-charcoal-950 text-center px-6">
-        <CheckCircle2 className="text-emerald-500 mb-4" size={40} />
-        <p className="text-ink font-black text-xl mb-2">This delivery is complete</p>
-        <p className="text-charcoal-400 text-sm max-w-xs">
-          This tracking link has expired now that the delivery is done. Contact the sender if you need anything else.
-        </p>
       </div>
     );
   }

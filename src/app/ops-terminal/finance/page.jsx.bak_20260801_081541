@@ -1,4 +1,4 @@
-﻿﻿import { validateAdmin } from "@/utils/admin";
+﻿import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, Activity, CreditCard } from "lucide-react";
 import FinanceCharts from "./FinanceCharts";
@@ -35,26 +35,11 @@ export default async function OpsFinancePage() {
   const platformCut = totalRevenue * 0.20; // 20% commission
   const totalPayoutPending = pendingPayouts?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
 
-  // wallet_transactions.rider_id -> users.id, but bank details live on riders.user_id,
-  // so this needs a second lookup rather than a nested embed off users.
-  const riderUserIds = [...new Set((pendingPayouts || []).map(p => p.rider_id).filter(Boolean))];
-  let bankByUserId = {};
-  if (riderUserIds.length > 0) {
-    const { data: riderBankRows } = await supabase
-      .from("riders")
-      .select("user_id, bank_name, account_number, account_name")
-      .in("user_id", riderUserIds);
-    bankByUserId = Object.fromEntries((riderBankRows || []).map(r => [r.user_id, r]));
-  }
-
   const withdrawalRequests = (pendingPayouts || []).map(p => ({
     id: p.id,
     amount: p.amount,
     created_at: p.created_at,
-    rider_name: p.users?.full_name || null,
-    bank_name: bankByUserId[p.rider_id]?.bank_name || null,
-    account_number: bankByUserId[p.rider_id]?.account_number || null,
-    account_name: bankByUserId[p.rider_id]?.account_name || null,
+    rider_name: p.users?.full_name || null
   }));
 
   // Formatting historical data for charts

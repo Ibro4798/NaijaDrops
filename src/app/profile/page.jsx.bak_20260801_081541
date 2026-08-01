@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getUserRole } from "@/utils/auth";
-import { User, Camera, Shield, Save, ArrowLeft, Star, Clock, MapPin, Sun, Moon, Monitor, Phone, Briefcase } from "lucide-react";
+import { User, Camera, Shield, Save, ArrowLeft, Star, Clock, MapPin, Sun, Moon, Monitor } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { useTheme } from "@/components/ThemeProvider";
@@ -18,8 +18,6 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [receiptDisplayName, setReceiptDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [businessName, setBusinessName] = useState("");
   const router = useRouter();
   const supabase = createClient();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
@@ -37,8 +35,6 @@ export default function ProfilePage() {
       setFullName(p?.name || "");
       setAvatarUrl(p?.avatar_url || "");
       setReceiptDisplayName(p?.receipt_display_name || "");
-      setPhone(p?.phone || "");
-      setBusinessName(p?.business_name || "");
       setIsLoading(false);
     }
     loadProfile();
@@ -52,21 +48,11 @@ export default function ProfilePage() {
         .update({
           name: fullName,
           avatar_url: avatarUrl,
-          receipt_display_name: receiptDisplayName || null,
-          phone: phone || null,
+          receipt_display_name: receiptDisplayName || null
         })
         .eq("id", user.id);
 
       if (error) throw error;
-
-      if (role === 'vendor') {
-        const { error: vendorError } = await supabase
-          .from("vendors")
-          .update({ business_name: businessName || null })
-          .eq("user_id", user.id);
-        if (vendorError) throw vendorError;
-      }
-
       alert("Settings updated successfully!");
       router.refresh();
     } catch (err) {
@@ -141,41 +127,6 @@ export default function ProfilePage() {
                       className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all"
                     />
                  </div>
-
-                 {role === 'vendor' && (
-                   <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block flex items-center gap-2">
-                        <Briefcase size={12} /> Business Name
-                      </label>
-                      <input
-                        type="text"
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="e.g. Marsad Beauty Store"
-                        className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all placeholder:text-charcoal-700"
-                      />
-                      <p className="text-charcoal-600 text-[10px] mt-2 font-medium px-1">
-                        Used on receipts and order confirmations so customers recognize who sent the delivery.
-                      </p>
-                   </div>
-                 )}
-
-                 <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block flex items-center gap-2">
-                      <Phone size={12} /> Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 0803xxxxxxx"
-                      className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-6 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all placeholder:text-charcoal-700"
-                    />
-                    <p className="text-charcoal-600 text-[10px] mt-2 font-medium px-1">
-                      Used by the NaijaDrops team to reach you about deliveries. Not shown to customers.
-                    </p>
-                 </div>
-
                  <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3 block">Name Shown on Delivery Receipts</label>
                     <input 

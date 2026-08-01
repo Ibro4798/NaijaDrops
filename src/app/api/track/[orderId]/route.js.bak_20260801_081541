@@ -9,12 +9,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// How long an anonymous customer's tracking/receipt link stays usable after
-// the order is marked delivered. After this, the link is dead - it's a
-// unique link scoped to the lifetime of that one delivery, not a permanent
-// public URL for the order.
-const POST_DELIVERY_GRACE_MS = 2 * 60 * 60 * 1000; // 2 hours
-
 export async function GET(req, { params }) {
   const { orderId } = params;
 
@@ -35,13 +29,6 @@ export async function GET(req, { params }) {
 
   if (error || !order) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-  }
-
-  if (order.status === 'delivered') {
-    const deliveredAt = new Date(order.updated_at).getTime();
-    if (Date.now() - deliveredAt > POST_DELIVERY_GRACE_MS) {
-      return NextResponse.json({ error: 'Link expired', expired: true }, { status: 410 });
-    }
   }
 
   // Deliberately narrow response: never leak recipient_phone, notes, voice_note_url,

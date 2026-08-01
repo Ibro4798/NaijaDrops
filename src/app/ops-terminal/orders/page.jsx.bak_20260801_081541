@@ -1,7 +1,6 @@
-﻿import { validateAdmin } from "@/utils/admin";
+import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import LiveOrdersFeed from "./LiveOrdersFeed";
-import CancelledOrdersPanel from "./CancelledOrdersPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,16 +26,6 @@ export default async function OpsOrdersPage() {
     .in("status", ["pending", "looking_for_driver", "matched", "picked_up", "in_transit"])
     .order("created_at", { ascending: false });
 
-  // Cancelled orders drop out of the live feed entirely (by design - it's a
-  // live dispatch board), so cancellation_reason had nowhere to surface.
-  // This pulls the last 15 cancellations specifically to show it.
-  const { data: cancelledOrders } = await supabase
-    .from("orders")
-    .select("id, pickup_name, dropoff_name, cancellation_reason, updated_at")
-    .eq("status", "cancelled")
-    .order("updated_at", { ascending: false })
-    .limit(15);
-
   return (
     <div className="min-h-screen bg-black text-white p-8 font-mono">
       {/* Header */}
@@ -52,16 +41,6 @@ export default async function OpsOrdersPage() {
 
       {/* Real-time Client Component */}
       <LiveOrdersFeed initialOrders={initialOrders || []} adminId={admin.id} />
-
-      <div className="mt-12 bg-charcoal-900/40 border border-white/5 rounded-[2rem] p-8">
-        <div className="flex items-center justify-between mb-8">
-           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-500">Recently Cancelled</h2>
-           <div className="px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest">
-              Last {cancelledOrders?.length || 0}
-           </div>
-        </div>
-        <CancelledOrdersPanel orders={cancelledOrders || []} />
-      </div>
     </div>
   );
 }

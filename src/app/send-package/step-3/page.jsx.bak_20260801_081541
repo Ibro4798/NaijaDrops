@@ -1,4 +1,4 @@
-﻿﻿"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,10 +32,6 @@ function Step3Content() {
   // ✅ NEW: Auth gate state — show signup prompt instead of redirecting
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [showLaunchGate, setShowLaunchGate] = useState(false);
-  const [showPhoneGate, setShowPhoneGate] = useState(false);
-  const [phoneInput, setPhoneInput] = useState("");
-  const [savingPhone, setSavingPhone] = useState(false);
-  const [phoneGateError, setPhoneGateError] = useState(null);
 
   const timerRef = useRef(null);
   const channelRef = useRef(null);
@@ -71,42 +67,11 @@ function Step3Content() {
       setShowAuthGate(true);
       return;
     }
-
-    // Gate: we need a phone number on file before we can actually call this
-    // vendor about a delivery (rider no-shows, address confusion, etc).
-    // Deliberately checked here - the first moment we're about to actually
-    // need to reach them - not at signup, where it'd just be one more field
-    // people skip past.
-    const { data: userRow } = await supabase.from("users").select("phone").eq("id", user.id).single();
-    if (!userRow?.phone) {
-      setShowPhoneGate(true);
-      return;
-    }
-
     if (user.email !== LAUNCH_GATE_ALLOWED_EMAIL) {
       setShowLaunchGate(true);
       return;
     }
     await createOrder();
-  }
-
-  async function savePhoneAndContinue() {
-    setPhoneGateError(null);
-    const cleaned = phoneInput.trim();
-    if (cleaned.length < 10) {
-      setPhoneGateError("Enter a valid phone number.");
-      return;
-    }
-    setSavingPhone(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("users").update({ phone: cleaned }).eq("id", user.id);
-    setSavingPhone(false);
-    if (error) {
-      setPhoneGateError("Couldn't save that - try again.");
-      return;
-    }
-    setShowPhoneGate(false);
-    await handleFindDriver();
   }
 
   async function createOrder() {
@@ -421,56 +386,6 @@ function Step3Content() {
         )}
       </AnimatePresence>
 
-      {/* Phone gate: we need a working number before we can dispatch, since
-          riders and ops need to be able to reach the vendor directly if
-          something goes wrong. Collected here, not at signup. */}
-      <AnimatePresence>
-        {showPhoneGate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-charcoal-950/90 backdrop-blur-md z-50 flex items-end justify-center pb-10 px-5"
-          >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center"
-            >
-              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Lock size={28} className="text-emerald-500" />
-              </div>
-              <h2 className="text-xl font-black text-ink mb-3">One quick thing</h2>
-              <p className="text-charcoal-400 text-sm leading-relaxed mb-6">
-                We need a phone number so we can reach you if a rider has trouble finding the pickup, or anything else comes up during this delivery.
-              </p>
-              <input
-                type="tel"
-                value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
-                placeholder="e.g. 0803xxxxxxx"
-                className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-5 py-4 text-ink font-bold tracking-tight focus:border-emerald-500 outline-none transition-all mb-3"
-              />
-              {phoneGateError && <p className="text-red-400 text-xs font-bold mb-3">{phoneGateError}</p>}
-              <button
-                onClick={savePhoneAndContinue}
-                disabled={savingPhone}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-charcoal-950 font-black py-4 rounded-2xl mb-3 transition-all"
-              >
-                {savingPhone ? "Saving..." : "Save & Continue"}
-              </button>
-              <button
-                onClick={() => setShowPhoneGate(false)}
-                className="w-full py-4 text-charcoal-500 font-bold text-sm"
-              >
-                ← Back to preview
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Pre-launch gate: everyone except the one test account sees this
           instead of actually dispatching a rider. */}
       <AnimatePresence>
@@ -492,7 +407,7 @@ function Step3Content() {
               </div>
               <h2 className="text-xl font-black text-ink mb-3">We're almost open!</h2>
               <p className="text-charcoal-400 text-sm leading-relaxed mb-2">
-                NaijaDrops launches fully in Kano on <span className="text-ink font-bold">Saturday, August 15, 2026</span>.
+                NaijaDrops launches fully in Kano on <span className="text-ink font-bold">Monday, August 10, 2026</span>.
               </p>
               <p className="text-charcoal-500 text-xs leading-relaxed mb-8">
                 Your route and pricing are saved - come back after launch and dispatch will be live.

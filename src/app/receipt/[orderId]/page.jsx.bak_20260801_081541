@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { CheckCircle2, Package, Star, ArrowRight, Sparkles, Download, Loader2 } from 'lucide-react';
+import { CheckCircle2, Package, Printer, Star, ArrowRight, Sparkles, Download, Loader2 } from 'lucide-react';
 import ReceiptShareButton from '@/components/ui/ReceiptShareButton';
 import ReviewModal from '@/components/ReviewModal';
 import { renderReceiptImage } from '@/utils/receiptImage';
@@ -18,7 +18,6 @@ export default function ReceiptPage() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [expired, setExpired] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -43,7 +42,6 @@ export default function ReceiptPage() {
       try {
         const res = await fetch(`/api/track/${orderId}`);
         const json = await res.json();
-        if (res.status === 410 || json?.expired) { setExpired(true); setLoading(false); return; }
         if (!res.ok || !json.success) { setNotFound(true); setLoading(false); return; }
         setOrder(json.order);
         setIsVendorView(false);
@@ -59,18 +57,6 @@ export default function ReceiptPage() {
     return (
       <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (expired) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-charcoal-950 text-center px-6">
-        <CheckCircle2 className="text-emerald-500 mb-4" size={40} />
-        <p className="text-ink font-black text-xl mb-2">This delivery is complete</p>
-        <p className="text-charcoal-400 text-sm max-w-xs">
-          This tracking link has expired now that the delivery is done. Contact the sender if you need anything else.
-        </p>
       </div>
     );
   }
@@ -102,33 +88,16 @@ export default function ReceiptPage() {
   }
 
   const riderName = order.riders?.users?.receipt_display_name || order.riders?.users?.full_name || order.rider?.first_name || null;
+  // Deliberately: anonymous (customer-side) receipts only ever see a
+  // sender name the vendor explicitly opted into showing on receipts
+  // (sender_display_name from the public track API) - never their real
+  // business_name unless that's what they chose to set as their receipt name.
+  const senderName = isVendorView
+    ? (order.vendors?.users?.receipt_display_name || order.vendors?.business_name || null)
+    : (order.sender_display_name || null);
+  const senderLogo = isVendorView ? (order.vendors?.logo_url || null) : null;
   const total = Number(order.agreed_price ?? order.total_price ?? 0);
   const deliveredAt = new Date(order.updated_at).toLocaleString();
-
-  // --- Anonymous customer view: NOT the vendor's receipt. -----------------
-  // Customers get a short, clean "it's done" confirmation - not a shareable
-  // branded card meant for the VENDOR's own social proof. No Share/Download,
-  // no vendor logo/business name treatment.
-  if (!isVendorView) {
-    const senderName = order.sender_display_name || null;
-    return (
-      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center text-center px-6 gap-3">
-        <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center mb-2 shadow-glow">
-          <CheckCircle2 className="text-charcoal-950" size={32} />
-        </div>
-        <p className="text-ink font-black text-2xl">Delivered!</p>
-        <p className="text-charcoal-400 text-sm max-w-xs">
-          {order.item_description ? `${order.item_description} has` : "Your package has"} been delivered
-          {senderName ? ` from ${senderName}` : ""}. Thanks for using NaijaDrops.
-        </p>
-        <p className="text-charcoal-600 text-xs mt-2">₦{total.toLocaleString()} • {deliveredAt}</p>
-      </div>
-    );
-  }
-
-  // --- Vendor view below: full share-card receipt, social-proof oriented ---
-  const senderName = order.vendors?.users?.receipt_display_name || order.vendors?.business_name || null;
-  const senderLogo = order.vendors?.logo_url || null;
 
   const receiptData = {
     total,
@@ -160,9 +129,9 @@ export default function ReceiptPage() {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-charcoal-950 print:bg-white">
       {/* Vibrant hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-charcoal-950 pt-16 pb-24 px-6">
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-charcoal-950 pt-16 pb-24 px-6 print:hidden">
         <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-charcoal-950/30 rounded-full blur-3xl"></div>
         <Sparkles className="absolute top-8 right-10 text-white/20" size={40} />
@@ -178,10 +147,10 @@ export default function ReceiptPage() {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-6 -mt-14 pb-16">
+      <div className="max-w-md mx-auto px-6 -mt-14 pb-16 print:mt-0 print:px-0">
         {/* Perforated tear-off edge - classic receipt look */}
         <div
-          className="h-4"
+          className="h-4 print:hidden"
           style={{
             background: 'radial-gradient(circle at 12px 0, transparent 8px, #18181b 8px)',
             backgroundSize: '24px 16px',
@@ -189,10 +158,10 @@ export default function ReceiptPage() {
           }}
         />
 
-        <div className="bg-charcoal-900 border border-white/10 border-t-0 rounded-b-[2rem] p-8 space-y-6 shadow-premium">
+        <div className="bg-charcoal-900 border border-white/10 border-t-0 rounded-b-[2rem] p-8 space-y-6 shadow-premium print:bg-white print:border-none print:shadow-none print:text-black print:rounded-none">
 
           {(senderName || senderLogo) && (
-            <div className="flex flex-col items-center text-center gap-3 pb-4 border-b border-dashed border-white/10">
+            <div className="flex flex-col items-center text-center gap-3 pb-4 border-b border-dashed border-white/10 print:border-charcoal-300">
               {senderLogo ? (
                 <img src={senderLogo} alt={senderName || 'Sender'} className="w-14 h-14 rounded-2xl object-cover border border-white/10" />
               ) : (
@@ -200,22 +169,26 @@ export default function ReceiptPage() {
                   {(senderName || 'ND').slice(0, 2).toUpperCase()}
                 </div>
               )}
-              {senderName && <p className="text-ink font-black text-lg">{senderName}</p>}
+              {senderName && <p className="text-ink font-black text-lg print:text-black">{senderName}</p>}
               <p className="text-charcoal-500 text-[10px] font-black uppercase tracking-widest">Sent via NaijaDrops</p>
             </div>
           )}
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm mb-1"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold">{order.item_description}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink font-bold text-right">{order.pickup_name}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink font-bold text-right">{order.dropoff_name}</span></div>
-            {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold">{riderName}</span></div>}
-            <div className="flex justify-between text-sm pt-3 border-t border-dashed border-white/10"><span className="text-charcoal-400 font-bold">Total Paid</span><span className="text-emerald-400 font-black text-lg">₦{total.toLocaleString()}</span></div>
+            <div className="flex items-center gap-2 text-sm mb-1"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold print:text-black">{order.item_description}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink font-bold print:text-black text-right">{order.pickup_name}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink font-bold print:text-black text-right">{order.dropoff_name}</span></div>
+            {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold print:text-black">{riderName}</span></div>}
+            {/* Platform commission removed - a customer/vendor-facing receipt
+                should reflect what was paid, not NaijaDrops' internal cut.
+                Vendors can see commission breakdowns in their earnings/
+                history views instead. */}
+            <div className="flex justify-between text-sm pt-3 border-t border-dashed border-white/10 print:border-charcoal-300"><span className="text-charcoal-400 font-bold">Total Paid</span><span className="text-emerald-400 font-black text-lg print:text-black">₦{total.toLocaleString()}</span></div>
           </div>
 
-          <div className="flex flex-col gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 print:hidden">
             <div className="grid grid-cols-3 gap-3">
-              <ReceiptShareButton receiptData={receiptData} className="col-span-2" />
+              <ReceiptShareButton receiptData={receiptData} />
               <button
                 onClick={handleDownload}
                 disabled={downloading}
@@ -223,8 +196,14 @@ export default function ReceiptPage() {
               >
                 {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-2xl text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+              >
+                <Printer size={16} />
+              </button>
             </div>
-            {riderName && (
+            {isVendorView && riderName && (
               <button
                 onClick={() => setShowReview(true)}
                 className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all active:scale-95"
@@ -232,17 +211,19 @@ export default function ReceiptPage() {
                 <Star size={16} /> Rate this delivery
               </button>
             )}
-            <button
-              onClick={() => router.push('/vendor/active-orders')}
-              className="text-charcoal-400 hover:text-ink text-xs font-bold text-center pt-1 transition-colors"
-            >
-              Back to active orders
-            </button>
+            {isVendorView && (
+              <button
+                onClick={() => router.push('/vendor/active-orders')}
+                className="text-charcoal-400 hover:text-ink text-xs font-bold text-center pt-1 transition-colors"
+              >
+                Back to active orders
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {riderName && (
+      {isVendorView && riderName && (
         <ReviewModal
           order={order}
           driverProfile={{ full_name: riderName }}

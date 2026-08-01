@@ -1,4 +1,4 @@
-﻿﻿"use client";
+﻿"use client";
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -91,11 +91,7 @@ function ConfirmContent() {
     <div className="min-h-[100dvh] bg-charcoal-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-14 pb-5">
-        {/* FIX: this page only exists once a driver has already been matched
-            and an order created - router.back() would drop the vendor back
-            into whatever step-3 search/negotiation state was last in browser
-            history, which no longer makes sense. Forward to tracking instead. */}
-        <button onClick={() => router.replace(`/tracking/${orderId}`)} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
+        <button onClick={() => router.back()} className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-ink hover:bg-white/10 transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div>
