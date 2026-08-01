@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Service-role client: bypasses RLS intentionally, because this route is the ONLY
@@ -25,9 +25,9 @@ export async function GET(req, { params }) {
   const { data: order, error } = await supabaseAdmin
     .from('orders')
     .select(`
-      id, status, payment_status, pickup_name, pickup_lat, pickup_lng, dropoff_name, dropoff_lat, dropoff_lng, item_description,
+      id, status, pickup_name, pickup_lat, pickup_lng, dropoff_name, dropoff_lat, dropoff_lng, item_description,
       created_at, updated_at, agreed_price, rider_id,
-      riders ( id, current_lat, current_lng, last_seen_at, users ( full_name, receipt_display_name ) ),
+      riders ( id, current_lat, current_lng, users ( full_name, receipt_display_name ) ),
       vendors ( users ( receipt_display_name ) )
     `)
     .eq('id', orderId)
@@ -49,18 +49,9 @@ export async function GET(req, { params }) {
   // The one exception is receipt_display_name - that's a name the vendor
   // explicitly chose to show on receipts (set in their profile), so surfacing
   // it here is the whole point of that field rather than a leak.
-  //
-  // FIX: payment_status and last_seen_at were both missing from this payload.
-  // Without payment_status, the anonymous customer page could never gate the
-  // "share this link" affordance on payment (it didn't need to, since customers
-  // don't share their own link - but it's needed so the customer chat UI knows
-  // whether the order is still active). Without last_seen_at, there was no way
-  // to tell a genuinely live rider location apart from a stale one last written
-  // minutes ago on a bad connection - the UI just always said "Live".
   const safePayload = {
     id: order.id,
     status: order.status,
-    payment_status: order.payment_status,
     pickup_name: order.pickup_name,
     pickup_lat: order.pickup_lat,
     pickup_lng: order.pickup_lng,
@@ -75,8 +66,7 @@ export async function GET(req, { params }) {
     rider: order.riders ? {
       first_name: (order.riders.users?.receipt_display_name || order.riders.users?.full_name || 'Rider').split(' ')[0],
       current_lat: order.riders.current_lat,
-      current_lng: order.riders.current_lng,
-      last_seen_at: order.riders.last_seen_at
+      current_lng: order.riders.current_lng
     } : null
   };
 

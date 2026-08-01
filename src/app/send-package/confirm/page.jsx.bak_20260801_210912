@@ -29,14 +29,10 @@ function ConfirmContent() {
       setOrder(o);
 
       if (o.rider_id) {
-        // FIX: orders.rider_id is a foreign key to riders.id, not
-        // riders.user_id - this was querying the wrong column and almost
-        // never matched, so the assigned rider's name/email silently never
-        // showed up here even once a match had happened.
         const { data: r } = await supabase
           .from("riders")
           .select("*, users(full_name, email)")
-          .eq("id", o.rider_id)
+          .eq("user_id", o.rider_id)
           .single();
         setRider(r);
       }
@@ -68,11 +64,8 @@ function ConfirmContent() {
 
   const handlePaystackSuccessAction = (reference) => {
     // We don't update state here! The webhook handles it.
-    // FIX: this pushed to /track/[orderId], which isn't a route that
-    // exists anywhere in the app (the real page is /tracking/[orderId]) -
-    // every customer who paid through this flow landed on a 404 right
-    // after paying, with no visible confirmation their order was moving.
-    router.push(`/tracking/${orderId}?payment=verifying`);
+    // But we redirect to a 'waiting' or 'tracking' page
+    router.push(`/track/${orderId}?payment=verifying`);
   };
 
   const handlePaystackCloseAction = () => {

@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, MapPin, Package, CheckCircle2, MessageCircle, Share2, Radar, X, AlertTriangle, CreditCard, Check, WifiOff } from 'lucide-react';
+import { Loader2, MapPin, Package, CheckCircle2, MessageCircle, Share2, Radar, X, AlertTriangle, CreditCard, Check } from 'lucide-react';
 import MapCanvas from '@/components/MapCanvas';
 import OrderChat from '@/components/OrderChat';
 import OrderStatusStepper from '@/components/ui/OrderStatusStepper';
@@ -22,15 +22,9 @@ const STATUS_LABELS = {
   cancelled: 'Cancelled'
 };
 
-// A rider's location is only shown as "Live" if we've heard from their
-// phone within this window - otherwise it's a real position, just not a
-// current one, and the UI says so instead of implying it's still moving.
-const STALE_LOCATION_MS = 90 * 1000;
-
 export default function TrackingPage() {
   const { orderId } = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
   const [order, setOrder] = useState(null);
   const [isVendorView, setIsVendorView] = useState(false);
@@ -39,7 +33,6 @@ export default function TrackingPage() {
   const [expired, setExpired] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [showChat, setShowChat] = useState(false);
-  const [chatChannel, setChatChannel] = useState(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -48,18 +41,6 @@ export default function TrackingPage() {
   const expandPollRef = useRef(null);
   const anonPollRef = useRef(null);
   const prevStatusRef = useRef(null);
-
-  // FIX: a chat notification (or any other link) pointing here with
-  // ?openChat=1&channel=vendor_customer used to do nothing - this query
-  // param was never actually read. Now it opens the chat sheet straight to
-  // the right thread on load, once we know which role is viewing.
-  useEffect(() => {
-    if (searchParams.get('openChat') === '1') {
-      setChatChannel(searchParams.get('channel') || null);
-      setShowChat(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     let channel;
@@ -71,7 +52,7 @@ export default function TrackingPage() {
         setCurrentUserId(user.id);
         const { data: authedOrder } = await supabase
           .from('orders')
-          .select('*, riders(id, current_lat, current_lng, last_seen_at, users(full_name)), vendors(business_name, logo_url)')
+          .select('*, riders(id, current_lat, current_lng, users(full_name)), vendors(business_name, logo_url)')
           .eq('id', orderId)
           .single();
         if (authedOrder) {
@@ -109,18 +90,13 @@ export default function TrackingPage() {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [orderId, supabase]);
 
-  // Live rider location for the vendor's own (authenticated) view. The
-  // 'orders' realtime subscription above only ever delivers order columns
-  // - it never includes the nested riders(...) join - so this subscribes
-  // directly to the assigned rider's own row once it's known, and merges
-  // fresh coordinates (and last_seen_at, for the staleness badge) in as
-  // they arrive. This depends on the "Vendor can view rider assigned to
-  // their order" RLS policy on riders existing - without it, RLS silently
-  // returns nothing for both the initial join above and this subscription,
-  // which was the actual root cause of rider location never appearing on
-  // the vendor's map (it worked fine on the anonymous customer page only
-  // because that path reads via a service-role API route that bypasses
-  // RLS entirely).
+  // FIX: live rider location for the vendor's own (authenticated) view.
+  // The 'orders' realtime subscription above only ever delivers order
+  // columns - it never included the nested riders(...) join, so
+  // order.riders.current_lat/lng was frozen at whatever it was on first
+  // load, and the map's rider marker never actually moved without a full
+  // page refresh. This subscribes directly to the assigned rider's own row
+  // once it's known, and merges fresh coordinates in as they arrive.
   useEffect(() => {
     const riderId = order?.riders?.id;
     if (!isVendorView || !riderId) return;
@@ -131,7 +107,7 @@ export default function TrackingPage() {
         (payload) => {
           setOrder(prev => prev ? ({
             ...prev,
-            riders: { ...prev.riders, current_lat: payload.new.current_lat, current_lng: payload.new.current_lng, last_seen_at: payload.new.last_seen_at }
+            riders: { ...prev.riders, current_lat: payload.new.current_lat, current_lng: payload.new.current_lng }
           }) : prev);
         })
       .subscribe();
@@ -146,8 +122,12 @@ export default function TrackingPage() {
     setTimeout(() => setStatusToast(null), 4500);
   }
 
-  // Anonymous customers (no account, viewing via the public link) have no
-  // realtime subscription available to them at all - light polling closes
+  // FIX: anonymous customers (no account, viewing via the public link) had
+  // no realtime subscription at all - the authenticated path above gets
+  // live postgres_changes updates, but this path only ever saw whatever
+  // status the order was in at the moment the page first loaded. A
+  // customer sitting on this page during pickup/in-transit/delivery would
+  // never see it change without manually refreshing. Light polling closes
   // that gap without needing a realtime connection for someone who isn't
   // logged in.
   useEffect(() => {
@@ -178,10 +158,16 @@ export default function TrackingPage() {
     }
   }, [order?.status, orderId, router]);
 
-  // The "expanding search radius" shown below only actually expands if
-  // this effect is running somewhere - it works from whichever screen is
-  // actually being watched (vendor's tracking page or the customer's), and
-  // stops itself as soon as the order leaves the waiting state.
+  // FIX: the "expanding search radius" shown below only ever actually
+  // expanded if the sender happened to still have the send-package
+  // confirmation screen open in the same tab - vendor-created orders (and
+  // anyone who navigated away and came back to this tracking page instead)
+  // had no path that ever grew the radius or re-triggered dispatch, so
+  // riders outside the initial radius were never found even though the UI
+  // implied a live, growing search. This runs the same expand + re-dispatch
+  // cycle here instead, so it works from whichever screen is actually being
+  // watched. It only runs while genuinely waiting (pending/looking_for_driver)
+  // and stops itself as soon as the order leaves that state.
   useEffect(() => {
     if (!order || !orderId) return;
     const waiting = order.status === 'pending' || order.status === 'looking_for_driver';
@@ -219,6 +205,8 @@ export default function TrackingPage() {
       const currentRadius = Number(fresh.broadcast_radius_km) || 1.5;
       const maxRadius = Number(fresh.max_broadcast_radius_km) || 8;
       if (currentRadius >= maxRadius) {
+        // Already at max - just keep re-broadcasting in case a rider has
+        // come online/back in range since the last attempt.
         await triggerDispatch();
         return;
       }
@@ -234,6 +222,17 @@ export default function TrackingPage() {
 
   // Shares the tracking link itself (this page's URL) - distinct from the
   // receipt page's own share button, which shares the finished receipt.
+  //
+  // FIX: this used to share window.location.href directly, which can carry
+  // stray query params/hash fragments depending on how the vendor arrived
+  // at this page - not necessarily "wrong" content-wise, but not the clean
+  // canonical link either. Now explicitly builds `${origin}/tracking/${id}`,
+  // which is always the exact same anonymous-accessible URL regardless of
+  // how this page was reached. Also: navigator.share/clipboard can both be
+  // unavailable or silently throw depending on the browser/webview (no
+  // permission, insecure context, etc.) - previously that meant nothing
+  // visibly happened at all. Now there's always a final fallback: a modal
+  // with the link in a selectable field, so there's never a silent dead end.
   const trackingUrl = typeof window !== 'undefined' ? `${window.location.origin}/tracking/${orderId}` : '';
 
   const handleShareTrackingLink = async () => {
@@ -258,11 +257,6 @@ export default function TrackingPage() {
       }
     }
     setShowLinkModal(true);
-  };
-
-  const openChat = (channelKey) => {
-    setChatChannel(channelKey || null);
-    setShowChat(true);
   };
 
   if (loading) {
@@ -310,11 +304,6 @@ export default function TrackingPage() {
   const riderName = order.riders?.users?.full_name || order.rider?.first_name || null;
   const riderLat = order.riders?.current_lat ?? order.rider?.current_lat;
   const riderLng = order.riders?.current_lng ?? order.rider?.current_lng;
-  const riderLastSeenAt = order.riders?.last_seen_at ?? order.rider?.last_seen_at ?? null;
-  const riderIsStale = !!(riderLastSeenAt && (Date.now() - new Date(riderLastSeenAt).getTime() > STALE_LOCATION_MS));
-  const riderAssigned = !!(order.rider_id || order.riders?.id || order.rider);
-  const isPaid = order.payment_status === 'paid';
-  const viewerRole = isVendorView ? 'vendor' : 'customer';
 
   // --- Delivered: brief handoff to the dedicated receipt page ---
   if (order.status === 'delivered') {
@@ -360,11 +349,10 @@ export default function TrackingPage() {
   );
 
   // --- Waiting for a rider: dedicated, simpler view - nothing has happened
-  // yet, so a full 6-step timeline and an empty map box just added noise.
-  // Sharing is deliberately not offered here: no rider is matched and no
-  // payment has happened yet, so there's nothing worth sending a customer
-  // to watch. A chat entry point to the vendor is still useful for the
-  // customer while they wait, and for the vendor to cancel if needed.
+  // yet, so a full 6-step timeline and an empty map box (the old behavior)
+  // just added noise and made it look stuck. This shows what's actually
+  // happening: a live, expanding search radius, matching the real dispatch
+  // system underneath.
   if (isWaitingForRider) {
     const radius = Number(order.broadcast_radius_km) || 1.5;
     const maxRadius = Number(order.max_broadcast_radius_km) || 8;
@@ -399,20 +387,21 @@ export default function TrackingPage() {
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink">{order.dropoff_name}</span></div>
           </div>
 
-          {isVendorView ? (
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 border border-white/10 text-red-400 text-xs font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/20 transition-all"
-            >
-              Cancel Order
-            </button>
-          ) : (
-            <button
-              onClick={() => openChat('vendor_customer')}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
-            >
-              <MessageCircle size={14} /> Message the sender
-            </button>
+          {isVendorView && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleShareTrackingLink}
+                className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 border border-white/10 text-ink text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+              >
+                {linkCopied ? <><Check size={14} className="text-emerald-500" /> Copied</> : <><Share2 size={14} /> Share Link</>}
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 border border-white/10 text-red-400 text-xs font-black uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/20 transition-all"
+              >
+                Cancel Order
+              </button>
+            </div>
           )}
         </div>
 
@@ -448,17 +437,6 @@ export default function TrackingPage() {
             </div>
           </div>
         )}
-
-        {showChat && (isVendorView ? currentUserId : true) && (
-          <OrderChat
-            orderId={order.id}
-            currentUserId={isVendorView ? currentUserId : null}
-            viewerRole={viewerRole}
-            riderAssigned={false}
-            initialChannel={chatChannel}
-            onClose={() => setShowChat(false)}
-          />
-        )}
       </div>
     );
   }
@@ -477,17 +455,10 @@ export default function TrackingPage() {
           <>
             <MapCanvas markers={mapMarkers} showRoute />
             {riderLat && riderLng && (
-              riderIsStale ? (
-                <div className="absolute top-4 left-4 bg-charcoal-950/80 backdrop-blur border border-amber-500/30 rounded-full px-3 py-1.5 flex items-center gap-2 pointer-events-none">
-                  <WifiOff size={11} className="text-amber-400" />
-                  <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Signal delayed</span>
-                </div>
-              ) : (
-                <div className="absolute top-4 left-4 bg-charcoal-950/80 backdrop-blur border border-emerald-500/30 rounded-full px-3 py-1.5 flex items-center gap-2 pointer-events-none">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Live</span>
-                </div>
-              )
+              <div className="absolute top-4 left-4 bg-charcoal-950/80 backdrop-blur border border-emerald-500/30 rounded-full px-3 py-1.5 flex items-center gap-2 pointer-events-none">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Live</span>
+              </div>
             )}
           </>
         ) : (
@@ -499,19 +470,15 @@ export default function TrackingPage() {
 
       <div className="px-6 py-8 space-y-8">
         <div className="flex items-start justify-between gap-4">
+          {/* FIX: text block had no min-w-0, so a longer status label had
+              nowhere to go but push against/under the 48px chat button on
+              narrow screens instead of truncating cleanly. */}
           <div className="min-w-0">
             <p className="text-charcoal-400 text-[11px] font-black uppercase tracking-widest">Status</p>
             <p className="text-ink font-black text-2xl font-outfit truncate">{STATUS_LABELS[order.status] || order.status}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {/* FIX: the share button used to always be visible and active
-                regardless of payment - a vendor could hand a tracking link
-                to a customer before a rider had even been paid, which
-                could dead-end the customer on a stalled order. It's now
-                only rendered once payment_status is 'paid' (see the
-                prominent share banner below for the payment-required
-                state, which is the actual "next step" nudge). */}
-            {isVendorView && isPaid && (
+            {isVendorView && (
               <button
                 onClick={handleShareTrackingLink}
                 className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-ink hover:bg-white/10 transition-all active:scale-95"
@@ -520,29 +487,31 @@ export default function TrackingPage() {
                 {linkCopied ? <Check size={18} className="text-emerald-500" /> : <Share2 size={18} />}
               </button>
             )}
-            <button
-              onClick={() => openChat(null)}
-              className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95"
-              title="Message"
-            >
-              <MessageCircle size={20} />
-            </button>
+            {isVendorView && (
+              <button
+                onClick={() => setShowChat(true)}
+                className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95"
+                title="Message rider"
+              >
+                <MessageCircle size={20} />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* FIX: this section used to sit BELOW the status stepper. Moved to
-            the top of the content, directly under the header, so it's the
-            first thing a vendor sees: while unpaid it's the clear "do this
-            next" prompt, and the moment payment clears it flips straight
-            into the share prompt - both are the single most important
-            action available at that stage, so both get top placement. */}
-        {isVendorView && order.status === 'matched' && !isPaid && (
+        <OrderStatusStepper steps={STATUS_STEPS} currentStatus={order.status} />
+
+        {/* Payment gate: a rider is assigned but the vendor hasn't paid yet.
+            The rider's app is deliberately locked from heading to pickup
+            until payment_status flips to 'paid' (see /api/verify-payment),
+            so this needs to be impossible to miss here. */}
+        {isVendorView && order.status === 'matched' && order.payment_status !== 'paid' && (
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
             <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest">
               <CreditCard size={16} /> Payment required
             </div>
             <p className="text-charcoal-300 text-sm leading-relaxed">
-              A rider has been assigned. Complete payment now so they can head to pickup - this order stays paused until then. The tracking link unlocks for your customer right after.
+              A rider has been assigned. Complete payment now so they can head to pickup - this order stays paused until then.
             </p>
             <button
               onClick={() => router.push(`/payment?orderId=${order.id}`)}
@@ -550,57 +519,21 @@ export default function TrackingPage() {
             >
               Pay ₦{order.agreed_price?.toLocaleString()} Now
             </button>
-            <button
-              onClick={() => openChat('vendor_rider')}
-              className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-xs uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-2"
-            >
-              <MessageCircle size={13} /> Negotiate price with rider first
-            </button>
           </div>
         )}
-
-        {isVendorView && isPaid && order.status !== 'delivered' && order.status !== 'cancelled' && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest">
-              <Check size={16} /> Payment confirmed
-            </div>
-            <p className="text-charcoal-300 text-sm leading-relaxed">
-              Share this tracking link with your customer now, so they can watch the delivery live.
-            </p>
-            <button
-              onClick={handleShareTrackingLink}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              {linkCopied ? <><Check size={16} /> Copied</> : <><Share2 size={16} /> Share Tracking Link</>}
-            </button>
-          </div>
-        )}
-
-        <OrderStatusStepper steps={STATUS_STEPS} currentStatus={order.status} />
 
         <div className="border-t border-white/10 pt-6 space-y-3">
           <div className="flex items-center gap-2 text-sm"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold">{order.item_description}</span></div>
           <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink">{order.pickup_name}</span></div>
           <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink">{order.dropoff_name}</span></div>
-          {riderName && (
-            <div className="flex justify-between text-sm">
-              <span className="text-charcoal-400">Rider</span>
-              <span className="text-ink font-bold flex items-center gap-1.5">
-                {riderName}
-                {riderIsStale && <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">(signal delayed)</span>}
-              </span>
-            </div>
-          )}
+          {riderName && <div className="flex justify-between text-sm"><span className="text-charcoal-400">Rider</span><span className="text-ink font-bold">{riderName}</span></div>}
         </div>
       </div>
 
-      {showChat && (isVendorView ? currentUserId : true) && (
+      {isVendorView && showChat && currentUserId && (
         <OrderChat
           orderId={order.id}
-          currentUserId={isVendorView ? currentUserId : null}
-          viewerRole={viewerRole}
-          riderAssigned={riderAssigned}
-          initialChannel={chatChannel}
+          currentUserId={currentUserId}
           onClose={() => setShowChat(false)}
         />
       )}

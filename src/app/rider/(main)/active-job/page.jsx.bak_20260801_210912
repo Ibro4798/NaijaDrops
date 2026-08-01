@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle, Play, Camera, X, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle, Play, Camera, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
@@ -28,41 +28,6 @@ function NoteCard({ note, voiceUrl }) {
   );
 }
 
-// FIX: pickup/dropoff notes only ever showed for whichever leg was
-// currently active - once a rider picked up, the pickup note (gate code,
-// "call when near", etc) was gone for good even if they needed to glance
-// back at it. This sheet shows both notes together regardless of step, so
-// they're always one tap away via the header button.
-function NotesSheet({ order, onClose }) {
-  const hasPickupNote = order.pickup_details || order.pickup_voice_note_url;
-  const hasDropoffNote = order.dropoff_details || order.dropoff_voice_note_url;
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="text-ink font-black text-base">Order notes</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-charcoal-400 hover:text-ink">
-            <X size={14} />
-          </button>
-        </div>
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Pickup — {order.pickup_name}</div>
-          {hasPickupNote ? <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} /> : (
-            <p className="text-charcoal-600 text-xs italic">No note left for pickup.</p>
-          )}
-        </div>
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Drop-off — {order.dropoff_name}</div>
-          {hasDropoffNote ? <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} /> : (
-            <p className="text-charcoal-600 text-xs italic">No note left for drop-off.</p>
-          )}
-          <p className="text-charcoal-500 text-sm mt-2">{order.recipient_name} • {order.recipient_phone}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function ActiveJobPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -72,8 +37,6 @@ export default function ActiveJobPage() {
   const [riderId, setRiderId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [showChat, setShowChat] = useState(false);
-  const [chatChannel, setChatChannel] = useState(null);
-  const [showNotes, setShowNotes] = useState(false);
   const [deliveryPhotoUrl, setDeliveryPhotoUrl] = useState(null);
   const [uploadingDeliveryPhoto, setUploadingDeliveryPhoto] = useState(false);
   const deliveryPhotoInputRef = useRef(null);
@@ -219,22 +182,13 @@ export default function ActiveJobPage() {
             <h1 className="text-2xl font-black text-ink italic tracking-tighter font-outfit uppercase">Mission Protocol</h1>
             <p className="text-charcoal-500 text-[10px] font-black tracking-[0.2em] uppercase mt-1 italic">Payload: {order.item_category}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowNotes(true)}
-              className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-charcoal-300 hover:bg-white/10 transition-all active:scale-95"
-              title="Order notes"
-            >
-              <FileText size={20} />
-            </button>
-            <button
-              onClick={() => { setChatChannel(null); setShowChat(true); }}
-              className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95"
-              title="Message"
-            >
-              <MessageCircle size={20} />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowChat(true)}
+            className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 shrink-0"
+            title="Message vendor"
+          >
+            <MessageCircle size={20} />
+          </button>
         </div>
 
         {/* Route Details */}
@@ -374,16 +328,11 @@ export default function ActiveJobPage() {
           <OrderChat
             orderId={order.id}
             currentUserId={currentUserId}
-            viewerRole="rider"
-            riderAssigned={true}
-            initialChannel={chatChannel}
             onClose={() => setShowChat(false)}
             isReadOnly={order.status === 'delivered' || order.status === 'cancelled'}
           />
         )}
       </AnimatePresence>
-
-      {showNotes && <NotesSheet order={order} onClose={() => setShowNotes(false)} />}
     </div>
   );
 }
