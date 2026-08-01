@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Phone,
+  Briefcase,
   FileText,
   History as HistoryIcon
 } from "lucide-react";
@@ -42,9 +43,16 @@ const STATUS_CONFIG = {
 import { Camera, Image as ImageIcon } from "lucide-react";
 
 // ─── Profile Completion Modal ────────────────────────────────────────────────
-function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
+// FIX: this modal - not the separate /profile route - is the actual surface
+// vendors interact with (the hamburger menu's "Profile" item opens this, and
+// it auto-opens on first login if name is blank). Business Name and Phone
+// were previously only editable at /profile, which nothing in the vendor UI
+// ever links to. Adding them here instead of relying on a page nobody visits.
+function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar, currentBusinessName, currentPhone }) {
   const [name, setName] = useState(currentName || "");
   const [avatar, setAvatar] = useState(currentAvatar || "");
+  const [businessName, setBusinessName] = useState(currentBusinessName || "");
+  const [phone, setPhone] = useState(currentPhone || "");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -53,9 +61,11 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
     if (isOpen) {
       setName(currentName || "");
       setAvatar(currentAvatar || "");
+      setBusinessName(currentBusinessName || "");
+      setPhone(currentPhone || "");
       setLoading(false);
     }
-  }, [isOpen, currentName, currentAvatar]);
+  }, [isOpen, currentName, currentAvatar, currentBusinessName, currentPhone]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -92,7 +102,7 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-charcoal-950/90 backdrop-blur-md" onClick={onClose} />
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} 
-        className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6">
+        className="relative w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto">
         
         <div className="text-center">
             <h2 className="text-2xl font-black text-ink italic uppercase tracking-tighter font-outfit">Identity Profile</h2>
@@ -133,12 +143,40 @@ function ProfileModal({ isOpen, onClose, onSave, currentName, currentAvatar }) {
                 className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold focus:border-emerald-500 transition-all outline-none"
               />
            </div>
+
+           <div>
+              <label className="text-[10px] font-black text-charcoal-600 uppercase tracking-widest block mb-2 px-1 flex items-center gap-1.5">
+                <Briefcase size={11} /> Business Name
+              </label>
+              <input
+                type="text"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Marsad Beauty Store"
+                className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold focus:border-emerald-500 transition-all outline-none placeholder:text-charcoal-700"
+              />
+              <p className="text-charcoal-600 text-[10px] mt-2 px-1">Shown to customers on their delivery receipt.</p>
+           </div>
+
+           <div>
+              <label className="text-[10px] font-black text-charcoal-600 uppercase tracking-widest block mb-2 px-1 flex items-center gap-1.5">
+                <Phone size={11} /> Phone Number
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. 0803xxxxxxx"
+                className="w-full bg-charcoal-950 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold focus:border-emerald-500 transition-all outline-none placeholder:text-charcoal-700"
+              />
+              <p className="text-charcoal-600 text-[10px] mt-2 px-1">So we can reach you about a delivery. Not shown to customers.</p>
+           </div>
            
            <button 
              onClick={async () => { 
                setLoading(true); 
                try {
-                 await onSave(name, avatar); 
+                 await onSave(name, avatar, businessName, phone); 
                } finally {
                  setLoading(false);
                }
@@ -251,7 +289,10 @@ export default function DashboardPage() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [greeting, setGreeting] = useState("Good day");
   const [displayName, setDisplayName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [phone, setPhone] = useState("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -276,19 +317,22 @@ export default function DashboardPage() {
     if (!u) return;
     setUser(u);
 
-    // 2. Get User Profile Name & Avatar
-    const { data: profile } = await supabase.from("users").select("name, avatar_url").eq("id", u.id).single();
+    // 2. Get User Profile Name & Avatar & Phone
+    const { data: profile } = await supabase.from("users").select("name, avatar_url, phone").eq("id", u.id).single();
     if (profile?.name) {
       setDisplayName(profile.name.split(" ")[0]);
+      setFullName(profile.name);
       setAvatarUrl(profile.avatar_url || "");
     } else {
       // Auto-open modal if profile is empty
       setIsProfileModalOpen(true);
     }
+    setPhone(profile?.phone || "");
 
-    // 3. Get Vendor Profile (to get the correct vendor_id)
-    const { data: vendorProfile } = await supabase.from("vendors").select("id").eq("user_id", u.id).single();
+    // 3. Get Vendor Profile (to get the correct vendor_id, plus business_name)
+    const { data: vendorProfile } = await supabase.from("vendors").select("id, business_name").eq("user_id", u.id).single();
     const vendorId = vendorProfile?.id;
+    setBusinessName(vendorProfile?.business_name || "");
 
     // 4. Get Orders using the correct Vendor ID
     if (vendorId) {
@@ -323,13 +367,23 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const handleUpdateProfile = async (name, avatar) => {
+  const handleUpdateProfile = async (name, avatar, newBusinessName, newPhone) => {
     const { error } = await supabase.from("users").update({ 
       name: name,
-      avatar_url: avatar 
+      avatar_url: avatar,
+      phone: newPhone || null
     }).eq("id", user.id);
-    
-    if (!error) {
+
+    if (error) return;
+
+    // vendors row should already exist (created at signup), but upsert
+    // defensively rather than assuming - a missing row here would otherwise
+    // silently swallow the business name with no error shown.
+    const { error: vendorError } = await supabase
+      .from("vendors")
+      .upsert({ user_id: user.id, business_name: newBusinessName || null }, { onConflict: "user_id" });
+
+    if (!vendorError) {
        setIsProfileModalOpen(false);
        loadData();
     }
@@ -346,8 +400,10 @@ export default function DashboardPage() {
         isOpen={isProfileModalOpen} 
         onClose={() => setIsProfileModalOpen(false)} 
         onSave={handleUpdateProfile} 
-        currentName={displayName}
+        currentName={fullName}
         currentAvatar={avatarUrl}
+        currentBusinessName={businessName}
+        currentPhone={phone}
       />
 
       <AnimatePresence>
