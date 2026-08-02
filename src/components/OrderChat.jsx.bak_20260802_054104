@@ -2,11 +2,18 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Send, X, AlertCircle, Check, ChevronDown, Lock, HandCoins } from 'lucide-react';
+import { Send, X, AlertCircle, Check, ChevronDown, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Channel-aware 3-way chat: vendor sees Rider/Customer tabs, rider sees
-// Vendor/Customer, customer sees Vendor/Rider (once assigned).
+// FIX (3-way messaging): the old OrderChat was a single flat thread per
+// order - vendor and rider only, and a customer (who has no account) could
+// never reach it at all. This splits each order into up to two threads per
+// role and lets the viewer switch between them with tabs:
+//   vendor   sees: Rider (vendor_rider), Customer (vendor_customer)
+//   rider    sees: Vendor (vendor_rider), Customer (rider_customer)
+//   customer sees: Vendor (vendor_customer), Rider (rider_customer)
+// The "Rider"/"Customer" tab that needs a rider on the order is hidden via
+// riderAssigned until one exists, since that thread has no other party yet.
 const CHANNELS_BY_ROLE = {
   vendor:   [{ key: 'vendor_rider',    label: 'Rider',    needsRider: true },  { key: 'vendor_customer', label: 'Customer', needsRider: false }],
   rider:    [{ key: 'vendor_rider',    label: 'Vendor',   needsRider: false }, { key: 'rider_customer',  label: 'Customer', needsRider: false }],
@@ -47,8 +54,7 @@ export default function OrderChat({
   const [showPriceNegotiate, setShowPriceNegotiate] = useState(false);
   const [newPrice, setNewPrice] = useState('');
   const [isPriceUpdating, setIsPriceUpdating] = useState(false);
-  const [offerSentSuccess, setOfferSentSuccess] = useState(false);
-  const [respondingId, setRespondingId] = useState(null);
+  const [priceUpdateSuccess, setPriceUpdateSuccess] = useState(false);
   const messagesEndRef = useRef(null);
   const subscriptionRef = useRef(null);
   const pollRef = useRef(null);
@@ -57,9 +63,8 @@ export default function OrderChat({
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   // --- Authenticated vendor/rider: load all channels for this order at once
-  // and group client-side. Subscribes to both INSERT (new messages) and
-  // UPDATE (an offer being accepted/declined flips offer_status on an
-  // EXISTING message row, rather than creating a new one). ---
+  // (RLS already permits reading every message on an order you own or ride
+  // for) and group them client-side - avoids a round trip per tab switch. ---
   useEffect(() => {
     if (isAnonymous) return;
     let cancelled = false;
@@ -106,14 +111,6 @@ export default function OrderChat({
           setUnread(u => ({ ...u, [ch]: (u[ch] || 0) + 1 }));
         }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `order_id=eq.${orderId}` }, (payload) => {
-        const msg = payload.new;
-        const ch = msg.channel || 'vendor_rider';
-        setMessagesByChannel(prev => ({
-          ...prev,
-          [ch]: (prev[ch] || []).map(m => m.id === msg.id ? msg : m),
-        }));
-      })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, (payload) => {
         if (payload.new.agreed_price !== payload.old.agreed_price) {
           setOrder(prev => ({ ...prev, agreed_price: payload.new.agreed_price }));
@@ -132,8 +129,8 @@ export default function OrderChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, supabase, isAnonymous]);
 
-  // --- Anonymous customer: fetch + poll the active channel via the
-  // service-role API route (never sees vendor_rider, so never sees offers). ---
+  // --- Anonymous customer: fetch + poll the active channel only, via the
+  // service-role API route (RLS can't authorize them at all). ---
   const fetchAnonMessages = useCallback(async (channel, { silent } = {}) => {
     try {
       const res = await fetch(`/api/track/${orderId}/messages?channel=${channel}`);
@@ -218,98 +215,52 @@ export default function OrderChat({
     }
   };
 
-  // FIX: this used to write orders.agreed_price directly the moment
-  // EITHER side tapped Confirm - the "negotiation" was really just one
-  // person unilaterally changing the price. Now it only ever posts a
-  // price_offer message with offer_status='pending'; agreed_price never
-  // moves until the OTHER party explicitly accepts it (see
-  // handleRespondToOffer below and the respond_to_price_offer DB function,
-  // which is the only thing allowed to touch agreed_price for a
-  // negotiation and enforces server-side that the accepter isn't the
-  // proposer).
-  const handleSendOffer = async () => {
+  const handleUpdatePrice = async () => {
     const priceNum = Number(newPrice);
     if (!priceNum || priceNum < 100) {
       setError('Price must be at least ₦100');
       return;
     }
     setIsPriceUpdating(true);
-    setError('');
     try {
-      const tempMsg = {
-        id: crypto.randomUUID(), order_id: orderId, sender_id: currentUserId, sender_role: viewerRole,
-        channel: 'vendor_rider', type: 'price_offer', offer_amount: priceNum, offer_status: 'pending',
-        text: `Proposed ₦${priceNum.toLocaleString()}`, created_at: new Date().toISOString(),
-      };
-      setMessagesByChannel(prev => ({ ...prev, vendor_rider: [...(prev.vendor_rider || []), tempMsg] }));
+      const { error: updateErr } = await supabase.from('orders').update({ agreed_price: priceNum }).eq('id', orderId);
+      if (updateErr) throw updateErr;
 
-      const { error: insertErr } = await supabase.from('messages').insert({
+      await supabase.from('messages').insert({
         order_id: orderId,
         sender_id: currentUserId,
         sender_role: viewerRole,
         channel: 'vendor_rider',
-        type: 'price_offer',
-        offer_amount: priceNum,
-        offer_status: 'pending',
-        text: `Proposed ₦${priceNum.toLocaleString()}`,
+        text: `💰 Price updated to ₦${priceNum.toLocaleString()} (agreed via chat)`,
+        type: 'system',
       });
-      if (insertErr) throw insertErr;
 
-      setOfferSentSuccess(true);
-      setTimeout(() => { setOfferSentSuccess(false); setShowPriceNegotiate(false); setNewPrice(''); }, 1600);
-      if (activeChannel === 'vendor_rider') setTimeout(scrollToBottom, 150);
+      setOrder(prev => ({ ...prev, agreed_price: priceNum }));
+      onPriceUpdated?.(priceNum);
+      setPriceUpdateSuccess(true);
+      setTimeout(() => {
+        setPriceUpdateSuccess(false);
+        setShowPriceNegotiate(false);
+        setNewPrice('');
+      }, 2000);
     } catch (err) {
-      setError('Failed to send offer: ' + err.message);
+      setError('Failed to update price: ' + err.message);
     } finally {
       setIsPriceUpdating(false);
     }
   };
 
-  const handleRespondToOffer = async (messageId, accept) => {
-    setRespondingId(messageId);
-    setError('');
-    try {
-      const { error: rpcErr } = await supabase.rpc('respond_to_price_offer', {
-        p_message_id: messageId,
-        p_accept: accept,
-      });
-      if (rpcErr) throw rpcErr;
-
-      setMessagesByChannel(prev => ({
-        ...prev,
-        vendor_rider: (prev.vendor_rider || []).map(m => m.id === messageId ? { ...m, offer_status: accept ? 'accepted' : 'declined' } : m),
-      }));
-
-      if (accept) {
-        const acceptedMsg = (messagesByChannel.vendor_rider || []).find(m => m.id === messageId);
-        if (acceptedMsg) {
-          setOrder(prev => ({ ...prev, agreed_price: acceptedMsg.offer_amount }));
-          onPriceUpdated?.(acceptedMsg.offer_amount);
-        }
-      }
-    } catch (err) {
-      setError(err.message || 'Could not respond to this offer - it may no longer be valid.');
-    } finally {
-      setRespondingId(null);
-    }
-  };
-
-  // Negotiation only ever applies to the vendor<->rider thread and is
-  // available to whichever of vendor/rider currently has that tab open -
-  // neither role is restricted beyond that. Locked once payment clears.
+  // Negotiation only ever applies to the vendor<->rider thread (that's the
+  // agreed_price everyone is bound by) and is available to whichever of
+  // vendor/rider currently has that tab open - neither role is restricted
+  // beyond that, and it's locked the moment payment_status flips to 'paid'
+  // since the agreed_price is by then literally what was charged.
   const onVendorRiderTab = activeChannel === 'vendor_rider';
   const canNegotiatePrice = !isAnonymous && onVendorRiderTab && order && order.status !== 'delivered' && order.status !== 'cancelled' && order.payment_status !== 'paid';
   const priceLockedByPayment = onVendorRiderTab && order && order.payment_status === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled';
 
   const messages = messagesByChannel[activeChannel] || [];
   const currentTabLabel = availableChannels.find(c => c.key === activeChannel)?.label || 'Chat';
-
-  // Only the most recent still-pending offer gets action buttons - older
-  // pending offers (superseded by a newer proposal) are shown as inert
-  // history rather than something that can still be independently accepted.
-  const latestPendingOfferId = onVendorRiderTab
-    ? [...messages].reverse().find(m => m.type === 'price_offer' && m.offer_status === 'pending')?.id
-    : null;
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col glass-dark sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 sm:rounded-t-[2.5rem] sm:max-h-[85vh] shadow-premium sm:border-t sm:border-white/10">
@@ -330,7 +281,7 @@ export default function OrderChat({
             <button
               onClick={() => canNegotiatePrice && setShowPriceNegotiate(v => !v)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${canNegotiatePrice ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 active:scale-95' : 'bg-white/5 border-white/5 text-gray-500 cursor-default'}`}
-              title={canNegotiatePrice ? 'Tap to propose a new price' : priceLockedByPayment ? 'Payment already confirmed - price is locked' : 'Order complete'}
+              title={canNegotiatePrice ? 'Tap to negotiate price' : priceLockedByPayment ? 'Payment already confirmed - price is locked' : 'Order complete'}
             >
               <span className="font-black text-xs">₦{order.agreed_price?.toLocaleString()}</span>
               {canNegotiatePrice ? (
@@ -346,7 +297,8 @@ export default function OrderChat({
         </div>
       </div>
 
-      {/* Channel tabs */}
+      {/* Channel tabs - lets whoever is looking (vendor, rider, or customer)
+          jump between their two threads on this order without leaving the sheet */}
       {availableChannels.length > 1 && (
         <div className="flex gap-2 px-5 pt-3 shrink-0">
           {availableChannels.map(c => (
@@ -366,7 +318,7 @@ export default function OrderChat({
         </div>
       )}
 
-      {/* Propose-offer panel - sends a pending offer, does NOT touch agreed_price */}
+      {/* Price Negotiation Panel */}
       <AnimatePresence>
         {showPriceNegotiate && (
           <motion.div
@@ -376,7 +328,7 @@ export default function OrderChat({
             className="overflow-hidden border-b border-white/10 bg-charcoal-900/90 shrink-0"
           >
             <div className="p-5">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Propose a New Price</p>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Propose New Agreed Price</p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">₦</span>
@@ -390,19 +342,19 @@ export default function OrderChat({
                   />
                 </div>
                 <button
-                  onClick={handleSendOffer}
-                  disabled={isPriceUpdating || !newPrice || offerSentSuccess}
-                  className={`px-6 py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-2 ${offerSentSuccess ? 'bg-emerald-500 text-charcoal-950' : 'bg-white text-charcoal-950 hover:bg-emerald-400'}`}
+                  onClick={handleUpdatePrice}
+                  disabled={isPriceUpdating || !newPrice || priceUpdateSuccess}
+                  className={`px-6 py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-2 ${priceUpdateSuccess ? 'bg-emerald-500 text-charcoal-950' : 'bg-white text-charcoal-950 hover:bg-emerald-400'}`}
                 >
                   {isPriceUpdating ? (
                     <div className="w-4 h-4 border-2 border-charcoal-950 border-t-transparent rounded-full animate-spin" />
-                  ) : offerSentSuccess ? (
-                    <><Check size={16} /> Sent!</>
-                  ) : 'Send Offer'}
+                  ) : priceUpdateSuccess ? (
+                    <><Check size={16} /> Done!</>
+                  ) : 'Confirm'}
                 </button>
               </div>
               <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest mt-3 pl-px">
-                Nothing changes until the other side accepts this offer in chat.
+                Both parties will be notified. This updates the final agreed payment.
               </p>
             </div>
           </motion.div>
@@ -429,54 +381,14 @@ export default function OrderChat({
           messages.map(msg => {
             const isMe = isAnonymous ? msg.sender_role === 'customer' : msg.sender_id === currentUserId;
             const isSystem = msg.type === 'system';
-            const isOffer = msg.type === 'price_offer';
 
             if (isSystem) {
               return (
                 <div key={msg.id} className="flex justify-center">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest text-center max-w-[85%]">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest">
                     {msg.text}
                   </div>
                 </div>
-              );
-            }
-
-            if (isOffer) {
-              const canRespond = !isMe && msg.offer_status === 'pending' && msg.id === latestPendingOfferId && canNegotiatePrice;
-              const statusLabel = msg.offer_status === 'accepted' ? 'Accepted' : msg.offer_status === 'declined' ? 'Declined' : (isMe ? 'Waiting for response' : 'Awaiting your response');
-              const statusColor = msg.offer_status === 'accepted' ? 'text-emerald-400' : msg.offer_status === 'declined' ? 'text-red-400' : 'text-amber-400';
-              return (
-                <motion.div key={msg.id} initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-[1.5rem] px-5 py-4 border ${isMe ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-charcoal-800 border-white/10'}`}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <HandCoins size={14} className="text-emerald-500" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Price offer</span>
-                    </div>
-                    <p className="text-xl font-black text-white font-outfit">₦{Number(msg.offer_amount).toLocaleString()}</p>
-                    <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${statusColor}`}>{statusLabel}</p>
-                    {canRespond && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => handleRespondToOffer(msg.id, true)}
-                          disabled={respondingId === msg.id}
-                          className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        >
-                          {respondingId === msg.id ? <div className="w-3.5 h-3.5 border-2 border-charcoal-950 border-t-transparent rounded-full animate-spin" /> : <><Check size={13} /> Accept</>}
-                        </button>
-                        <button
-                          onClick={() => handleRespondToOffer(msg.id, false)}
-                          disabled={respondingId === msg.id}
-                          className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-50"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
-                    <span className={`text-[9px] font-bold mt-2 block ${isMe ? 'text-emerald-100/50' : 'text-gray-600'}`}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </motion.div>
               );
             }
 

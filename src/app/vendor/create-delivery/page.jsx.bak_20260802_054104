@@ -7,8 +7,6 @@ import { createClient } from '@/utils/supabase/client';
 import { getReliableLocation } from '@/utils/geolocation';
 import { calculateDistance } from '@/utils/distance';
 import { PRICING_RATES } from '@/utils/constants';
-import { extractFirstUrl, isAllowedHost } from '@/utils/MapResolver';
-import { reverseGeocodeMapbox } from '@/utils/mapbox';
 import { 
   ArrowLeft, MapPin, Mic, Camera, Package, ShieldCheck, 
   ChevronRight, Search, Navigation, 
@@ -73,7 +71,6 @@ export default function CreateDelivery() {
   const [suggestions, setSuggestions] = useState({ pickup: [], dropoff: [] });
   const [isSearching, setIsSearching] = useState({ pickup: false, dropoff: false });
   const [gpsStatus, setGpsStatus] = useState({ slot: null, loading: false });
-  const [linkResolveError, setLinkResolveError] = useState({ pickup: null, dropoff: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   
@@ -103,64 +100,11 @@ export default function CreateDelivery() {
 
   const handleSearchChange = (val, slot) => {
     setSearchInputs(prev => ({ ...prev, [slot]: val }));
-    setLinkResolveError(prev => ({ ...prev, [slot]: null }));
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     latestSearchRef.current[slot] = val;
 
     if (val.length < 2) {
       setSuggestions(prev => ({ ...prev, [slot]: [] }));
-      return;
-    }
-
-    // FIX: pasting a Google Maps / WhatsApp share link into this box used
-    // to be handed straight to Mapbox/OSM as a plain text search string -
-    // no geocoder can match a raw URL against a place name, so it just
-    // silently returned zero results. Short links (maps.app.goo.gl) are
-    // even less likely to resolve this way since the real coordinates
-    // only exist after following the redirect. This detects a map link
-    // and routes it through the same resolver already used in the
-    // send-package flow (follows short-link redirects server-side, and
-    // falls back to geocoding the place name/address for business-listing
-    // links with no raw coordinates at all), then opens the confirm-pin
-    // map directly on the resolved point - the same next step as picking
-    // a normal search suggestion.
-    const maybeUrl = extractFirstUrl(val);
-    if (maybeUrl && isAllowedHost(maybeUrl)) {
-      setSuggestions(prev => ({ ...prev, [slot]: [] }));
-      setIsSearching(prev => ({ ...prev, [slot]: true }));
-      (async () => {
-        try {
-          const res = await fetch('/api/resolve-link', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: maybeUrl }),
-          });
-          const data = await res.json().catch(() => null);
-          if (latestSearchRef.current[slot] !== val) return; // input changed since - stale response
-
-          if (res.ok && data?.lat && data?.lng) {
-            let name = data.matchedName || `${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}`;
-            try {
-              const resolvedName = await reverseGeocodeMapbox(data.lat, data.lng, process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
-              if (resolvedName) name = resolvedName;
-            } catch {
-              // reverse-geocode is a nicety for the label only - the pin
-              // itself is already correct, so this never blocks proceeding
-            }
-            setSearchInputs(prev => ({ ...prev, [slot]: '' }));
-            handleSelectSuggestion({ name, lat: data.lat, lng: data.lng }, slot);
-          } else {
-            setLinkResolveError(prev => ({
-              ...prev,
-              [slot]: data?.message || "Couldn't resolve that link. Open it in Maps, tap the pin, and choose \"Share location\" - or just search by name instead."
-            }));
-          }
-        } catch {
-          setLinkResolveError(prev => ({ ...prev, [slot]: 'Connection failed while resolving that link. Check your network and try again.' }));
-        } finally {
-          setIsSearching(prev => ({ ...prev, [slot]: false }));
-        }
-      })();
       return;
     }
 
@@ -216,10 +160,6 @@ export default function CreateDelivery() {
         }
       } catch (e) {
         console.error("Search failed", e);
-        // FIX: a failed search used to just leave the dropdown silently
-        // empty with no way to tell "still typing" apart from "this
-        // actually failed" - now says so directly.
-        setLinkResolveError(prev => ({ ...prev, [slot]: 'Search failed - check your connection and try again.' }));
       } finally {
         setIsSearching(prev => ({ ...prev, [slot]: false }));
       }
@@ -393,7 +333,7 @@ export default function CreateDelivery() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-charcoal-500 group-focus-within/input:text-emerald-500 transition-colors" size={18} />
                     <input 
                       className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                      placeholder="Search, or paste a Google Maps link..."
+                      placeholder="Search Kano landmarks..."
                       value={searchInputs.pickup}
                       onChange={(e) => handleSearchChange(e.target.value, 'pickup')}
                     />
@@ -413,9 +353,6 @@ export default function CreateDelivery() {
                       </div>
                     )}
                   </div>
-                  {linkResolveError.pickup && (
-                    <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.pickup}</p>
-                  )}
                   <button onClick={() => useCurrentLocation('pickup')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95">
                     {gpsStatus.slot === 'pickup' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Current Location
                   </button>
@@ -443,7 +380,7 @@ export default function CreateDelivery() {
                     <input 
                       disabled={!pickup}
                       className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-ink font-bold placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-30"
-                      placeholder="Search, or paste a Google Maps link..."
+                      placeholder="Search destination..."
                       value={searchInputs.dropoff}
                       onChange={(e) => handleSearchChange(e.target.value, 'dropoff')}
                     />
@@ -463,9 +400,6 @@ export default function CreateDelivery() {
                       </div>
                     )}
                   </div>
-                  {linkResolveError.dropoff && (
-                    <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.dropoff}</p>
-                  )}
                   <button disabled={!pickup} onClick={() => useCurrentLocation('dropoff')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
                     {gpsStatus.slot === 'dropoff' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Destination
                   </button>

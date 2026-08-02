@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, MapPin, Package, CheckCircle2, MessageCircle, Share2, Radar, X, AlertTriangle, CreditCard, Check, WifiOff, HandCoins } from 'lucide-react';
+import { Loader2, MapPin, Package, CheckCircle2, MessageCircle, Share2, Radar, X, AlertTriangle, CreditCard, Check, WifiOff } from 'lucide-react';
 import MapCanvas from '@/components/MapCanvas';
 import OrderChat from '@/components/OrderChat';
 import OrderStatusStepper from '@/components/ui/OrderStatusStepper';
@@ -45,9 +45,6 @@ export default function TrackingPage() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [statusToast, setStatusToast] = useState(null);
-  const [bids, setBids] = useState([]);
-  const [bidActionId, setBidActionId] = useState(null);
-  const [bidsError, setBidsError] = useState(null);
   const expandPollRef = useRef(null);
   const anonPollRef = useRef(null);
   const prevStatusRef = useRef(null);
@@ -141,73 +138,6 @@ export default function TrackingPage() {
 
     return () => supabase.removeChannel(riderChannel);
   }, [isVendorView, order?.riders?.id, supabase]);
-
-  // FIX (negotiation): a rider could submit a bid via the dashboard, but
-  // there was nowhere for the vendor to ever see it - the only place bids
-  // were ever displayed was the separate, legacy send-package/step-3
-  // quickmatch page, which orders created through vendor/create-delivery
-  // (the flow this tracking page is actually for) never go through. This
-  // fetches and live-subscribes to bids on THIS order while it's still
-  // waiting for a rider, so an incoming offer shows up here instead of
-  // nowhere.
-  useEffect(() => {
-    if (!isVendorView || !order?.id) return;
-    const waiting = order.status === 'pending' || order.status === 'looking_for_driver';
-    if (!waiting) { setBids([]); return; }
-
-    let cancelled = false;
-    const loadBids = async () => {
-      const { data, error } = await supabase
-        .from('bids')
-        .select('*, users:rider_id(full_name, receipt_display_name)')
-        .eq('order_id', order.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-      if (!cancelled && !error) setBids(data || []);
-    };
-    loadBids();
-
-    const bidChannel = supabase
-      .channel(`vendor-bids-${order.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `order_id=eq.${order.id}` },
-        () => loadBids())
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(bidChannel);
-    };
-  }, [isVendorView, order?.id, order?.status, supabase]);
-
-  const handleAcceptBid = async (bidId) => {
-    setBidActionId(bidId);
-    setBidsError(null);
-    try {
-      const { error } = await supabase.rpc('accept_bid', { p_order_id: order.id, p_bid_id: bidId });
-      if (error) throw error;
-      // The order's own realtime UPDATE subscription (above) picks up the
-      // resulting status/rider_id/agreed_price change and moves this page
-      // out of the waiting view automatically.
-    } catch (err) {
-      setBidsError(err.message || 'Could not accept this offer - it may no longer be available.');
-    } finally {
-      setBidActionId(null);
-    }
-  };
-
-  const handleDeclineBid = async (bidId) => {
-    setBidActionId(bidId);
-    setBidsError(null);
-    try {
-      const { error } = await supabase.rpc('decline_bid', { p_bid_id: bidId });
-      if (error) throw error;
-      setBids(prev => prev.filter(b => b.id !== bidId));
-    } catch (err) {
-      setBidsError(err.message || 'Could not decline this offer.');
-    } finally {
-      setBidActionId(null);
-    }
-  };
 
   function announceStatusChange(newStatus) {
     if (prevStatusRef.current === newStatus) return;
@@ -468,48 +398,6 @@ export default function TrackingPage() {
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink">{order.pickup_name}</span></div>
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">To</span><span className="text-ink">{order.dropoff_name}</span></div>
           </div>
-
-          {/* Incoming bids - riders can propose a different price while a
-              job is still unmatched; nothing changes on the order until
-              the vendor explicitly accepts one here. */}
-          {isVendorView && bids.length > 0 && (
-            <div className="border-t border-white/10 pt-6 space-y-3">
-              <p className="text-[10px] font-black text-charcoal-400 uppercase tracking-widest flex items-center gap-2">
-                <HandCoins size={14} className="text-emerald-500" /> {bids.length} rider{bids.length > 1 ? 's' : ''} proposed a price
-              </p>
-              {bidsError && (
-                <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{bidsError}</p>
-              )}
-              <div className="space-y-3">
-                {bids.map(bid => (
-                  <div key={bid.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-ink font-black text-lg font-outfit">₦{Number(bid.amount).toLocaleString()}</p>
-                      <p className="text-charcoal-400 text-xs truncate">
-                        {bid.users?.receipt_display_name || bid.users?.full_name || 'Rider'} · was ₦{order.agreed_price?.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleDeclineBid(bid.id)}
-                        disabled={bidActionId === bid.id}
-                        className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center text-charcoal-400 hover:text-white transition-all disabled:opacity-40"
-                      >
-                        <X size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleAcceptBid(bid.id)}
-                        disabled={bidActionId === bid.id}
-                        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        {bidActionId === bid.id ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> Accept</>}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {isVendorView ? (
             <button

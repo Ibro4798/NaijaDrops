@@ -48,7 +48,12 @@ export default async function AdminDriversPage() {
     .select("*, users(full_name, email, phone)")
     .order("created_at", { ascending: false });
 
-  const all = riders || [];
+  const all = await Promise.all(
+    (riders || []).map(async (r) => ({
+      ...r,
+      profile_photo_url: await getSignedDocUrl(supabase, r.profile_photo_url),
+    }))
+  );
   const pendingRiders = all.filter(r => r.status === "pending");
   const approvedRiders = all.filter(r => r.status === "approved");
   const pausedRiders = all.filter(r => r.status === "paused");

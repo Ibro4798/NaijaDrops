@@ -43,11 +43,13 @@ export default async function DriverReviewPage({ params }) {
   const supabase = await createClient();
   const { driverId } = await params;
 
-  const { data: rider } = await supabase
+  const { data: riderRaw } = await supabase
     .from("riders")
     .select("*, users(full_name, email, phone)")
     .eq("user_id", driverId)
     .single();
+
+  const rider = riderRaw ? await resolveRiderDocUrls(supabase, riderRaw) : null;
 
   if (!rider) {
     return (

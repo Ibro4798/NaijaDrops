@@ -115,12 +115,13 @@ export default function DriverOnboardingPage() {
         .upload(fileName, compressedFile, { cacheControl: '3600', upsert: true });
       if (uploadErr) throw uploadErr;
 
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
-
+      // Documents bucket is private now - store the storage path, not a public
+      // URL (which would be dead on arrival). Signed URLs are generated
+      // on-demand server-side when an admin reviews the docs.
       // Document uploads save immediately too, independent of step navigation -
       // a photo that's uploaded should never be lost even if the app closes
       // before "Continue" is tapped.
-      const updatedFormData = { ...formData, [`${fieldName}_url`]: publicUrl };
+      const updatedFormData = { ...formData, [`${fieldName}_url`]: fileName };
       setFormData(updatedFormData);
       await supabase.from("riders").upsert({
         user_id: user.id,

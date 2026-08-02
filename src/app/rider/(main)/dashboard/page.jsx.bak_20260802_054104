@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -14,12 +14,9 @@ export default function RiderDashboard() {
   const supabase = createClient();
   const [rider, setRider] = useState(null);
   const [jobs, setJobs] = useState([]);
-  const [myBids, setMyBids] = useState({}); // order_id -> bid row
-  const [submittingBidFor, setSubmittingBidFor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState(null);
-  const userIdRef = useRef(null);
 
   const fetchBroadcastJobs = useCallback(async (riderId) => {
     // order_broadcasts rows are created by the dispatch API for riders within the
@@ -35,82 +32,36 @@ export default function RiderDashboard() {
       .map(row => row.orders)
       .filter(o => o && (o.status === 'pending' || o.status === 'looking_for_driver'));
     setJobs(openJobs);
-    return openJobs;
-  }, [supabase]);
-
-  // FIX: onCounterOffer was wired end-to-end (bids insert, accept_bid RPC,
-  // even a realtime-friendly refetch) but IncomingOrderCard had no UI that
-  // ever called it - a rider's bid never had anywhere to go in. Now that
-  // the card can actually submit one, this also needs to know which jobs
-  // already have a pending bid from this rider, so the card can show
-  // "waiting for vendor" instead of letting a duplicate bid go in.
-  const fetchMyBids = useCallback(async (userId, orderIds) => {
-    if (!orderIds || orderIds.length === 0) { setMyBids({}); return; }
-    const { data } = await supabase
-      .from('bids')
-      .select('*')
-      .eq('rider_id', userId)
-      .in('order_id', orderIds);
-    const map = {};
-    (data || []).forEach(b => { map[b.order_id] = b; });
-    setMyBids(map);
   }, [supabase]);
 
   useEffect(() => {
-    let broadcastChannel, bidChannel;
+    let channel;
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
-      userIdRef.current = user.id;
 
       const { data: riderRow } = await supabase.from('riders').select('*').eq('user_id', user.id).single();
       if (!riderRow) { router.push('/rider/onboarding'); return; }
       setRider(riderRow);
 
       if (riderRow.status === 'approved') {
-        const openJobs = await fetchBroadcastJobs(riderRow.id);
-        await fetchMyBids(user.id, (openJobs || []).map(j => j.id));
+        await fetchBroadcastJobs(riderRow.id);
 
-        broadcastChannel = supabase
+        // Live updates: new broadcasts targeting this rider, and removal when an order
+        // is matched/cancelled elsewhere.
+        channel = supabase
           .channel(`rider-feed-${riderRow.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'order_broadcasts', filter: `rider_id=eq.${riderRow.id}` },
-            async () => {
-              const jobs = await fetchBroadcastJobs(riderRow.id);
-              fetchMyBids(user.id, (jobs || []).map(j => j.id));
-            })
+            () => fetchBroadcastJobs(riderRow.id))
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' },
             () => fetchBroadcastJobs(riderRow.id))
-          .subscribe();
-
-        // Live bid status - so "waiting for vendor" flips to "declined" (and
-        // the accept-base-price option comes back) the moment the vendor
-        // responds, without the rider needing to refresh.
-        bidChannel = supabase
-          .channel(`rider-bids-${user.id}`)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `rider_id=eq.${user.id}` },
-            (payload) => {
-              const row = payload.new || payload.old;
-              if (!row) return;
-              setMyBids(prev => {
-                if (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'pending')) {
-                  const next = { ...prev };
-                  if (payload.new && payload.new.status !== 'pending') next[row.order_id] = payload.new;
-                  else delete next[row.order_id];
-                  return next;
-                }
-                return { ...prev, [row.order_id]: payload.new };
-              });
-            })
           .subscribe();
       }
       setLoading(false);
     }
     init();
-    return () => {
-      if (broadcastChannel) supabase.removeChannel(broadcastChannel);
-      if (bidChannel) supabase.removeChannel(bidChannel);
-    };
-  }, [supabase, router, fetchBroadcastJobs, fetchMyBids]);
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [supabase, router, fetchBroadcastJobs]);
 
   async function toggleOnlineStatus() {
     if (!rider) return;
@@ -125,6 +76,17 @@ export default function RiderDashboard() {
       return;
     }
 
+    // Going online requires a real location fix - get_nearby_online_riders() filters
+    // on current_lat/current_lng being non-null, so skipping this breaks matching entirely.
+    //
+    // FIX: this used to call navigator.geolocation.getCurrentPosition directly
+    // with enableHighAccuracy:true and only a 10s timeout - on a real phone
+    // with a weak GPS lock (indoors, cloud cover, patchy signal) that
+    // regularly timed out, and the error handler showed the same "enable
+    // location access" message regardless of whether the real problem was a
+    // timeout, a denied permission, or something else. Switched to the same
+    // tiered GPS -> IP-location fallback already used elsewhere in the app,
+    // so a slow/weak GPS fix no longer means an outright failure.
     if (!navigator.geolocation) {
       setError('Location services are required to go online.');
       setToggling(false);
@@ -145,8 +107,7 @@ export default function RiderDashboard() {
     }).eq('id', rider.id);
     if (!updErr) {
       setRider({ ...rider, operational_status: 'online', current_lat: loc.lat, current_lng: loc.lng });
-      const openJobs = await fetchBroadcastJobs(rider.id);
-      fetchMyBids(userIdRef.current, (openJobs || []).map(j => j.id));
+      await fetchBroadcastJobs(rider.id);
     } else {
       setError('Could not update your status. Try again.');
     }
@@ -162,20 +123,12 @@ export default function RiderDashboard() {
 
   async function counterOffer(order, amount) {
     setError(null);
-    setSubmittingBidFor(order.id);
     const { data: { user } } = await supabase.auth.getUser();
-    const { data, error: bidErr } = await supabase
-      .from('bids')
-      .insert({ order_id: order.id, rider_id: user.id, amount, status: 'pending' })
-      .select()
-      .single();
-    setSubmittingBidFor(null);
+    const { error: bidErr } = await supabase.from('bids').insert({
+      order_id: order.id, rider_id: user.id, amount, status: 'pending'
+    });
     if (bidErr) { setError(bidErr.message); return; }
-    // Bid stays visible in the "waiting for vendor" state now - it used to
-    // be removed from the feed entirely on submission, which meant a rider
-    // could never see their own pending offer or fall back to accepting
-    // the base price without it reappearing first.
-    setMyBids(prev => ({ ...prev, [order.id]: data }));
+    setJobs(jobs.filter(j => j.id !== order.id));
   }
 
   async function rejectJob(order) {
@@ -256,6 +209,9 @@ export default function RiderDashboard() {
 
   return (
     <div className="space-y-8 pb-32">
+      {/* Headless: pings riders.current_lat/lng + rider_locations every ~35s while online.
+          This is the fix for tracking showing a frozen dot - previously location was only
+          captured once, at the moment "Go Online" was pressed. */}
       <DriverHeartbeat riderId={rider.id} isOnline={rider.operational_status === 'online'} />
 
       <div className="flex items-center justify-between">
@@ -290,8 +246,6 @@ export default function RiderDashboard() {
             <IncomingOrderCard
               key={job.id}
               order={job}
-              myBid={myBids[job.id]}
-              bidSubmitting={submittingBidFor === job.id}
               isEmbedded
               onAcceptBase={() => acceptAtBasePrice(job)}
               onCounterOffer={(amount) => counterOffer(job, amount)}

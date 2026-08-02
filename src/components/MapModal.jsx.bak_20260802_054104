@@ -7,7 +7,6 @@ import mapboxgl from 'mapbox-gl';
 import { X, MapPin, Search, Navigation, CheckCircle2, Loader2, Globe } from 'lucide-react';
 import { getReliableLocation } from '@/utils/geolocation';
 import { getMapboxSuggestions, reverseGeocodeMapbox } from '@/utils/mapbox';
-import { extractFirstUrl, isAllowedHost } from '@/utils/MapResolver';
 
 // workerClass override removed to fix blank map in Next.js 14+
 
@@ -90,43 +89,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
       return;
     }
 
-    // FIX: pasting a map link here used to be sent straight to Mapbox as a
-    // plain text query, which can't match a URL to a place - it silently
-    // returned nothing. This resolves it the same way the dedicated
-    // link-paste flow elsewhere in the app does (follows short-link
-    // redirects server-side, falls back to geocoding the place name for
-    // business-listing links with no raw coordinates), landing the pin
-    // directly instead of leaving an empty suggestions dropdown.
-    const maybeUrl = extractFirstUrl(query);
-    if (maybeUrl && isAllowedHost(maybeUrl)) {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      setShowSuggestions(false);
-      setSuggestions([]);
-      setIsResolving(true);
-      try {
-        const res = await fetch('/api/resolve-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: maybeUrl }),
-        });
-        const data = await res.json().catch(() => null);
-        if (res.ok && data?.lat && data?.lng) {
-          setMarkerPosition({ lat: data.lat, lng: data.lng });
-          setViewState(v => ({ ...v, longitude: data.lng, latitude: data.lat, zoom: 15 }));
-          setSearchQuery('');
-          if (mapRef.current) mapRef.current.flyTo?.({ center: [data.lng, data.lat], zoom: 15 });
-          await reverseGeocode(data.lat, data.lng);
-        } else {
-          setLocationError(data?.message || "Couldn't resolve that link. Try \"Share location\" from Maps instead, or search by name.");
-        }
-      } catch {
-        setLocationError('Connection failed while resolving that link. Check your network and try again.');
-      } finally {
-        setIsResolving(false);
-      }
-      return;
-    }
-
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
     searchTimeoutRef.current = setTimeout(async () => {
@@ -136,10 +98,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
         setShowSuggestions(true);
       } catch (err) {
         console.error("Search failed", err);
-        // FIX: this used to fail completely silently - the dropdown just
-        // never appeared, with no way to tell a real failure apart from
-        // "no matches found."
-        setLocationError('Search failed - check your connection and try again.');
       }
     }, 400);
   };
@@ -225,7 +183,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search, or paste a Google Maps link..."
+              placeholder="Search landmark or street in Kano..."
               className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium text-[#18181b] shadow-sm transition-all"
             />
             {showSuggestions && suggestions.length > 0 && (
