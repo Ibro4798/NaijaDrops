@@ -662,22 +662,12 @@ export default function TrackingPage() {
             >
               Pay ₦{order.agreed_price?.toLocaleString()} Now
             </button>
-            {/* FIX: this button used to always show regardless of whether a
-                price had already been agreed - including right after the
-                vendor had just accepted the rider's own suggested price,
-                which is itself an agreement. It only renders now while
-                order.price_locked is still false (see accept_bid /
-                respond_to_price_offer - both set it true the instant a
-                real agreement happens), matching the same rule OrderChat
-                itself enforces. */}
-            {!order.price_locked && (
-              <button
-                onClick={() => openChat('vendor_rider')}
-                className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-xs uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-2"
-              >
-                <MessageCircle size={13} /> Negotiate price with rider first
-              </button>
-            )}
+            <button
+              onClick={() => openChat('vendor_rider')}
+              className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl text-charcoal-300 font-bold text-xs uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-2"
+            >
+              <MessageCircle size={13} /> Negotiate price with rider first
+            </button>
           </div>
         )}
 

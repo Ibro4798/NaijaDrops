@@ -121,7 +121,10 @@ export default function ReceiptPage() {
           {order.item_description ? `${order.item_description} has` : "Your package has"} been delivered
           {senderName ? ` from ${senderName}` : ""}. Thanks for using NaijaDrops.
         </p>
-        <p className="text-charcoal-600 text-xs mt-2">₦{total.toLocaleString()} • {deliveredAt}</p>
+        {/* Deliberately no price here - this is the customer's confirmation
+            screen, not a receipt. The vendor's price/receipt is a separate
+            concern between the vendor and NaijaDrops. */}
+        <p className="text-charcoal-600 text-xs mt-2">{deliveredAt}</p>
       </div>
     );
   }

@@ -67,7 +67,7 @@ export default function OrderChat({
     const load = async () => {
       const { data: orderData } = await supabase
         .from('orders')
-        .select('agreed_price, status, payment_status, price_locked, vendor_id, rider_id')
+        .select('agreed_price, status, payment_status, vendor_id, rider_id')
         .eq('id', orderId)
         .single();
       if (!cancelled && orderData) setOrder(orderData);
@@ -121,9 +121,6 @@ export default function OrderChat({
         }
         if (payload.new.payment_status !== payload.old.payment_status) {
           setOrder(prev => ({ ...prev, payment_status: payload.new.payment_status }));
-        }
-        if (payload.new.price_locked !== payload.old.price_locked) {
-          setOrder(prev => ({ ...prev, price_locked: payload.new.price_locked }));
         }
       })
       .subscribe();
@@ -286,7 +283,7 @@ export default function OrderChat({
       if (accept) {
         const acceptedMsg = (messagesByChannel.vendor_rider || []).find(m => m.id === messageId);
         if (acceptedMsg) {
-          setOrder(prev => ({ ...prev, agreed_price: acceptedMsg.offer_amount, price_locked: true }));
+          setOrder(prev => ({ ...prev, agreed_price: acceptedMsg.offer_amount }));
           onPriceUpdated?.(acceptedMsg.offer_amount);
         }
       }
@@ -298,19 +295,11 @@ export default function OrderChat({
   };
 
   // Negotiation only ever applies to the vendor<->rider thread and is
-  // available to whichever of vendor/rider currently has that tab open.
-  // FIX: this used to only ever lock once payment cleared, so a vendor and
-  // rider could keep "renegotiating" indefinitely even after they'd
-  // already agreed on a number moments earlier via chat, or even after
-  // that exact number came from the vendor accepting a rider's bid in the
-  // first place. Once price_locked is set (see the accept_bid and
-  // respond_to_price_offer DB functions - both flip it the instant a real
-  // agreement happens), negotiation closes for the rest of the order.
+  // available to whichever of vendor/rider currently has that tab open -
+  // neither role is restricted beyond that. Locked once payment clears.
   const onVendorRiderTab = activeChannel === 'vendor_rider';
-  const priceIsFinal = order?.price_locked || order?.payment_status === 'paid';
-  const canNegotiatePrice = !isAnonymous && onVendorRiderTab && order && !priceIsFinal && order.status !== 'delivered' && order.status !== 'cancelled';
-  const priceLockedByPayment = onVendorRiderTab && order?.payment_status === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled';
-  const priceLockedByAgreement = onVendorRiderTab && order?.price_locked && order.payment_status !== 'paid';
+  const canNegotiatePrice = !isAnonymous && onVendorRiderTab && order && order.status !== 'delivered' && order.status !== 'cancelled' && order.payment_status !== 'paid';
+  const priceLockedByPayment = onVendorRiderTab && order && order.payment_status === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled';
 
   const messages = messagesByChannel[activeChannel] || [];
   const currentTabLabel = availableChannels.find(c => c.key === activeChannel)?.label || 'Chat';
@@ -318,19 +307,9 @@ export default function OrderChat({
   // Only the most recent still-pending offer gets action buttons - older
   // pending offers (superseded by a newer proposal) are shown as inert
   // history rather than something that can still be independently accepted.
-  const latestPendingOffer = onVendorRiderTab
-    ? [...messages].reverse().find(m => m.type === 'price_offer' && m.offer_status === 'pending')
+  const latestPendingOfferId = onVendorRiderTab
+    ? [...messages].reverse().find(m => m.type === 'price_offer' && m.offer_status === 'pending')?.id
     : null;
-  const latestPendingOfferId = latestPendingOffer?.id || null;
-
-  // FIX: the header always showed order.agreed_price, even while a newer
-  // offer was sitting pending in the thread below it - so the "current
-  // price" everyone saw at a glance was stale the moment either side
-  // proposed something new. This shows whatever's actually on the table
-  // right now: the pending offer if there is one, otherwise the real
-  // agreed price.
-  const displayedAmount = latestPendingOffer ? latestPendingOffer.offer_amount : order?.agreed_price;
-  const showingPendingAmount = !!latestPendingOffer;
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col glass-dark sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 sm:rounded-t-[2.5rem] sm:max-h-[85vh] shadow-premium sm:border-t sm:border-white/10">
@@ -350,24 +329,13 @@ export default function OrderChat({
           {!isAnonymous && onVendorRiderTab && order && (
             <button
               onClick={() => canNegotiatePrice && setShowPriceNegotiate(v => !v)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
-                canNegotiatePrice
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 active:scale-95'
-                  : showingPendingAmount
-                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 cursor-default'
-                  : 'bg-white/5 border-white/5 text-gray-500 cursor-default'
-              }`}
-              title={
-                canNegotiatePrice ? 'Tap to propose a new price'
-                : priceLockedByPayment ? 'Payment already confirmed - price is locked'
-                : priceLockedByAgreement ? 'A price has already been agreed - negotiation is closed'
-                : 'Order complete'
-              }
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${canNegotiatePrice ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 active:scale-95' : 'bg-white/5 border-white/5 text-gray-500 cursor-default'}`}
+              title={canNegotiatePrice ? 'Tap to propose a new price' : priceLockedByPayment ? 'Payment already confirmed - price is locked' : 'Order complete'}
             >
-              <span className="font-black text-xs">₦{displayedAmount?.toLocaleString()}</span>
-              {showingPendingAmount && !canNegotiatePrice ? null : canNegotiatePrice ? (
+              <span className="font-black text-xs">₦{order.agreed_price?.toLocaleString()}</span>
+              {canNegotiatePrice ? (
                 <ChevronDown size={14} className={`transition-transform ${showPriceNegotiate ? 'rotate-180' : ''}`} />
-              ) : (priceLockedByPayment || priceLockedByAgreement) ? (
+              ) : priceLockedByPayment ? (
                 <Lock size={12} />
               ) : null}
             </button>

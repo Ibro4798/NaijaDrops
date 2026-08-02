@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import Skeleton from '@/components/ui/Skeleton';
 import IncomingOrderCard from '@/components/rider/IncomingOrderCard';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
@@ -16,7 +15,6 @@ export default function RiderDashboard() {
   const [rider, setRider] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [myBids, setMyBids] = useState({}); // order_id -> bid row
-  const [rejectedNotice, setRejectedNotice] = useState(null);
   const [submittingBidFor, setSubmittingBidFor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
@@ -84,29 +82,20 @@ export default function RiderDashboard() {
             () => fetchBroadcastJobs(riderRow.id))
           .subscribe();
 
-        // Live bid status - so "waiting for vendor" flips to a clear
-        // notice the moment the vendor responds, without the rider needing
-        // to refresh. FIX: a declined bid used to just vanish from myBids
-        // silently - the card reverted straight back to the normal
-        // accept/bid state with zero indication anything had happened, so
-        // a rider had no way to know their offer was actually seen and
-        // turned down versus just... still sitting there.
+        // Live bid status - so "waiting for vendor" flips to "declined" (and
+        // the accept-base-price option comes back) the moment the vendor
+        // responds, without the rider needing to refresh.
         bidChannel = supabase
           .channel(`rider-bids-${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `rider_id=eq.${user.id}` },
             (payload) => {
               const row = payload.new || payload.old;
               if (!row) return;
-
-              if (payload.new?.status === 'rejected' && payload.old?.status === 'pending') {
-                setRejectedNotice({ orderId: row.order_id, amount: row.amount });
-                setTimeout(() => setRejectedNotice(prev => (prev?.orderId === row.order_id ? null : prev)), 8000);
-              }
-
               setMyBids(prev => {
                 if (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'pending')) {
                   const next = { ...prev };
-                  delete next[row.order_id];
+                  if (payload.new && payload.new.status !== 'pending') next[row.order_id] = payload.new;
+                  else delete next[row.order_id];
                   return next;
                 }
                 return { ...prev, [row.order_id]: payload.new };
@@ -290,24 +279,6 @@ export default function RiderDashboard() {
       </div>
 
       {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
-
-      <AnimatePresence>
-        {rejectedNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
-          >
-            <p className="text-amber-400 text-sm font-bold">
-              Your offer of ₦{Number(rejectedNotice.amount).toLocaleString()} was declined by the vendor.
-            </p>
-            <button onClick={() => setRejectedNotice(null)} className="text-amber-400/60 hover:text-amber-400 shrink-0 text-xs font-black uppercase tracking-widest">
-              Dismiss
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {rider.operational_status !== 'online' ? (
         <p className="text-charcoal-400 text-center py-16">Go online to start receiving jobs.</p>

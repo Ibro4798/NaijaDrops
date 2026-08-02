@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Service-role client: bypasses RLS intentionally, because this route is the ONLY
@@ -70,7 +70,9 @@ export async function GET(req, { params }) {
     item_description: order.item_description,
     created_at: order.created_at,
     updated_at: order.updated_at,
-    total_price: order.status === 'delivered' ? order.agreed_price : null,
+    // Deliberately NOT returning total_price / agreed_price here - this is
+    // the anonymous customer's endpoint, and the delivery price is between
+    // the vendor and NaijaDrops, not something the customer needs to see.
     sender_display_name: order.vendors?.users?.receipt_display_name || null,
     rider: order.riders ? {
       first_name: (order.riders.users?.receipt_display_name || order.riders.users?.full_name || 'Rider').split(' ')[0],
