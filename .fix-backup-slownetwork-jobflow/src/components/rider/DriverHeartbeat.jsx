@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { isPlausibleMove, isSlowConnection, isConstrainedConnection } from "@/utils/geolocation";
+import { isPlausibleMove } from "@/utils/geolocation";
 
 /**
  * Driver Heartbeat Component
@@ -40,6 +40,13 @@ const SLOW_PUSH_INTERVAL_MS = 35000;
 const MAX_PLAUSIBLE_KPH = 100;
 const STALE_QUEUED_SAMPLE_MS = 3 * 60 * 1000; // drop a retried sample this old - it's not "current" anymore
 const CACHE_KEY_PREFIX = "nd_rider_last_loc_";
+
+function isSlowConnection() {
+  if (typeof navigator === "undefined") return false;
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn) return false;
+  return conn.effectiveType === "slow-2g" || conn.effectiveType === "2g" || conn.saveData === true;
+}
 
 export default function DriverHeartbeat({ riderId, isOnline }) {
   const supabase = createClient();
@@ -80,11 +87,7 @@ export default function DriverHeartbeat({ riderId, isOnline }) {
       (err) => {
         console.warn("[HEARTBEAT] watchPosition error:", err.message);
       },
-      // A constrained connection (slow-2g/2g/3g) means A-GPS assistance
-      // data takes longer to download, so the first fix takes longer to
-      // arrive - give it more room instead of erroring out early on a GPS
-      // that's actually still working, just waiting on the network.
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: isConstrainedConnection() ? 35000 : 15000 }
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
 
     const pushSample = async () => {

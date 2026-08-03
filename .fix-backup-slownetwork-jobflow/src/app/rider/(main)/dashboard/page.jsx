@@ -17,30 +17,11 @@ export default function RiderDashboard() {
   const [jobs, setJobs] = useState([]);
   const [myBids, setMyBids] = useState({}); // order_id -> bid row
   const [rejectedNotice, setRejectedNotice] = useState(null);
-  const [acceptedNotice, setAcceptedNotice] = useState(null);
   const [submittingBidFor, setSubmittingBidFor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState(null);
-  const [hasActiveJob, setHasActiveJob] = useState(false);
   const userIdRef = useRef(null);
-
-  // A rider with a job already in progress (matched/picked_up/in_transit)
-  // has to stay online and finish it - they shouldn't be sitting on the
-  // feed at all, let alone able to toggle themselves offline mid-job. This
-  // checks for one and, if found, sends them straight to it.
-  const checkActiveJob = useCallback(async (riderRowId) => {
-    const { data } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('rider_id', riderRowId)
-      .in('status', ['matched', 'picked_up', 'in_transit'])
-      .limit(1)
-      .maybeSingle();
-    const active = !!data;
-    setHasActiveJob(active);
-    return active;
-  }, [supabase]);
 
   const fetchBroadcastJobs = useCallback(async (riderId) => {
     // order_broadcasts rows are created by the dispatch API for riders within the
@@ -89,14 +70,6 @@ export default function RiderDashboard() {
       setRider(riderRow);
 
       if (riderRow.status === 'approved') {
-        // A job already in progress takes them straight there instead of
-        // showing the feed - see checkActiveJob above.
-        const alreadyOnAJob = await checkActiveJob(riderRow.id);
-        if (alreadyOnAJob) {
-          router.replace('/rider/active-job');
-          return;
-        }
-
         const openJobs = await fetchBroadcastJobs(riderRow.id);
         await fetchMyBids(user.id, (openJobs || []).map(j => j.id));
 
@@ -130,17 +103,6 @@ export default function RiderDashboard() {
                 setTimeout(() => setRejectedNotice(prev => (prev?.orderId === row.order_id ? null : prev)), 8000);
               }
 
-              // FIX: accept_bid() assigns the order to this rider server-side
-              // the instant the vendor accepts, but the rider's UI used to
-              // just let the bid quietly drop out of myBids with no
-              // indication anything had happened - the job was already
-              // theirs and they had no idea. Now it's an immediate,
-              // impossible-to-miss handoff straight into the job.
-              if (payload.new?.status === 'accepted' && payload.old?.status === 'pending') {
-                setAcceptedNotice({ orderId: row.order_id, amount: row.amount });
-                router.push('/rider/active-job');
-              }
-
               setMyBids(prev => {
                 if (payload.eventType === 'DELETE' || (payload.new && payload.new.status !== 'pending')) {
                   const next = { ...prev };
@@ -159,7 +121,7 @@ export default function RiderDashboard() {
       if (broadcastChannel) supabase.removeChannel(broadcastChannel);
       if (bidChannel) supabase.removeChannel(bidChannel);
     };
-  }, [supabase, router, fetchBroadcastJobs, fetchMyBids, checkActiveJob]);
+  }, [supabase, router, fetchBroadcastJobs, fetchMyBids]);
 
   async function toggleOnlineStatus() {
     if (!rider) return;
@@ -167,16 +129,6 @@ export default function RiderDashboard() {
     setError(null);
 
     if (rider.operational_status === 'online') {
-      // A rider mid-delivery has to stay online until it's done - the
-      // dashboard redirect above should already keep them off this screen
-      // entirely while a job is active, but this is the last line of
-      // defense in case of a race (e.g. a bid gets accepted in the
-      // background right as they tap the button).
-      if (hasActiveJob) {
-        setError("You have a delivery in progress - finish it before going offline.");
-        setToggling(false);
-        return;
-      }
       const { error: updErr } = await supabase.from('riders')
         .update({ operational_status: 'offline' }).eq('id', rider.id);
       if (!updErr) setRider({ ...rider, operational_status: 'offline' });
@@ -338,21 +290,6 @@ export default function RiderDashboard() {
       </div>
 
       {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
-
-      <AnimatePresence>
-        {acceptedNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-5 py-4"
-          >
-            <p className="text-emerald-400 text-sm font-bold">
-              Your offer of ₦{Number(acceptedNotice.amount).toLocaleString()} was accepted — this job is yours. Taking you there now...
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {rejectedNotice && (

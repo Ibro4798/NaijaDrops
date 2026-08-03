@@ -12,16 +12,6 @@ const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false }
 import SlideToConfirm from '@/components/rider/SlideToConfirm';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import OrderChat from '@/components/OrderChat';
-import { distanceMeters } from '@/utils/geolocation';
-
-// "General location of the pickup spot", not an exact building - Kano's
-// informal addressing means a pin drop can legitimately be 100-200m off
-// from where a rider can actually stand, so this is deliberately generous
-// (a market block or two), not a tight door-to-door radius. Only the
-// pickup step is gated like this; transit/delivered are not, since a
-// rider is already carrying the package by then and there's no
-// "wrong place" to catch.
-const PICKUP_PROXIMITY_METERS = 400;
 
 function NoteCard({ note, voiceUrl }) {
   if (!note && !voiceUrl) return null;
@@ -86,8 +76,6 @@ export default function ActiveJobPage() {
   const [showNotes, setShowNotes] = useState(false);
   const [deliveryPhotoUrl, setDeliveryPhotoUrl] = useState(null);
   const [uploadingDeliveryPhoto, setUploadingDeliveryPhoto] = useState(false);
-  const [pickupDistanceMeters, setPickupDistanceMeters] = useState(null);
-  const [pickupLocationError, setPickupLocationError] = useState(false);
   const deliveryPhotoInputRef = useRef(null);
 
   useEffect(() => {
@@ -125,42 +113,6 @@ export default function ActiveJobPage() {
     return () => supabase.removeChannel(channel);
   }, [supabase, order?.id]);
 
-  // Gate the pickup slider on actually being near the pickup point - not
-  // "anywhere", and not the other steps (start transit / mark delivered),
-  // which stay exactly as they were. Runs its own lightweight watch
-  // (rather than waiting on DriverHeartbeat's ~20-35s push cycle) so the
-  // distance reading feels live to the rider standing there.
-  useEffect(() => {
-    if (!order || order.status !== 'matched' || order.payment_status !== 'paid') {
-      setPickupDistanceMeters(null);
-      setPickupLocationError(false);
-      return;
-    }
-    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
-      setPickupLocationError(true);
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        setPickupLocationError(false);
-        setPickupDistanceMeters(
-          distanceMeters(pos.coords.latitude, pos.coords.longitude, order.pickup_lat, order.pickup_lng)
-        );
-      },
-      (err) => {
-        console.warn('[ACTIVE-JOB] Pickup proximity watch failed:', err.message);
-        setPickupLocationError(true);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [order?.id, order?.status, order?.payment_status, order?.pickup_lat, order?.pickup_lng]);
-
-  const isWithinPickupRange = pickupDistanceMeters !== null && pickupDistanceMeters <= PICKUP_PROXIMITY_METERS;
-
-
   const updateStatus = async (nextStatus) => {
     setUpdating(true);
     const { error } = await supabase
@@ -170,16 +122,6 @@ export default function ActiveJobPage() {
     
     if (!error) {
       if (nextStatus === 'delivered') {
-        // FIX: nothing ever reversed the 'busy' status the accept RPCs set
-        // when this job started - a rider who completed a delivery stayed
-        // invisible to the dispatch engine (getBestRider only looks at
-        // operational_status = 'online') and stuck showing "offline" on
-        // their own dashboard heartbeat, permanently, after their very
-        // first job. Going back online here is what "stay online through
-        // the job, then you're free again" actually requires.
-        if (riderId) {
-          await supabase.from('riders').update({ operational_status: 'online' }).eq('id', riderId);
-        }
         // FIX: router.push() left this active-job page in browser history,
         // so pressing back afterward returned here showing the order still
         // in its pre-delivery state (looked like the delivery "undid"
@@ -391,39 +333,11 @@ export default function ActiveJobPage() {
              </div>
            )}
            {order.status === 'matched' && order.payment_status === 'paid' && (
-             isWithinPickupRange || pickupLocationError ? (
-               <>
-                 {pickupLocationError && (
-                   <p className="text-amber-500/80 text-[10px] font-black uppercase tracking-widest text-center mb-3">
-                     Couldn't verify your location — go ahead if you're at the pickup point.
-                   </p>
-                 )}
-                 <SlideToConfirm
-                   text="Slide to confirm Pickup"
-                   color="bg-amber-500"
-                   onConfirm={() => updateStatus('picked_up')}
-                 />
-               </>
-             ) : (
-               // FIX: previously a rider could slide to "picked up" from
-               // anywhere at all - across town, before ever reaching the
-               // pickup point. Now this step specifically (not transit,
-               // not delivered) stays locked until they're actually in the
-               // general vicinity of the pickup spot.
-               <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-2">
-                 <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-                   <MapPin size={22} />
-                 </div>
-                 <p className="text-amber-500 font-black text-sm uppercase tracking-widest">
-                   {pickupDistanceMeters === null
-                     ? 'Locating you...'
-                     : `${Math.round(pickupDistanceMeters)}m from pickup`}
-                 </p>
-                 <p className="text-charcoal-400 text-xs leading-relaxed">
-                   Get closer to {order.pickup_name} to confirm pickup — this unlocks automatically once you're there.
-                 </p>
-               </div>
-             )
+             <SlideToConfirm 
+               text="Slide to confirm Pickup" 
+               color="bg-amber-500" 
+               onConfirm={() => updateStatus('picked_up')} 
+             />
            )}
            {order.status === 'picked_up' && (
              <SlideToConfirm 
