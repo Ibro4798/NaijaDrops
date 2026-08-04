@@ -161,41 +161,6 @@ export default function RiderDashboard() {
     };
   }, [supabase, router, fetchBroadcastJobs, fetchMyBids, checkActiveJob]);
 
-  // Same root cause as the active-job page: a phone's browser tab drops
-  // its realtime WebSocket when the screen locks or the app backgrounds,
-  // and Supabase does not replay whatever happened while disconnected -
-  // so a bid that got accepted, or a new job that came in, while the
-  // rider's screen was off just sat there invisible until a manual
-  // refresh. This re-syncs the instant the tab/phone comes back.
-  useEffect(() => {
-    if (!rider || rider.status !== 'approved') return;
-
-    let cancelled = false;
-    const resync = async () => {
-      if (cancelled) return;
-      const alreadyOnAJob = await checkActiveJob(rider.id);
-      if (alreadyOnAJob) {
-        router.replace('/rider/active-job');
-        return;
-      }
-      const openJobs = await fetchBroadcastJobs(rider.id);
-      await fetchMyBids(userIdRef.current, (openJobs || []).map(j => j.id));
-    };
-
-    const handleVisible = () => {
-      if (document.visibilityState === 'visible') resync();
-    };
-    document.addEventListener('visibilitychange', handleVisible);
-    window.addEventListener('focus', resync);
-    window.addEventListener('online', resync);
-    return () => {
-      cancelled = true;
-      document.removeEventListener('visibilitychange', handleVisible);
-      window.removeEventListener('focus', resync);
-      window.removeEventListener('online', resync);
-    };
-  }, [rider, checkActiveJob, fetchBroadcastJobs, fetchMyBids, router]);
-
   async function toggleOnlineStatus() {
     if (!rider) return;
     setToggling(true);

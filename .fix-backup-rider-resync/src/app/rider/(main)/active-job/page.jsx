@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle, Play, Camera, X, FileText } from 'lucide-react';
@@ -90,93 +90,40 @@ export default function ActiveJobPage() {
   const [pickupLocationError, setPickupLocationError] = useState(false);
   const deliveryPhotoInputRef = useRef(null);
 
-  // FIX: previously this ran once on mount, re-fetched from scratch AND
-  // tore down/recreated the realtime channel every time order.id changed,
-  // and the channel itself had no filter at all (listening to every
-  // UPDATE on the whole orders table system-wide). None of that was what
-  // actually caused "need to refresh to see it" though - the real cause
-  // is that a phone's browser tab drops its WebSocket when the screen
-  // locks or the app backgrounds, and Supabase realtime does NOT replay
-  // whatever happened while disconnected. So beyond fixing the channel
-  // filter/churn, this now explicitly re-syncs the moment the tab/phone
-  // comes back (visibilitychange/focus/online), which is what actually
-  // closes the "stale until I refresh" gap.
-  const orderIdRef = useRef(null);
+  useEffect(() => {
+    async function fetchActiveJob() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
 
-  const fetchActiveJob = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setCurrentUserId(user.id);
+      const { data: profile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
+      if (!profile) return;
+      setRiderId(profile.id);
 
-    const { data: profile } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
-    if (!profile) return;
-    setRiderId(profile.id);
-
-    // Once we know which order this is, always re-fetch it by id directly
-    // (no status filter) so a status change to something outside the
-    // "active" set - e.g. the vendor cancelling while the rider is en
-    // route - is reflected honestly instead of the fetch just finding
-    // nothing and silently leaving the screen on its last known state.
-    if (orderIdRef.current) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .select('*, riders(*)')
-        .eq('id', orderIdRef.current)
-        .maybeSingle();
+        .eq('rider_id', profile.id)
+        .in('status', ['matched', 'picked_up', 'in_transit'])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
       if (data) setOrder(data);
       setLoading(false);
-      return;
     }
-
-    const { data } = await supabase
-      .from('orders')
-      .select('*, riders(*)')
-      .eq('rider_id', profile.id)
-      .in('status', ['matched', 'picked_up', 'in_transit'])
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (data) { orderIdRef.current = data.id; setOrder(data); }
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
     fetchActiveJob();
-  }, [fetchActiveJob]);
 
-  // Realtime channel: filtered server-side by rider_id (not every order in
-  // the system), subscribed once riderId is known, and left alone after
-  // that - it no longer tears itself down on every order update.
-  useEffect(() => {
-    if (!riderId) return;
-    const channel = supabase
-      .channel(`active-job-updates-${riderId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `rider_id=eq.${riderId}` },
-        () => { fetchActiveJob(); })
+    const channel = supabase.channel('active-job-updates')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        if (order && payload.new.id === order.id) {
+          setOrder(prev => ({ ...prev, ...payload.new }));
+        }
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [supabase, riderId, fetchActiveJob]);
-
-  // Re-sync the moment this tab/phone comes back from the background,
-  // regains focus, or regains a network connection - a locked screen or
-  // backgrounded app during a ride is the normal case here, not an edge
-  // case, so this can't be optional.
-  useEffect(() => {
-    const handleVisible = () => {
-      if (document.visibilityState === 'visible') fetchActiveJob();
-    };
-    document.addEventListener('visibilitychange', handleVisible);
-    window.addEventListener('focus', fetchActiveJob);
-    window.addEventListener('online', fetchActiveJob);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisible);
-      window.removeEventListener('focus', fetchActiveJob);
-      window.removeEventListener('online', fetchActiveJob);
-    };
-  }, [fetchActiveJob]);
-
+  }, [supabase, order?.id]);
 
   // Gate the pickup slider on actually being near the pickup point - not
   // "anywhere", and not the other steps (start transit / mark delivered),
