@@ -332,14 +332,14 @@ export default function Step1Page() {
       });
       const data = await resp.json();
 
-      if (data?.lat && data?.lng) {
+      if (data.lat && data.lng) {
         const name = await reverseGeocodeMapbox(data.lat, data.lng, mapboxToken);
         const point = { name, lat: data.lat, lng: data.lng };
         selectLocation(point, linkTarget);
         setShowLinkModal(false);
         setLinkInput("");
       } else {
-        setLinkError(data?.message || data?.error || "Unable to resolve this map link. Please try a different link or search manually.");
+        setLinkError(data.error || "Unable to resolve this map link. Please try a different link or search manually.");
       }
     } catch (err) {
       setLinkError("Connection failed. Please check your network and try again.");

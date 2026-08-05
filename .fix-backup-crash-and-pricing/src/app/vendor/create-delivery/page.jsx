@@ -7,7 +7,6 @@ import { createClient } from '@/utils/supabase/client';
 import { getReliableLocation } from '@/utils/geolocation';
 import { calculateDistance } from '@/utils/distance';
 import { PRICING_RATES } from '@/utils/constants';
-import { fetchPricingSettings, getEffectiveRates } from '@/utils/pricing';
 import { extractFirstUrl, isAllowedHost } from '@/utils/MapResolver';
 import { reverseGeocodeMapbox } from '@/utils/mapbox';
 import { 
@@ -79,16 +78,6 @@ export default function CreateDelivery() {
   const [submitError, setSubmitError] = useState(null);
   
   const searchTimeoutRef = useRef(null);
-  const [effectiveRates, setEffectiveRates] = useState(PRICING_RATES);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const settings = await fetchPricingSettings(supabase);
-      if (!cancelled) setEffectiveRates(getEffectiveRates(settings));
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   // Pricing Logic
   useEffect(() => {
@@ -99,8 +88,8 @@ export default function CreateDelivery() {
       );
       setDistanceKm(dist.toFixed(1));
 
-      const rate = effectiveRates[vehicleType.toUpperCase()] || { base: 500, perKm: 150 };
-      const multiplier = (effectiveRates.SIZE_MULTIPLIERS && effectiveRates.SIZE_MULTIPLIERS[size]) || 1;
+      const rate = PRICING_RATES[vehicleType.toUpperCase()] || { base: 500, perKm: 150 };
+      const multiplier = (PRICING_RATES.SIZE_MULTIPLIERS && PRICING_RATES.SIZE_MULTIPLIERS[size]) || 1;
       
       let price = (rate.base + (dist * rate.perKm)) * multiplier;
       setEstimatedPrice(Math.ceil(price / 50) * 50);
@@ -108,7 +97,7 @@ export default function CreateDelivery() {
         setEstimatedPrice(0);
         setDistanceKm(0);
     }
-  }, [pickup, dropoff, vehicleType, size, effectiveRates]);
+  }, [pickup, dropoff, vehicleType, size]);
 
   const latestSearchRef = useRef({});
 

@@ -5,7 +5,6 @@ import { Outfit, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ChatNotificationListener from "@/components/ChatNotificationListener";
 import OrderStatusNotificationListener from "@/components/OrderStatusNotificationListener";
-import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 const outfit = Outfit({ 
   subsets: ["latin"],
@@ -75,7 +74,6 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-sans bg-charcoal-50 text-charcoal-900 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
         <ThemeProvider>
-          <ChunkErrorRecovery />
           {children}
           <ChatNotificationListener />
           <OrderStatusNotificationListener />

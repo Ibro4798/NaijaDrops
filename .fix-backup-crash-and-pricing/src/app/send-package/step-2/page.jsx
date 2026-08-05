@@ -9,7 +9,6 @@ import {
 import { createClient } from "@/utils/supabase/client";
 import { estimateSizeFromFile } from "@/utils/clientSizeEstimate";
 import imageCompression from "browser-image-compression";
-import { fetchPricingSettings, getFuelMultiplier } from "@/utils/pricing";
 
 const DRAFT_KEY = "nd_order_draft";
 
@@ -18,10 +17,10 @@ const BASE_PRICE = 500;
 const PRICE_PER_KM = { bike: 120, car: 200 };
 const SIZE_MULTIPLIERS = { small: 1.0, medium: 1.25, large: 1.6 };
 
-function calcPrice(distanceM, vehicleType, sizeId, fuelMultiplier = 1) {
+function calcPrice(distanceM, vehicleType, sizeId) {
   if (!distanceM) return null;
   const km = distanceM / 1000;
-  const rate = (PRICE_PER_KM[vehicleType] || PRICE_PER_KM.bike) * fuelMultiplier;
+  const rate = PRICE_PER_KM[vehicleType] || PRICE_PER_KM.bike;
   const sizeMultiplier = SIZE_MULTIPLIERS[sizeId] || 1.0;
   return Math.round((BASE_PRICE + km * rate) * sizeMultiplier);
 }
@@ -79,18 +78,8 @@ export default function Step2Page() {
   const fileInputRef = useRef(null);
 
   const supabase = createClient();
-  const [fuelMultiplier, setFuelMultiplier] = useState(1);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const settings = await fetchPricingSettings(supabase);
-      if (!cancelled) setFuelMultiplier(getFuelMultiplier(settings));
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const estimatedPrice = calcPrice(draft?.distance_m, vehicle, size, fuelMultiplier);
+  const estimatedPrice = calcPrice(draft?.distance_m, vehicle, size);
   const distanceKm = draft?.distance_m ? (draft.distance_m / 1000).toFixed(1) : null;
 
   useEffect(() => {

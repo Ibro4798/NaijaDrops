@@ -27,16 +27,6 @@ export default function MapCanvas({
   zoom: initialZoom = 12,
   showRoute = false,
 }) {
-  // FIX: a marker with a missing/NaN lat or lng used to go straight to
-  // react-map-gl's <Marker>, which hands it to Mapbox GL JS - Mapbox
-  // throws synchronously on an invalid LngLat rather than failing quietly,
-  // which crashes the whole page render (not something a try/catch
-  // upstream can protect against, since it happens during React's own
-  // render pass). Every caller upstream already guards against passing
-  // bad coordinates, but this is the one place all of them funnel
-  // through, so it's the right place to make it impossible regardless.
-  const isValidCoord = (m) => Number.isFinite(m?.lat) && Number.isFinite(m?.lng);
-
   // Merge markers and orders (orders get converted to marker format)
   const allMarkers = [
     ...markers,
@@ -46,7 +36,7 @@ export default function MapCanvas({
       color: 'emerald',
       type: 'pickup'
     }))
-  ].filter(isValidCoord);
+  ];
   const mapRef = useRef();
 
   // Default to Kano Center if not provided

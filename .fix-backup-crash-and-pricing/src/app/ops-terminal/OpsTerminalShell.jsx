@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { Activity, ShieldCheck, DollarSign, Users, AlertOctagon, Package, LayoutDashboard, Menu, X, LogOut, Fuel } from "lucide-react";
+import { Activity, ShieldCheck, DollarSign, Users, AlertOctagon, Package, LayoutDashboard, Menu, X, LogOut } from "lucide-react";
 
 const NAV_SECTIONS = [
   {
@@ -16,7 +16,6 @@ const NAV_SECTIONS = [
     items: [
       { href: "/ops-terminal/drivers", label: "Tactical Fleet", icon: Users },
       { href: "/ops-terminal/admins", label: "Access Logs", icon: ShieldCheck },
-      { href: "/ops-terminal/pricing", label: "Fuel Pricing", icon: Fuel },
     ],
   },
   {
