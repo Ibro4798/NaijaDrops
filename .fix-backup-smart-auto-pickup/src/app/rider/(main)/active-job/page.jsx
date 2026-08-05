@@ -15,20 +15,13 @@ import OrderChat from '@/components/OrderChat';
 import { distanceMeters } from '@/utils/geolocation';
 
 // "General location of the pickup spot", not an exact building - Kano's
-// informal addressing means a pin drop can legitimately be off by a
-// noticeable margin from where a rider can actually stand, and GPS itself
-// drifts more than that in dense market areas. Widened from an earlier,
-// too-tight 400m after real-world testing showed it firing false
-// negatives. Only the pickup step is gated like this; transit/delivered
-// are not, since a rider is already carrying the package by then and
-// there's no "wrong place" to catch.
-const PICKUP_PROXIMITY_METERS = 1000;
-
-// How much net movement (in meters) counts as "actually heading out", not
-// GPS jitter. Consumer GPS accuracy in a dense market area can wander
-// 20-30m on its own even standing still, so this needs real headroom
-// above that before it's trusted as a genuine trend rather than noise.
-const AUTO_PICKUP_MOVEMENT_METERS = 80;
+// informal addressing means a pin drop can legitimately be 100-200m off
+// from where a rider can actually stand, so this is deliberately generous
+// (a market block or two), not a tight door-to-door radius. Only the
+// pickup step is gated like this; transit/delivered are not, since a
+// rider is already carrying the package by then and there's no
+// "wrong place" to catch.
+const PICKUP_PROXIMITY_METERS = 400;
 
 function NoteCard({ note, voiceUrl }) {
   if (!note && !voiceUrl) return null;
@@ -95,16 +88,7 @@ export default function ActiveJobPage() {
   const [uploadingDeliveryPhoto, setUploadingDeliveryPhoto] = useState(false);
   const [pickupDistanceMeters, setPickupDistanceMeters] = useState(null);
   const [pickupLocationError, setPickupLocationError] = useState(false);
-  const [autoPickupDetected, setAutoPickupDetected] = useState(false);
   const deliveryPhotoInputRef = useRef(null);
-  // Auto-pickup detection state, kept in refs (not React state) since they
-  // need to persist across GPS pings without re-triggering renders/effects
-  // on every single update.
-  const hasEnteredPickupRegionRef = useRef(false);
-  const lastPickupDistanceRef = useRef(null);
-  const lastDropoffDistanceRef = useRef(null);
-  const autoPickupFiredRef = useRef(false);
-  const updateStatusRef = useRef(null);
 
   // FIX: previously this ran once on mount, re-fetched from scratch AND
   // tore down/recreated the realtime channel every time order.id changed,
@@ -195,23 +179,14 @@ export default function ActiveJobPage() {
 
 
   // Gate the pickup slider on actually being near the pickup point - not
-  // "anywhere". Also runs the smart auto-pickup detection: once the rider
-  // has genuinely been inside the pickup region at least once, and their
-  // GPS trend afterward shows real net movement away from pickup AND
-  // toward drop-off (not just noise), this fires the same 'picked_up'
-  // transition automatically - no slide needed. The manual slide stays
-  // available the entire time regardless, as a fallback for a rider who
-  // isn't showing a clean movement signal (loading up, standing still
-  // negotiating, weak GPS, etc) so this is purely additive convenience,
-  // never something that can leave a rider stuck waiting on it.
-  //
-  // "Start Transit" and "Mark Delivered" are untouched by any of this -
-  // delivered in particular stays a manual slide always, by design.
+  // "anywhere", and not the other steps (start transit / mark delivered),
+  // which stay exactly as they were. Runs its own lightweight watch
+  // (rather than waiting on DriverHeartbeat's ~20-35s push cycle) so the
+  // distance reading feels live to the rider standing there.
   useEffect(() => {
     if (!order || order.status !== 'matched' || order.payment_status !== 'paid') {
       setPickupDistanceMeters(null);
       setPickupLocationError(false);
-      setAutoPickupDetected(false);
       return;
     }
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
@@ -219,47 +194,12 @@ export default function ActiveJobPage() {
       return;
     }
 
-    // Fresh order/matched cycle - reset the trend-detection memory so a
-    // previous job's readings can never leak into this one.
-    hasEnteredPickupRegionRef.current = false;
-    lastPickupDistanceRef.current = null;
-    lastDropoffDistanceRef.current = null;
-    autoPickupFiredRef.current = false;
-
-    const hasDropoffCoords = order.dropoff_lat != null && order.dropoff_lng != null;
-
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         setPickupLocationError(false);
-        const distToPickup = distanceMeters(pos.coords.latitude, pos.coords.longitude, order.pickup_lat, order.pickup_lng);
-        const distToDropoff = hasDropoffCoords
-          ? distanceMeters(pos.coords.latitude, pos.coords.longitude, order.dropoff_lat, order.dropoff_lng)
-          : null;
-        setPickupDistanceMeters(distToPickup);
-
-        if (distToPickup <= PICKUP_PROXIMITY_METERS) {
-          hasEnteredPickupRegionRef.current = true;
-        }
-
-        if (
-          hasEnteredPickupRegionRef.current &&
-          !autoPickupFiredRef.current &&
-          distToDropoff !== null &&
-          lastPickupDistanceRef.current !== null &&
-          lastDropoffDistanceRef.current !== null
-        ) {
-          const movingAwayFromPickup = (distToPickup - lastPickupDistanceRef.current) > AUTO_PICKUP_MOVEMENT_METERS;
-          const movingTowardDropoff = (lastDropoffDistanceRef.current - distToDropoff) > AUTO_PICKUP_MOVEMENT_METERS;
-
-          if (movingAwayFromPickup && movingTowardDropoff) {
-            autoPickupFiredRef.current = true;
-            setAutoPickupDetected(true);
-            updateStatusRef.current?.('picked_up');
-          }
-        }
-
-        lastPickupDistanceRef.current = distToPickup;
-        lastDropoffDistanceRef.current = distToDropoff;
+        setPickupDistanceMeters(
+          distanceMeters(pos.coords.latitude, pos.coords.longitude, order.pickup_lat, order.pickup_lng)
+        );
       },
       (err) => {
         console.warn('[ACTIVE-JOB] Pickup proximity watch failed:', err.message);
@@ -269,7 +209,7 @@ export default function ActiveJobPage() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [order?.id, order?.status, order?.payment_status, order?.pickup_lat, order?.pickup_lng, order?.dropoff_lat, order?.dropoff_lng]);
+  }, [order?.id, order?.status, order?.payment_status, order?.pickup_lat, order?.pickup_lng]);
 
   const isWithinPickupRange = pickupDistanceMeters !== null && pickupDistanceMeters <= PICKUP_PROXIMITY_METERS;
 
@@ -305,10 +245,6 @@ export default function ActiveJobPage() {
     }
     setUpdating(false);
   };
-
-  useEffect(() => {
-    updateStatusRef.current = updateStatus;
-  });
 
   // Optional but encouraged proof-of-delivery photo, taken right before the
   // final "Mark Delivered" slide. Cheap insurance for a "no one home" or
@@ -515,11 +451,6 @@ export default function ActiveJobPage() {
                      Couldn't verify your location — go ahead if you're at the pickup point.
                    </p>
                  )}
-                 {!pickupLocationError && !autoPickupDetected && (
-                   <p className="text-amber-500/70 text-[10px] font-black uppercase tracking-widest text-center mb-3">
-                     Also watching automatically — this'll confirm itself once you start heading out.
-                   </p>
-                 )}
                  <SlideToConfirm
                    text="Slide to confirm Pickup"
                    color="bg-amber-500"
@@ -531,10 +462,7 @@ export default function ActiveJobPage() {
                // anywhere at all - across town, before ever reaching the
                // pickup point. Now this step specifically (not transit,
                // not delivered) stays locked until they're actually in the
-               // general vicinity of the pickup spot - and once they are,
-               // it also auto-confirms itself the moment their GPS shows
-               // them genuinely heading out toward drop-off, no slide
-               // needed at all.
+               // general vicinity of the pickup spot.
                <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-2">
                  <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
                    <MapPin size={22} />
@@ -545,7 +473,7 @@ export default function ActiveJobPage() {
                      : `${Math.round(pickupDistanceMeters)}m from pickup`}
                  </p>
                  <p className="text-charcoal-400 text-xs leading-relaxed">
-                   Get closer to {order.pickup_name} — this unlocks automatically once you're there, and confirms itself once you start heading to drop-off.
+                   Get closer to {order.pickup_name} to confirm pickup — this unlocks automatically once you're there.
                  </p>
                </div>
              )

@@ -132,49 +132,35 @@ export const getMapboxSuggestions = async (query, providedToken = null) => {
  */
 export const reverseGeocodeMapbox = async (lat, lng, providedToken = null) => {
     const activeToken = providedToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    if (!activeToken) return "Pinned location";
+    if (!activeToken) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
-    // FIX: this used to fall back to raw "lat, lng" text on any failure
-    // (API error, empty result, or the old flat 6s timeout) - a user has
-    // no idea what "12.0047, 8.5371" means. Now we retry once with a
-    // broader type filter (in case the strict filter excluded a real
-    // match) and give slow connections more room before timing out.
-    // If both attempts fail, we surface a legible fallback instead of
-    // coordinates - the pin itself still holds the real lat/lng, only
-    // the human-readable label is missing.
-    const tryFetch = async (types, timeoutMs) => {
+    try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${activeToken}${types ? `&types=${types}` : ''}&limit=1`;
-            const response = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-                console.warn("Mapbox Reverse Geocode API Error", response.status);
-                return null;
-            }
-            const data = await response.json();
-            return data?.features?.[0]?.place_name || null;
-        } catch (error) {
-            clearTimeout(timeoutId);
-            if (error.name === 'AbortError') {
-                console.warn(`Mapbox reverse geocoding timed out (>${timeoutMs}ms)`);
-            } else {
-                console.error("Mapbox reverse geocode error:", error);
-            }
-            return null;
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${activeToken}&types=address,poi,neighborhood,locality&limit=1`;
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            console.warn("Mapbox Reverse Geocode API Error");
+            return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
         }
-    };
 
-    // First attempt: precise types, generous timeout for slow connections
-    let name = await tryFetch("address,poi,neighborhood,locality", 8000);
-    if (name) return name;
-
-    // Retry once, broader types, in case the strict filter excluded a real match
-    name = await tryFetch(null, 8000);
-    if (name) return name;
-
-    return "Pinned location";
+        const data = await response.json();
+        if (data && data.features && data.features.length > 0) {
+            return data.features[0].place_name;
+        }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.warn("Mapbox reverse geocoding timed out (>6s), using coordinates fallback");
+        } else {
+            console.error("Mapbox reverse geocode error:", error);
+        }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
 };
 
 /**
