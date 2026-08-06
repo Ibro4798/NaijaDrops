@@ -9,7 +9,6 @@ import Skeleton from '@/components/ui/Skeleton';
 import IncomingOrderCard from '@/components/rider/IncomingOrderCard';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import { getReliableLocation } from '@/utils/geolocation';
-import { roundUpTo50 } from '@/utils/pricing';
 
 export default function RiderDashboard() {
   const router = useRouter();
@@ -256,17 +255,12 @@ export default function RiderDashboard() {
   }
 
   async function counterOffer(order, amount) {
-    // Defense in depth: IncomingOrderCard already rounds before calling
-    // this, but this is the actual point the amount becomes a real bid in
-    // the database, so it rounds again rather than trusting every future
-    // caller to remember to.
-    const roundedAmount = roundUpTo50(amount);
     setError(null);
     setSubmittingBidFor(order.id);
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error: bidErr } = await supabase
       .from('bids')
-      .insert({ order_id: order.id, rider_id: user.id, amount: roundedAmount, status: 'pending' })
+      .insert({ order_id: order.id, rider_id: user.id, amount, status: 'pending' })
       .select()
       .single();
     setSubmittingBidFor(null);

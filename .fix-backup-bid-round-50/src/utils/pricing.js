@@ -1,19 +1,6 @@
 import { PRICING_RATES } from "@/utils/constants";
 
 /**
- * Rounds a Naira amount up to the nearest ₦50 - used for rider counter-bids
- * so every price in the app lands on a clean, negotiable increment (₦1950,
- * ₦2000, ₦2050...) instead of odd numbers like ₦2020 or ₦2034 that are
- * awkward to reason about or hand over in cash.
- */
-export function roundUpTo50(amount) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return 0;
-  return Math.ceil(n / 50) * 50;
-}
-
-
-/**
  * Fuel-price-aware pricing.
  *
  * PRICING_RATES.perKm values were calibrated at a baseline fuel price. As

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, ChevronRight, Zap, X, HandCoins, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { roundUpTo50 } from '@/utils/pricing';
 
 // FIX: this card accepted an `onCounterOffer` prop from day one, but never
 // actually rendered anything that called it - there was no input field, no
@@ -22,16 +21,10 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
   const basePrice = parseInt(order.agreed_price) || 0;
   const hasPendingBid = myBid && myBid.status === 'pending';
 
-  // FIX: a rider could previously type any exact number - ₦2020, ₦2034 -
-  // odd amounts that are awkward for a vendor to reason about and
-  // impossible to hand over cleanly in cash. Every bid now rounds UP to
-  // the nearest ₦50 before it's ever sent, so 2020 and 2034 both become
-  // 2050, and 1950 stays exactly 1950 since it's already on the grid.
-  const roundedBidAmount = bidAmount ? roundUpTo50(bidAmount) : 0;
-
   const submitBid = () => {
-    if (!roundedBidAmount || roundedBidAmount < 100) return;
-    onCounterOffer?.(roundedBidAmount);
+    const amount = Number(bidAmount);
+    if (!amount || amount < 100) return;
+    onCounterOffer?.(amount);
     setShowBidInput(false);
   };
 
@@ -208,7 +201,6 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
                     <input
                       type="number"
                       inputMode="numeric"
-                      step="50"
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
                       className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-white font-black text-sm focus:outline-none focus:border-emerald-500"
@@ -217,7 +209,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
                   </div>
                   <button
                     onClick={submitBid}
-                    disabled={bidSubmitting || !roundedBidAmount || roundedBidAmount < 100}
+                    disabled={bidSubmitting || !bidAmount || Number(bidAmount) < 100}
                     className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                   >
                     {bidSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Send'}
@@ -229,11 +221,6 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
                     <X size={16} />
                   </button>
                 </div>
-                {!!bidAmount && Number(bidAmount) !== roundedBidAmount && (
-                  <p className="text-[10px] font-bold text-charcoal-500">
-                    Offers round up to the nearest ₦50 - this sends as <span className="text-emerald-400">₦{roundedBidAmount.toLocaleString()}</span>.
-                  </p>
-                )}
               </div>
             )}
           </div>
