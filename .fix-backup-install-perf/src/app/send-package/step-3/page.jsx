@@ -242,7 +242,7 @@ function Step3Content() {
               </div>
               <h2 className="text-xl font-black text-ink mb-3">We're almost open!</h2>
               <p className="text-charcoal-400 text-sm leading-relaxed mb-2">
-                NaijaDrops is <span className="text-ink font-bold">launching soon</span> in Kano.
+                NaijaDrops launches fully in Kano on <span className="text-ink font-bold">Saturday, August 15, 2026</span>.
               </p>
               <p className="text-charcoal-500 text-xs leading-relaxed mb-8">
                 Your route and pricing are saved - come back after launch and dispatch will be live.

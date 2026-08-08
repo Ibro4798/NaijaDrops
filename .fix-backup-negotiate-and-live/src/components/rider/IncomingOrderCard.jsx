@@ -1,24 +1,39 @@
 import { useState } from 'react';
-import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, ChevronRight, Zap, X, HandCoins } from 'lucide-react';
+import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, ChevronRight, Zap, X, HandCoins, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { roundUpTo50 } from '@/utils/pricing';
 
-// FIX: negotiation was removed - the vendor sets the price for the job,
-// and that price isn't up for a counter-offer, so the "Suggest a
-// different price" button and its input are gone. A rider now only ever
-// accepts the job as posted or declines it. onCounterOffer and
-// bidSubmitting stay as accepted props (unused) rather than being ripped
-// out of the signature, since myBid/hasPendingBid below still needs to
-// render gracefully for any bid that was already pending from before this
-// change.
-export default function IncomingOrderCard({ order, myBid, onAcceptBase, onReject, isEmbedded = false }) {
+// FIX: this card accepted an `onCounterOffer` prop from day one, but never
+// actually rendered anything that called it - there was no input field, no
+// button, nothing. A rider had no way to propose a price at all; the only
+// action available was accepting the base price outright. This adds the
+// missing UI: a "Suggest a price" toggle with an amount field, and once a
+// bid is pending, the card switches to a waiting state instead of showing
+// stale accept/negotiate actions for an offer already in flight.
+export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAcceptBase, onCounterOffer, onReject, isEmbedded = false }) {
   const [showDetails, setShowDetails] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [confirmingAccept, setConfirmingAccept] = useState(false);
+  const [showBidInput, setShowBidInput] = useState(false);
+  const [bidAmount, setBidAmount] = useState('');
 
   if (!order) return null;
 
   const basePrice = parseInt(order.agreed_price) || 0;
   const hasPendingBid = myBid && myBid.status === 'pending';
+
+  // FIX: a rider could previously type any exact number - ₦2020, ₦2034 -
+  // odd amounts that are awkward for a vendor to reason about and
+  // impossible to hand over cleanly in cash. Every bid now rounds UP to
+  // the nearest ₦50 before it's ever sent, so 2020 and 2034 both become
+  // 2050, and 1950 stays exactly 1950 since it's already on the grid.
+  const roundedBidAmount = bidAmount ? roundUpTo50(bidAmount) : 0;
+
+  const submitBid = () => {
+    if (!roundedBidAmount || roundedBidAmount < 100) return;
+    onCounterOffer?.(roundedBidAmount);
+    setShowBidInput(false);
+  };
 
   return (
     <motion.div 
@@ -176,6 +191,51 @@ export default function IncomingOrderCard({ order, myBid, onAcceptBase, onReject
             >
               Accept Signal <ChevronRight size={24} />
             </button>
+
+            {!showBidInput ? (
+              <button
+                onClick={() => { setShowBidInput(true); setBidAmount(basePrice ? String(basePrice) : ''); }}
+                className="w-full py-4 bg-white/5 hover:bg-white/10 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
+              >
+                <HandCoins size={14} /> Suggest a different price
+              </button>
+            ) : (
+              <div className="bg-charcoal-950/60 border border-white/10 rounded-2xl p-4 space-y-3">
+                <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">Your offer to the vendor</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black">₦</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      step="50"
+                      value={bidAmount}
+                      onChange={e => setBidAmount(e.target.value)}
+                      className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-white font-black text-sm focus:outline-none focus:border-emerald-500"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    onClick={submitBid}
+                    disabled={bidSubmitting || !roundedBidAmount || roundedBidAmount < 100}
+                    className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                  >
+                    {bidSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Send'}
+                  </button>
+                  <button
+                    onClick={() => setShowBidInput(false)}
+                    className="w-11 h-11 bg-white/5 rounded-xl flex items-center justify-center text-charcoal-400 shrink-0"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                {!!bidAmount && Number(bidAmount) !== roundedBidAmount && (
+                  <p className="text-[10px] font-bold text-charcoal-500">
+                    Offers round up to the nearest ₦50 - this sends as <span className="text-emerald-400">₦{roundedBidAmount.toLocaleString()}</span>.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

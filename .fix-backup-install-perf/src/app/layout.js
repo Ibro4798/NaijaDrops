@@ -1,19 +1,11 @@
 ﻿
 import "./globals.css";
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Outfit, Inter } from "next/font/google";
-import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ChatNotificationListener from "@/components/ChatNotificationListener";
+import OrderStatusNotificationListener from "@/components/OrderStatusNotificationListener";
 import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-
-// FIX: these were static imports, so their code shipped inside every
-// page's main JS bundle - homepage, terms, login, all of it - even though
-// they only ever do anything for a logged-in vendor/rider. Loading them
-// as their own async chunk instead means an anonymous visitor on the
-// homepage isn't paying to download and parse this code at all before
-// they even see the page render.
-const ChatNotificationListener = dynamic(() => import("@/components/ChatNotificationListener"), { ssr: false });
-const OrderStatusNotificationListener = dynamic(() => import("@/components/OrderStatusNotificationListener"), { ssr: false });
 
 const outfit = Outfit({ 
   subsets: ["latin"],
@@ -35,8 +27,8 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "NaijaDrops | Reliable Delivery in Kano — Launching Soon",
-  description: "No more chasing riders on the phone. NaijaDrops brings trackable, reliable delivery to Kano vendors and customers. Launching soon.",
+  title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 15",
+  description: "No more chasing riders on the phone. NaijaDrops brings trackable, reliable delivery to Kano vendors and customers. Launching August 15.",
   metadataBase: new URL('https://naijadrops.tech'),
   manifest: "/manifest.json",
   icons: {
@@ -44,7 +36,7 @@ export const metadata = {
     apple: "/favicon.png",
   },
   openGraph: {
-    title: "NaijaDrops | Reliable Delivery in Kano — Launching Soon",
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 15",
     description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
     url: 'https://naijadrops.tech',
     siteName: 'NaijaDrops',
@@ -55,13 +47,13 @@ export const metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'NaijaDrops — Reliable delivery, finally trackable. Launching soon in Kano.',
+        alt: 'NaijaDrops — Reliable delivery, finally trackable. Launching August 15 in Kano.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "NaijaDrops | Reliable Delivery in Kano — Launching Soon",
+    title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 15",
     description: "No more chasing riders on the phone. Track every delivery live, right here in Kano.",
     images: ['/og-image.png'],
   },
@@ -84,7 +76,6 @@ export default function RootLayout({ children }) {
       <body className="font-sans bg-charcoal-50 text-charcoal-900 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
         <ThemeProvider>
           <ChunkErrorRecovery />
-          <ServiceWorkerRegister />
           {children}
           <ChatNotificationListener />
           <OrderStatusNotificationListener />
