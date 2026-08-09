@@ -132,35 +132,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const sugs = await getMapboxSuggestions(query, mapboxToken);
-
-        // FIX: MapModal was the one search entry point in the app that
-        // never got wired up to the AI-assisted expansion fallback that
-        // send-package/step-1 and vendor/create-delivery already have -
-        // a real, well-known local name (e.g. "Brigade" for Brigade
-        // Market) that Mapbox+OSM don't have indexed would just show an
-        // empty dropdown here specifically, even though the exact same
-        // search would have found a match elsewhere in the app. Only
-        // fires on searches that already came up empty, same as the
-        // other two call sites - no extra cost on searches that were
-        // already working.
-        if (sugs.length === 0 && query.trim().length >= 3) {
-          try {
-            const res = await fetch("/api/smart-location-search", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query, mapboxToken }),
-            });
-            const data = await res.json();
-            if (data.success && data.results?.length) {
-              setSuggestions(data.results);
-              setShowSuggestions(true);
-              return;
-            }
-          } catch (e) {
-            console.error("Smart location search failed:", e);
-          }
-        }
-
         setSuggestions(sugs);
         setShowSuggestions(true);
       } catch (err) {
