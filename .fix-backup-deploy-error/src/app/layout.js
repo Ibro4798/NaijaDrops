@@ -1,10 +1,19 @@
 ﻿
 import "./globals.css";
 import { Outfit, Inter } from "next/font/google";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import ClientNotificationListeners from "@/components/ClientNotificationListeners";
+
+// FIX: these were static imports, so their code shipped inside every
+// page's main JS bundle - homepage, terms, login, all of it - even though
+// they only ever do anything for a logged-in vendor/rider. Loading them
+// as their own async chunk instead means an anonymous visitor on the
+// homepage isn't paying to download and parse this code at all before
+// they even see the page render.
+const ChatNotificationListener = dynamic(() => import("@/components/ChatNotificationListener"), { ssr: false });
+const OrderStatusNotificationListener = dynamic(() => import("@/components/OrderStatusNotificationListener"), { ssr: false });
 
 const outfit = Outfit({ 
   subsets: ["latin"],
@@ -77,7 +86,8 @@ export default function RootLayout({ children }) {
           <ChunkErrorRecovery />
           <ServiceWorkerRegister />
           {children}
-          <ClientNotificationListeners />
+          <ChatNotificationListener />
+          <OrderStatusNotificationListener />
         </ThemeProvider>
       </body>
     </html>
