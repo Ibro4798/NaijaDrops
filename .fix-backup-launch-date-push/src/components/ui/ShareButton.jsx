@@ -5,7 +5,7 @@ import { Share2, Check, MessageCircle } from "lucide-react";
 
 const SHARE_URL = "https://naijadrops.tech";
 const SHARE_TEXT =
-  "No more chasing riders on the phone 📦 NaijaDrops tracks every delivery live, right here in Kano. Launching Saturday, August 29 — check it out:";
+  "No more chasing riders on the phone 📦 NaijaDrops tracks every delivery live, right here in Kano. Launching soon — check it out:";
 
 export default function ShareButton({ className = "" }) {
   const [copied, setCopied] = useState(false);
