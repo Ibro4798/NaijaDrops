@@ -12,27 +12,6 @@ import { fetchPricingSettings, getFuelMultiplier } from "@/utils/pricing";
 
 const DRAFT_KEY = "nd_order_draft";
 
-// The delivery-photos bucket's actual limit (checked directly in
-// Supabase) - there was never a need to compress every photo down to
-// 0.8MB, that number was arbitrary and forced more compression work than
-// necessary on every device, worst of all on the weakest ones.
-const BUCKET_LIMIT_BYTES = 5 * 1024 * 1024;
-// A lot of budget-phone cameras already shoot smaller/lower-res photos
-// than flagship phones - if it's already reasonably small, running it
-// through compression at all is wasted CPU time for no benefit.
-const SKIP_COMPRESSION_UNDER_BYTES = 1.5 * 1024 * 1024;
-// If compression hasn't finished by this point, something's wrong - a
-// stuck Web Worker, an older WebView struggling with a large image,
-// whatever the specific cause, the fix is the same: stop waiting on it.
-const COMPRESSION_TIMEOUT_MS = 12000;
-
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("COMPRESSION_TIMEOUT")), ms)),
-  ]);
-}
-
 // Pricing constants
 const BASE_PRICE = 500;
 const PRICE_PER_KM = { bike: 120, car: 200 };
@@ -69,7 +48,6 @@ export default function Step2Page() {
   const [packagePhotoUrl, setPackagePhotoUrl] = useState("");
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadTakingLong, setUploadTakingLong] = useState(false);
   const fileInputRef = useRef(null);
 
   const supabase = createClient();
@@ -118,60 +96,32 @@ export default function Step2Page() {
 
     setPhotoPreview(URL.createObjectURL(file));
     setUploadingPhoto(true);
-    setUploadTakingLong(false);
     setPhotoUploadError(null);
 
-    // Purely cosmetic - if this is still running after 5s, say so, rather
-    // than leaving a rider staring at a bare spinner wondering if the app
-    // has frozen. Older/weaker phones genuinely do take longer here, so
-    // this is honest, not just decoration.
-    const slowTimer = setTimeout(() => setUploadTakingLong(true), 5000);
-
     try {
-      let uploadFile = file;
+      // Phone camera photos routinely come in at 4-10MB, well over the
+      // delivery-photos bucket's size limit. Compress first (same settings
+      // used for rider onboarding docs elsewhere in the app) so uploads
+      // stop failing on large images.
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      });
 
-      if (file.size > SKIP_COMPRESSION_UNDER_BYTES) {
-        try {
-          // FIX: this used to always target 0.8MB with default iteration
-          // settings, regardless of the bucket's real 5MB limit - forcing
-          // more compression passes (each one real CPU time) than the
-          // bucket ever actually required. Targeting 1.5MB with fewer
-          // max iterations converges much faster, especially on a weak
-          // CPU, at the cost of a slightly larger (still well within
-          // budget) final file.
-          uploadFile = await withTimeout(
-            imageCompression(file, {
-              maxSizeMB: 1.5,
-              maxWidthOrHeight: 1280,
-              useWebWorker: true,
-              maxIteration: 4,
-              initialQuality: 0.75,
-            }),
-            COMPRESSION_TIMEOUT_MS
-          );
-        } catch (compressErr) {
-          // FIX: compression hanging or failing outright (a stuck Web
-          // Worker, an older WebView choking on a large image - common
-          // enough on budget devices that this can't be treated as a
-          // rare edge case) used to leave the rider stuck on "Uploading..."
-          // indefinitely, with the photo never actually going anywhere.
-          // If the original file already fits the bucket's real limit,
-          // just upload it as-is instead of blocking on compression that
-          // isn't working on this particular device.
-          console.warn("Photo compression timed out or failed, using original:", compressErr);
-          if (file.size <= BUCKET_LIMIT_BYTES) {
-            uploadFile = file;
-          } else {
-            throw new Error("PHOTO_TOO_LARGE");
-          }
-        }
-      }
-
-      const fileExt = uploadFile.type?.includes("png") ? "png" : "jpg";
-      const fileName = `package_${Date.now()}.${fileExt}`;
+      // FIX: this used to also run every photo through a server-side
+      // Claude vision call, and - if that was unavailable - a client-side
+      // TensorFlow.js + COCO-SSD model download and inference as a
+      // fallback. Both added real weight (a paid API call per photo, and
+      // a multi-MB on-device model that was genuinely struggling on
+      // lower-end phones) for something the size buttons below already
+      // do for free, instantly, on every device. The photo's only job
+      // now is letting the rider see what they're picking up - sizing is
+      // always a manual tap.
+      const fileName = `package_${Date.now()}.jpg`;
       const { data, error } = await supabase.storage
         .from("delivery-photos")
-        .upload(fileName, uploadFile, { contentType: uploadFile.type || "image/jpeg" });
+        .upload(fileName, compressedFile, { contentType: "image/jpeg" });
 
       if (!error && data) {
         const { data: publicUrlData } = supabase.storage.from("delivery-photos").getPublicUrl(fileName);
@@ -196,16 +146,10 @@ export default function Step2Page() {
       console.error("Photo select/upload failed:", err);
       setPhotoPreview(null);
       setPackagePhotoUrl("");
-      setPhotoUploadError(
-        err?.message === "PHOTO_TOO_LARGE"
-          ? "That photo is too large (over 5MB) to upload as-is, and this device couldn't compress it. Try a smaller photo."
-          : "Couldn't process that photo. Please try again."
-      );
+      setPhotoUploadError("Couldn't process that photo. Please try again.");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } finally {
-      clearTimeout(slowTimer);
       setUploadingPhoto(false);
-      setUploadTakingLong(false);
     }
   }
 
@@ -290,12 +234,9 @@ export default function Step2Page() {
             <div className="relative rounded-2xl overflow-hidden border border-white/10">
               <img src={photoPreview} alt="Package" className="w-full h-40 object-cover" />
               {uploadingPhoto && (
-                <div className="absolute inset-0 bg-charcoal-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-4 text-center">
+                <div className="absolute inset-0 bg-charcoal-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
                   <Loader2 className="text-emerald-500 animate-spin" size={24} />
                   <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Uploading...</span>
-                  {uploadTakingLong && (
-                    <span className="text-charcoal-400 text-[10px] font-medium normal-case">This can take a bit longer on some phones - still working.</span>
-                  )}
                 </div>
               )}
               <button onClick={removePhoto} className="absolute top-3 right-3 w-8 h-8 bg-charcoal-950/80 backdrop-blur-md rounded-xl flex items-center justify-center text-ink">
