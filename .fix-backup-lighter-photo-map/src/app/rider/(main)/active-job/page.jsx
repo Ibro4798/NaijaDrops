@@ -6,9 +6,8 @@ import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle, Play, Camera, X, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import MapSkeleton from '@/components/MapSkeleton';
 
-const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false, loading: () => <MapSkeleton /> });
+const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false });
 
 import SlideToConfirm from '@/components/rider/SlideToConfirm';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';

@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2
+  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2, Sparkles, AlertTriangle
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { estimateSizeFromFile } from "@/utils/clientSizeEstimate";
 import imageCompression from "browser-image-compression";
 import { fetchPricingSettings, getFuelMultiplier } from "@/utils/pricing";
 
@@ -35,10 +36,34 @@ const VEHICLES = [
   { id: "bike", label: "Motorcycle", sub: "Faster & cheaper", emoji: "🏍️", badge: "Popular" },
 ];
 
+// Compresses + converts a File to base64 for the estimation API, capping
+// dimensions so the request stays small and fast over patchy connections.
+function fileToResizedBase64(file, maxDim = 1024) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      if (width > height && width > maxDim) { height *= maxDim / width; width = maxDim; }
+      else if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      resolve(dataUrl.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Step2Page() {
   const router = useRouter();
   const [draft, setDraft] = useState(null);
   const [size, setSize] = useState("small");
+  const [sizeSource, setSizeSource] = useState(null); // null | 'ai' | 'manual'
   const [vehicle, setVehicle] = useState("bike");
   const [description, setDescription] = useState("");
   const [receiverName, setReceiverName] = useState("");
@@ -48,6 +73,9 @@ export default function Step2Page() {
   const [packagePhotoUrl, setPackagePhotoUrl] = useState("");
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [estimating, setEstimating] = useState(false);
+  const [estimateReasoning, setEstimateReasoning] = useState(null);
+  const [oversizedWarning, setOversizedWarning] = useState(false);
   const fileInputRef = useRef(null);
 
   const supabase = createClient();
@@ -70,7 +98,7 @@ export default function Step2Page() {
       const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
       if (!d?.pickup || !d?.dropoff) { router.replace("/send-package/step-1"); return; }
       setDraft(d);
-      if (d.size) setSize(d.size);
+      if (d.size) { setSize(d.size); setSizeSource(d.size_source || null); }
       if (d.vehicle) setVehicle(d.vehicle);
       if (d.description) setDescription(d.description);
       if (d.package_photo_url) setPackagePhotoUrl(d.package_photo_url);
@@ -97,32 +125,64 @@ export default function Step2Page() {
     setPhotoPreview(URL.createObjectURL(file));
     setUploadingPhoto(true);
     setPhotoUploadError(null);
+    setEstimateReasoning(null);
 
     try {
       // Phone camera photos routinely come in at 4-10MB, well over the
       // delivery-photos bucket's size limit. Compress first (same settings
       // used for rider onboarding docs elsewhere in the app) so uploads
-      // stop failing on large images.
+      // stop failing on large images, and reuse the compressed copy for
+      // both the upload and the size estimate below - faster and smaller.
       const compressedFile = await imageCompression(file, {
         maxSizeMB: 0.8,
         maxWidthOrHeight: 1280,
         useWebWorker: true,
       });
 
-      // FIX: this used to also run every photo through a server-side
-      // Claude vision call, and - if that was unavailable - a client-side
-      // TensorFlow.js + COCO-SSD model download and inference as a
-      // fallback. Both added real weight (a paid API call per photo, and
-      // a multi-MB on-device model that was genuinely struggling on
-      // lower-end phones) for something the size buttons below already
-      // do for free, instantly, on every device. The photo's only job
-      // now is letting the rider see what they're picking up - sizing is
-      // always a manual tap.
+      // Upload the actual photo for the rider to see later, and run the
+      // (much smaller, resized) version through the size-estimate API in
+      // parallel - neither one blocks the other.
       const fileName = `package_${Date.now()}.jpg`;
-      const { data, error } = await supabase.storage
-        .from("delivery-photos")
-        .upload(fileName, compressedFile, { contentType: "image/jpeg" });
+      const uploadPromise = supabase.storage.from("delivery-photos").upload(fileName, compressedFile, { contentType: "image/jpeg" });
 
+      const estimatePromise = (async () => {
+        setEstimating(true);
+        try {
+          const base64 = await fileToResizedBase64(compressedFile);
+          const res = await fetch("/api/estimate-package", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageBase64: base64, mediaType: "image/jpeg" }),
+          });
+          const result = await res.json();
+          if (result.success) {
+            setSize(result.size);
+            setSizeSource("ai");
+            setEstimateReasoning(result.reasoning);
+            setOversizedWarning(!!result.oversized);
+            return;
+          }
+
+          // Server estimate unavailable (no ANTHROPIC_API_KEY, rate limit,
+          // network issue, etc). Fall back to a free, on-device guess using
+          // TensorFlow.js + COCO-SSD instead of giving up silently.
+          const clientResult = await estimateSizeFromFile(compressedFile);
+          if (clientResult.success) {
+            setSize(clientResult.size);
+            setSizeSource("client-cv");
+            setEstimateReasoning(clientResult.reasoning);
+            setOversizedWarning(!!clientResult.oversizedForBike);
+          }
+          // If that also fails, we say nothing - manual sizing already
+          // works fine and always did, this is a bonus when it works.
+        } catch {
+          // Same as above - silent fallback to manual sizing.
+        } finally {
+          setEstimating(false);
+        }
+      })();
+
+      const [{ data, error }] = await Promise.all([uploadPromise, estimatePromise]);
       if (!error && data) {
         const { data: publicUrlData } = supabase.storage.from("delivery-photos").getPublicUrl(fileName);
         setPackagePhotoUrl(publicUrlData.publicUrl);
@@ -138,16 +198,6 @@ export default function Step2Page() {
         setPhotoUploadError("Couldn't upload the photo. Please try again - a package photo is required.");
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
-    } catch (err) {
-      // FIX: compression or upload throwing outright (out-of-memory on a
-      // weak device, a corrupt file, etc) used to propagate uncaught -
-      // now it lands the same honest, retryable error state as a plain
-      // upload failure instead of silently breaking the page.
-      console.error("Photo select/upload failed:", err);
-      setPhotoPreview(null);
-      setPackagePhotoUrl("");
-      setPhotoUploadError("Couldn't process that photo. Please try again.");
-      if (fileInputRef.current) fileInputRef.current.value = "";
     } finally {
       setUploadingPhoto(false);
     }
@@ -156,6 +206,9 @@ export default function Step2Page() {
   function removePhoto() {
     setPackagePhotoUrl("");
     setPhotoPreview(null);
+    setEstimateReasoning(null);
+    setSizeSource(null);
+    setOversizedWarning(false);
     setPhotoUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -165,6 +218,7 @@ export default function Step2Page() {
     const updated = {
       ...draft,
       size,
+      size_source: sizeSource,
       vehicle,
       description: description.trim(),
       package_photo_url: packagePhotoUrl,
@@ -233,10 +287,12 @@ export default function Step2Page() {
           {photoPreview ? (
             <div className="relative rounded-2xl overflow-hidden border border-white/10">
               <img src={photoPreview} alt="Package" className="w-full h-40 object-cover" />
-              {uploadingPhoto && (
+              {(uploadingPhoto || estimating) && (
                 <div className="absolute inset-0 bg-charcoal-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
                   <Loader2 className="text-emerald-500 animate-spin" size={24} />
-                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Uploading...</span>
+                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                    {estimating ? "Estimating size..." : "Uploading..."}
+                  </span>
                 </div>
               )}
               <button onClick={removePhoto} className="absolute top-3 right-3 w-8 h-8 bg-charcoal-950/80 backdrop-blur-md rounded-xl flex items-center justify-center text-ink">
@@ -246,7 +302,7 @@ export default function Step2Page() {
           ) : (
             <label htmlFor="package-photo-input" className="flex flex-col items-center justify-center gap-2 py-8 bg-charcoal-900 border border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all">
               <Camera size={24} className="text-charcoal-500" />
-              <span className="text-charcoal-400 text-xs font-bold">Add a photo of the package</span>
+              <span className="text-charcoal-400 text-xs font-bold">Add a photo - we'll suggest a size for you</span>
               <span className="text-charcoal-600 text-[10px]">Required - so your rider knows what they're picking up</span>
             </label>
           )}
@@ -255,14 +311,38 @@ export default function Step2Page() {
               <span className="text-red-400 text-xs font-medium leading-relaxed">{photoUploadError}</span>
             </div>
           )}
+          {estimateReasoning && (
+            <div className={`mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border ${oversizedWarning
+              ? "bg-amber-500/10 border-amber-500/30"
+              : "bg-emerald-500/10 border-emerald-500/20"}`}>
+              {oversizedWarning
+                ? <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                : <Sparkles size={13} className="text-emerald-400 shrink-0 mt-0.5" />}
+              <p className={`text-[11px] font-medium leading-snug ${oversizedWarning ? "text-amber-400" : "text-emerald-400"}`}>
+                {estimateReasoning}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Package Size */}
         <div>
-          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Size</label>
+          <div className="flex items-center justify-between ml-1 mb-3">
+            <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Package Size</label>
+            {sizeSource === "ai" && (
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
+                <Sparkles size={10} /> Estimated from photo
+              </span>
+            )}
+            {sizeSource === "client-cv" && (
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
+                <Sparkles size={10} /> Estimated on-device
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {SIZES.map(s => (
-              <button key={s.id} onClick={() => setSize(s.id)}
+              <button key={s.id} onClick={() => { setSize(s.id); setSizeSource("manual"); }}
                 className={`p-3 rounded-2xl border-2 flex flex-col gap-1 text-left transition-all active:scale-95 ${size === s.id
                   ? "border-emerald-500 bg-emerald-500/10"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}>

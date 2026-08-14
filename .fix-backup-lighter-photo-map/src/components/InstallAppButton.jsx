@@ -86,9 +86,9 @@ export default function InstallAppButton({ className = "" }) {
     <>
       <button
         onClick={handleClick}
-        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 rounded-xl text-white font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${className}`}
+        className={`inline-flex items-center gap-2 px-5 py-3 bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 rounded-2xl text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${className}`}
       >
-        <Download size={13} /> Install
+        <Download size={15} /> Install App
       </button>
 
       <AnimatePresence>

@@ -6,9 +6,8 @@ import { forceCancelOrder } from "./actions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Truck, Navigation, AlertOctagon, XCircle, Info, Loader2, Map as MapIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import MapSkeleton from "@/components/MapSkeleton";
 
-const MapCanvas = dynamic(() => import("@/components/MapCanvas"), { ssr: false, loading: () => <MapSkeleton /> });
+const MapCanvas = dynamic(() => import("@/components/MapCanvas"), { ssr: false });
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
