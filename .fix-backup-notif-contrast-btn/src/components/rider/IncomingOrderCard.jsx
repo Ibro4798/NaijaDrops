@@ -48,14 +48,14 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
            <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow shrink-0"></div>
-                 <p className="text-ink font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
+                 <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
               </div>
-              <div className="text-4xl sm:text-5xl font-black text-ink font-outfit tracking-tighter italic truncate">₦{basePrice.toLocaleString()}</div>
+              <div className="text-4xl sm:text-5xl font-black text-white font-outfit tracking-tighter italic truncate">₦{basePrice.toLocaleString()}</div>
            </div>
            
            <button 
              onClick={onReject}
-             className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-charcoal-500 hover:text-ink transition-all border border-white/5 active:scale-90 shrink-0"
+             className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center text-charcoal-500 hover:text-white transition-all border border-white/5 active:scale-90 shrink-0"
            >
              <X size={20} />
            </button>
@@ -96,12 +96,12 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
            <div className="relative">
               <div className="absolute -left-[11px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-charcoal-900 shadow-glow"></div>
               <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1 italic">Source</p>
-              <p className="text-base font-black text-ink font-outfit uppercase tracking-tight">{order.pickup_name}</p>
+              <p className="text-base font-black text-white font-outfit uppercase tracking-tight">{order.pickup_name}</p>
            </div>
            <div className="relative">
               <div className="absolute -left-[11px] top-1 w-4 h-4 rounded-full bg-amber-500 border-4 border-charcoal-900 shadow-glow"></div>
               <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest mb-1 italic">Destination</p>
-              <p className="text-base font-black text-ink font-outfit uppercase tracking-tight opacity-70">{order.dropoff_name}</p>
+              <p className="text-base font-black text-white font-outfit uppercase tracking-tight opacity-70">{order.dropoff_name}</p>
            </div>
         </div>
 
@@ -211,7 +211,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
                       step="50"
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
-                      className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-ink font-black text-sm focus:outline-none focus:border-emerald-500"
+                      className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-white font-black text-sm focus:outline-none focus:border-emerald-500"
                       autoFocus
                     />
                   </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Package, Truck, CheckCircle2, UserCheck, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // Milestones worth interrupting the vendor's day for. Keyed by the order's
 // new status - anything not listed here doesn't toast.
@@ -61,23 +61,11 @@ function StatusToast({ notification, onClose, onTap }) {
 export default function OrderStatusNotificationListener() {
   const supabase = createClient();
   const router = useRouter();
-  const pathname = usePathname();
   const [notifications, setNotifications] = useState([]);
   const subRef = useRef(null);
   const vendorIdRef = useRef(null);
 
   useEffect(() => {
-    // FIX: this listener was correctly gated to vendors only (via the
-    // vendors-table lookup below), but that check is about WHO the
-    // account is, not WHERE they currently are in the app. A dual-role
-    // account (vendor + rider under the same login - common for anyone
-    // testing both sides) would still get vendor toasts - "Rider
-    // assigned", "Picked up" - while actively using the RIDER interface,
-    // and tapping one would send them to /tracking/[orderId], a
-    // vendor-facing view, right out of their own rider dashboard. Vendor
-    // notifications have no business showing up anywhere under /rider.
-    if (pathname?.startsWith('/rider')) return;
-
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -133,7 +121,7 @@ export default function OrderStatusNotificationListener() {
     return () => {
       if (subRef.current) supabase.removeChannel(subRef.current);
     };
-  }, [supabase, pathname]);
+  }, [supabase]);
 
   const dismiss = (id) => setNotifications(prev => prev.filter(n => n.id !== id));
 

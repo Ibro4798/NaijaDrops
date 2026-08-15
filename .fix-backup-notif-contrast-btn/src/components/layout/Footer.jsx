@@ -7,7 +7,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#09090b] text-white pt-20 pb-10 overflow-hidden relative">
+    <footer className="bg-charcoal-950 text-white pt-20 pb-10 overflow-hidden relative">
       {/* Decorative Blur */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 

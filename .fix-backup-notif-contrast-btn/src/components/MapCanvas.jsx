@@ -171,7 +171,7 @@ export default function MapCanvas({
             <div className="relative group">
               {markerVisual(m)}
               {m.label && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap bg-[#09090b]/90 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg pointer-events-none">
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap bg-charcoal-950/90 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg pointer-events-none">
                   {m.label}
                 </div>
               )}

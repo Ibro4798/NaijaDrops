@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { MessageSquare, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // --- Toast Notification Component ---
 function ChatToast({ notification, onClose, onTap }) {
@@ -58,7 +58,6 @@ function ChatToast({ notification, onClose, onTap }) {
 export default function ChatNotificationListener() {
   const supabase = createClient();
   const router = useRouter();
-  const pathname = usePathname();
   const [notifications, setNotifications] = useState([]);
   const subRef = useRef(null);
 
@@ -75,25 +74,11 @@ export default function ChatNotificationListener() {
         supabase.from('riders').select('id').eq('user_id', user.id).single(),
       ]);
 
-      // FIX: this used to always prefer vendor when both a vendor and a
-      // rider row existed for the same account (common for anyone testing
-      // both sides under one login) - meaning a chat toast for a vendor's
-      // order could pop up while that same person was actively working as
-      // a rider, and tapping it sent them to /tracking/[orderId], a
-      // vendor-facing page, right out of their own rider flow. Role is now
-      // decided by which part of the app they're actually in: on any
-      // /rider route, only their rider identity counts, even if a vendor
-      // profile also exists.
-      const onRiderRoute = pathname?.startsWith('/rider');
-      const myRole = onRiderRoute
-        ? (riderRow ? 'rider' : null)
-        : (vendorRow ? 'vendor' : (riderRow ? 'rider' : null));
-
-      if (!myRole) return;
+      const myRole = vendorRow ? 'vendor' : (riderRow ? 'rider' : null);
 
       const orFilters = [];
-      if (myRole === 'vendor' && vendorRow) orFilters.push(`vendor_id.eq.${vendorRow.id}`);
-      if (myRole === 'rider' && riderRow) orFilters.push(`rider_id.eq.${riderRow.id}`);
+      if (vendorRow) orFilters.push(`vendor_id.eq.${vendorRow.id}`);
+      if (riderRow) orFilters.push(`rider_id.eq.${riderRow.id}`);
       if (orFilters.length === 0) return;
 
       // Find any active orders for this user
@@ -159,7 +144,6 @@ export default function ChatNotificationListener() {
             senderLabel,
             orderId: msg.order_id,
             channel,
-            role: myRole,
             createdAt: msg.created_at,
           };
 
@@ -177,7 +161,7 @@ export default function ChatNotificationListener() {
     return () => {
       if (subRef.current) supabase.removeChannel(subRef.current);
     };
-  }, [supabase, pathname]);
+  }, [supabase]);
 
   const dismiss = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -185,14 +169,6 @@ export default function ChatNotificationListener() {
 
   const handleTap = (notification) => {
     dismiss(notification.id);
-    // FIX: this always linked to /tracking/[id], a vendor/customer-facing
-    // page - correct for a vendor, but wrong for a rider (who has their
-    // own chat inside the active-job page, not the tracking page). Now
-    // routes by the role this notification was actually received in.
-    if (notification.role === 'rider') {
-      router.push(`/rider/active-job?openChat=1&channel=${notification.channel}`);
-      return;
-    }
     // FIX: this linked to /tracking/[id]?openChat=1, but the tracking page
     // never actually read that query param - tapping a chat notification
     // just opened the order with chat still closed. It's now read on the

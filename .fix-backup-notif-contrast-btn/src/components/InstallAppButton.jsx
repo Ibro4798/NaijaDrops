@@ -86,7 +86,7 @@ export default function InstallAppButton({ className = "" }) {
     <>
       <button
         onClick={handleClick}
-        className={`btn-fluid-compact inline-flex items-center bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 rounded-xl text-white font-black uppercase tracking-widest transition-all active:scale-95 ${className}`}
+        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 rounded-xl text-white font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${className}`}
       >
         <Download size={13} /> Install
       </button>
@@ -105,7 +105,7 @@ export default function InstallAppButton({ className = "" }) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-[#18181b] border border-white/10 rounded-[2rem] p-6"
+              className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-6"
             >
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">

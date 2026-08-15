@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, MapPin, Package, Navigation, Phone, MessageSquare, CheckCircle2, Loader2, ShieldAlert, MessageCircle, Play, Camera, X, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,26 +79,6 @@ function NotesSheet({ order, onClose }) {
       </div>
     </div>
   );
-}
-
-// FIX: a chat notification could link here with ?openChat=1&channel=...,
-// but nothing on this page ever read those params - the rider would land
-// on their active job with chat still closed, same gap the tracking page
-// had before it was fixed for the vendor/customer side. Kept as its own
-// tiny component (rather than calling useSearchParams directly in the
-// page below) because Next.js requires a Suspense boundary around
-// useSearchParams to avoid a build-time error during static generation -
-// this way only this small invisible piece needs the Suspense wrapper,
-// not the entire page.
-function ChatParamsReader({ onParams }) {
-  const searchParams = useSearchParams();
-  useEffect(() => {
-    if (searchParams.get('openChat') === '1') {
-      onParams(searchParams.get('channel') || null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-  return null;
 }
 
 export default function ActiveJobPage() {
@@ -382,10 +362,6 @@ export default function ActiveJobPage() {
           what makes the vendor/customer tracking map actually move instead of showing
           a single frozen point from whenever the rider last went online. */}
       {riderId && <DriverHeartbeat riderId={riderId} isOnline={true} />}
-
-      <Suspense fallback={null}>
-        <ChatParamsReader onParams={(channel) => { setChatChannel(channel); setShowChat(true); }} />
-      </Suspense>
 
       {/* Dynamic Map Header */}
       <div className="h-[35vh] -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 relative overflow-hidden">
