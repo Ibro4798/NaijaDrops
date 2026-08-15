@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { compressAndUploadImage } from "@/utils/imageUpload";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Package, 
