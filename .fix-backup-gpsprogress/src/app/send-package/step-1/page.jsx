@@ -165,7 +165,6 @@ export default function Step1Page() {
   const [activeInput, setActiveInput] = useState(null); // 'pickup' | 'dropoff'
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState(null);
-  const [gpsStatusMsg, setGpsStatusMsg] = useState(null);
   const [routeData, setRouteData] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null); // { distance, duration }
   const [mapViewState, setMapViewState] = useState({ longitude: KANO_CENTER.lng, latitude: KANO_CENTER.lat, zoom: 12 });
@@ -289,31 +288,8 @@ export default function Step1Page() {
   async function handleUseMyLocation() {
     setGpsLoading(true);
     setGpsError(null);
-    setGpsStatusMsg(null);
-    // FIX: geolocation.js already computed live status text
-    // ("Getting GPS location...", "Precision Lock: ±40m") but nothing
-    // wired the onProgress callback up here, so this button just showed a
-    // dead spinner for up to 32s on a slow connection. Now the status text
-    // shows, and the map pans to the first real reading (even the fast
-    // approximate one) immediately instead of staying put until the final
-    // high-accuracy lock - only the first fix and the final one trigger a
-    // reverse-geocode call, so pings in between just move the map for free.
-    let firstFixHandled = false;
     try {
-      const loc = await getReliableLocation((msg, reading) => {
-        setGpsStatusMsg(msg);
-        if (!reading) return;
-        setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
-        if (!firstFixHandled) {
-          firstFixHandled = true;
-          reverseGeocodeMapbox(reading.lat, reading.lng, mapboxToken)
-            .then(name => {
-              setPickup({ name, lat: reading.lat, lng: reading.lng });
-              setPickupInput(name);
-            })
-            .catch(() => { /* the final resolve below still lands a real address */ });
-        }
-      });
+      const loc = await getReliableLocation();
       if (!loc) {
         setGpsError("Couldn't get your location. Check your GPS/network and try again.");
         setGpsLoading(false);
@@ -333,7 +309,6 @@ export default function Step1Page() {
       );
     } finally {
       setGpsLoading(false);
-      setGpsStatusMsg(null);
     }
   }
 
@@ -495,9 +470,6 @@ export default function Step1Page() {
           </div>
           {gpsError && (
             <p className="text-red-400 text-[11px] font-bold mt-2">{gpsError}</p>
-          )}
-          {gpsLoading && gpsStatusMsg && (
-            <p className="text-charcoal-400 text-[11px] font-bold mt-2">{gpsStatusMsg}</p>
           )}
 
           {/* Pickup suggestions */}

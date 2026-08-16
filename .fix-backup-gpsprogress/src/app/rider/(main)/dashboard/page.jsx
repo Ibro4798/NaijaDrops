@@ -23,7 +23,6 @@ export default function RiderDashboard() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState(null);
-  const [gpsStatusMsg, setGpsStatusMsg] = useState(null);
   const [hasActiveJob, setHasActiveJob] = useState(false);
   const userIdRef = useRef(null);
 
@@ -227,12 +226,7 @@ export default function RiderDashboard() {
       return;
     }
 
-    // FIX: onProgress was never wired up here, so going online showed a
-    // dead spinner for up to 32s on a slow connection with zero feedback -
-    // now the live status text ("Getting GPS location...", "Precision
-    // Lock: ±40m") shows next to the button while the fix locks.
-    const loc = await getReliableLocation((msg) => setGpsStatusMsg(msg));
-    setGpsStatusMsg(null);
+    const loc = await getReliableLocation();
     if (!loc) {
       setError('Could not get your location. Check that location access is enabled for this site, and that you have a network connection, then try again.');
       setToggling(false);
@@ -383,9 +377,6 @@ export default function RiderDashboard() {
           {toggling ? <Loader2 className="animate-spin" size={16} /> : rider.operational_status === 'online' ? 'Go Offline' : 'Go Online'}
         </button>
       </div>
-      {toggling && gpsStatusMsg && (
-        <p className="text-charcoal-400 text-[11px] font-bold -mt-2">{gpsStatusMsg}</p>
-      )}
 
       {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
 

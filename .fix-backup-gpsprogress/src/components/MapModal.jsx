@@ -28,7 +28,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   const [address, setAddress] = useState(initialLocation?.name || '');
   const [isResolving, setIsResolving] = useState(false);
   const [locationError, setLocationError] = useState(null);
-  const [locationStatus, setLocationStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -188,33 +187,11 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   const useMyLocation = async () => {
     setIsResolving(true);
     setLocationError(null);
-    setLocationStatus(null);
-    // FIX: track whether the first real reading (approximate or GPS) has
-    // already been painted + geocoded, so we don't re-hit the reverse
-    // geocoder on every single watch ping as the fix refines - only the
-    // first fix and the final resolved one get an address lookup, with the
-    // pin itself moving live on every ping in between.
-    let firstFixHandled = false;
     try {
-      const loc = await getReliableLocation((msg, reading) => {
-        // FIX: onProgress was never wired up here before, so this button
-        // showed a bare spinner for up to 32 seconds on a slow connection
-        // with zero feedback. Now the live status text shows, and as soon
-        // as a first reading (even the fast approximate one) comes in, the
-        // pin moves to it immediately instead of staying frozen until the
-        // final high-accuracy lock.
-        setLocationStatus(msg);
-        if (!reading) return;
-        setMarkerPosition({ lat: reading.lat, lng: reading.lng });
-        setViewState((v) => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14.5 }));
-        if (!firstFixHandled) {
-          firstFixHandled = true;
-          reverseGeocode(reading.lat, reading.lng);
-        }
-      });
+      const loc = await getReliableLocation();
       if (loc) {
         setMarkerPosition({ lat: loc.lat, lng: loc.lng });
-        setViewState((v) => ({ ...v, longitude: loc.lng, latitude: loc.lat, zoom: 14.5 }));
+        setViewState({ ...viewState, longitude: loc.lng, latitude: loc.lat, zoom: 14.5 });
         reverseGeocode(loc.lat, loc.lng);
       } else {
         // FIX: previously did nothing at all here - the button would just
@@ -230,7 +207,6 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
        setLocationError("Couldn't find your location. Search for your street or landmark instead, or try again.");
     } finally {
       setIsResolving(false);
-      setLocationStatus(null);
     }
   };
 
@@ -337,10 +313,8 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
           {/* Fixed Center Pin Overlay */}
           {mapboxToken && (
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 flex flex-col items-center z-10 pointer-events-none" style={{ marginTop: '-42px' }}>
-                  <div className="bg-[#18181b] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg mb-2 flex items-center gap-2 max-w-[240px]">
-                       {isResolving
-                         ? <><Loader2 size={12} className="animate-spin shrink-0" /> <span className="truncate normal-case tracking-normal">{locationStatus || 'Locating...'}</span></>
-                         : 'Set Pin'}
+                  <div className="bg-[#18181b] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg mb-2 flex items-center gap-2">
+                       {isResolving ? <><Loader2 size={12} className="animate-spin" /> Locating</> : 'Set Pin'}
                   </div>
                   <div className="relative">
                       <MapPin size={42} className="text-emerald-600 fill-white drop-shadow-xl" />

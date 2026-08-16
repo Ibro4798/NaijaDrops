@@ -263,19 +263,10 @@ export default function CreateDelivery() {
   // reliable one, which is exactly what made this button feel like it
   // "failed a lot" / was slow. Every "use my location" button in the app
   // now calls the same getReliableLocation() helper directly.
-  // FIX: MapModal only reads its `initialLocation` prop once, at mount (see
-  // MapModal.jsx), so updating mapTarget mid-flight wouldn't move a pin
-  // that's already open - unlike the other two "use my location" spots,
-  // this one can't paint a live-refining pin without changing how the
-  // modal mounts. What it CAN safely do is show live status text on the
-  // button itself while GPS is still locking, so the wait (up to 32s on a
-  // slow connection) isn't a silent spinner.
   const useCurrentLocation = async (slot) => {
-    setGpsStatus({ slot, loading: true, message: null });
+    setGpsStatus({ slot, loading: true });
     try {
-        const location = await getReliableLocation((msg) => {
-          setGpsStatus({ slot, loading: true, message: msg });
-        });
+        const location = await getReliableLocation();
         if (location) {
             setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
             setActiveModal(slot);
@@ -283,7 +274,7 @@ export default function CreateDelivery() {
     } catch (err) {
         console.error('Location lookup failed:', err);
     } finally {
-        setGpsStatus({ slot: null, loading: false, message: null });
+        setGpsStatus({ slot: null, loading: false });
     }
   };
 
@@ -437,9 +428,7 @@ export default function CreateDelivery() {
                     <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.pickup}</p>
                   )}
                   <button onClick={() => useCurrentLocation('pickup')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95">
-                    {gpsStatus.slot === 'pickup'
-                      ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
-                      : <><Navigation size={16} className="text-emerald-500" /> Pin Current Location</>}
+                    {gpsStatus.slot === 'pickup' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Current Location
                   </button>
                 </div>
               )}
@@ -489,9 +478,7 @@ export default function CreateDelivery() {
                     <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.dropoff}</p>
                   )}
                   <button disabled={!pickup} onClick={() => useCurrentLocation('dropoff')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
-                    {gpsStatus.slot === 'dropoff'
-                      ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
-                      : <><Navigation size={16} className="text-emerald-500" /> Pin Destination</>}
+                    {gpsStatus.slot === 'dropoff' ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} className="text-emerald-500" />} Pin Destination
                   </button>
                 </div>
               )}

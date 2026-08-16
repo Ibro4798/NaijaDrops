@@ -19,12 +19,9 @@
  * 2. A reading is only trusted immediately if it's excellent (<25m). A
  *    "good enough" reading (25-60m - the common case on budget Android
  *    phones here, indoors or under cloud cover) needs a second confirming
- *    ping ONLY if the first ping came back suspiciously fast (<2s) - that's
- *    the actual signature of a phone's low-quality "quick fix" right after
- *    a cold start still reporting a deceptively reasonable accuracy number.
- *    A first ping that took its time to arrive (the normal case on budget
- *    hardware here) is trusted as soon as it clears 60m, rather than always
- *    forcing a second wait regardless of how the first one behaved.
+ *    ping first, since a phone's very first GPS fix after a cold start is
+ *    often a low-quality "quick fix" that still reports a deceptively
+ *    reasonable accuracy number.
  * 3. Give it real time - 15 seconds normally - for a genuine device fix to
  *    come back, since there's no fallback to fall through to anymore if it
  *    gives up too early. On a detected slow connection this window is
@@ -41,19 +38,6 @@
  *    speed sanity check rather than blindly overwriting the last known-good
  *    position. A rider/vendor physically cannot teleport 10km in 20
  *    seconds; a reading that implies that is noise, not movement.
- * 5. A separate low-accuracy, short-timeout getCurrentPosition call runs
- *    alongside the watch below purely to paint an approximate pin fast
- *    (~1-3s on most hardware). This is still real device location - GPS,
- *    WiFi, or cell-tower positioning depending on what the device has a
- *    fix on - never the removed IP fallback, which resolved to the mobile
- *    carrier's gateway city rather than the device. It only ever feeds the
- *    onProgress callback for an early "approximate, locking..." paint; it
- *    is never used as the resolved answer.
- * 6. onProgress(message, reading) now receives a second argument: the best
- *    reading known at that moment (approximate or GPS-watch), or null
- *    before anything has come back yet. Callers that want a live-updating
- *    pin (paint approximate immediately, refine as better fixes arrive)
- *    can use it; callers that only want the status text can ignore it.
  */
 
 // Shared connection-quality helpers (used here and by DriverHeartbeat) so
@@ -82,13 +66,9 @@ export async function getReliableLocation(onProgress) {
         let locationFound = false;
         let bestReading = null;
         let pingsReceived = 0;
-        let requireConfirmingPing = false;
-        const startTime = Date.now();
 
-        // Second arg is optional - existing callers that only read the
-        // status string are unaffected.
-        const updateStatus = (msg, reading = null) => {
-            if (onProgress) onProgress(msg, reading || bestReading);
+        const updateStatus = (msg) => {
+            if (onProgress) onProgress(msg);
         };
 
         if (!("geolocation" in navigator)) {
@@ -107,30 +87,6 @@ export async function getReliableLocation(onProgress) {
                 : "🛰️ Getting your GPS location..."
         );
 
-        // FIX: fires alongside the high-accuracy watch below purely to get
-        // something paintable on screen fast. enableHighAccuracy:false lets
-        // the device answer from whatever it already has a cheap fix on
-        // (often WiFi/cell positioning, sometimes a very recent GPS fix)
-        // instead of waiting on a fresh high-accuracy GPS lock. A short
-        // timeout means it either helps within a few seconds or gets out of
-        // the way - it never delays or replaces the real answer, and it
-        // never touches bestReading, so it can't be resolved as the final
-        // result even if the high-accuracy watch is still running.
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                if (locationFound) return;
-                const approx = {
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    source: 'approx'
-                };
-                updateStatus("📍 Approximate location found - locking precise GPS...", approx);
-            },
-            () => { /* not fatal - the high-accuracy watch below is the real attempt */ },
-            { enableHighAccuracy: false, maximumAge: 10000, timeout: 3000 }
-        );
-
         const cleanup = () => {
             locationFound = true;
             navigator.geolocation.clearWatch(watchId);
@@ -139,8 +95,6 @@ export async function getReliableLocation(onProgress) {
         const watchId = navigator.geolocation.watchPosition(
             (pos) => {
                 pingsReceived++;
-                const elapsedMs = Date.now() - startTime;
-
                 if (!bestReading || pos.coords.accuracy < bestReading.accuracy) {
                     bestReading = {
                         lat: pos.coords.latitude,
@@ -148,26 +102,13 @@ export async function getReliableLocation(onProgress) {
                         accuracy: pos.coords.accuracy,
                         source: 'gps'
                     };
-                    updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`, bestReading);
-                }
-
-                // FIX: previously always demanded a second ping for any
-                // 25-60m reading, even on hardware where the first fix
-                // genuinely took its time (the normal case here, not the
-                // "quick fix" failure mode this guard exists for). Now the
-                // confirming-ping requirement only switches on when the
-                // first ping itself was suspiciously fast (<2s) - that
-                // timing, not just the accuracy number, is the real
-                // fingerprint of a cold-start "quick fix."
-                if (pingsReceived === 1 && elapsedMs < 2000) {
-                    requireConfirmingPing = true;
+                    updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`);
                 }
 
                 const isExcellent = pos.coords.accuracy < 25;
-                const isGoodEnough =
-                    pos.coords.accuracy < 60 && (!requireConfirmingPing || pingsReceived >= 2);
+                const isGoodAndStable = pos.coords.accuracy < 60 && pingsReceived >= 2;
 
-                if (isExcellent || isGoodEnough) {
+                if (isExcellent || isGoodAndStable) {
                     cleanup();
                     resolve(bestReading);
                 }
