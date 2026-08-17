@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Map from 'react-map-gl';
@@ -287,9 +287,14 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
                   <button key={idx} onClick={() => selectSuggestion(sug)} className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3 border-b border-gray-50 last:border-0 transition-colors">
                     <MapPin size={16} className="text-emerald-500 mt-1 shrink-0" />
                     <div>
-                      <p className="font-bold text-[#18181b] text-sm line-clamp-1 truncate">{sug.name || sug.description}</p>
+                      <div className="font-bold text-[#18181b] text-sm line-clamp-1 truncate flex items-center gap-1.5">
+                        <span>{sug.name || sug.description}</span>
+                        {(sug.source === "ai-assisted" || sug.source === "ai-fallback" || sug.source === "web-search" || sug.isAI) && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5 leading-none">Web Match</span>
+                        )}
+                      </div>
                       {sug.name && sug.name !== sug.description && (
-                         <p className="text-xs text-charcoal-400 line-clamp-1">{sug.description}</p>
+                         <p className="text-xs text-charcoal-400 line-clamp-1 mt-0.5">{sug.description}</p>
                       )}
                     </div>
                   </button>

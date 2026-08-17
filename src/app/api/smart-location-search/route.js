@@ -1,109 +1,171 @@
-﻿import { NextResponse } from "next/server";
-import { getMapboxSuggestions } from "@/utils/mapbox";
+import { NextResponse } from "next/server";
 
 /**
- * "Smart" location search fallback for informal/colloquial local place names
- * (e.g. "Brigade" for Brigade Market) that Mapbox's own geocoder doesn't
- * index well for Kano. This is deliberately NOT a full swap to a different
- * geocoding provider (that would mean the user setting up a Google Cloud
- * billing account etc.) - instead it reuses the ANTHROPIC_API_KEY this app
- * already has configured (see /api/estimate-package) for a narrower job:
+ * Key-free smart location search fallback.
  *
- *   Claude never supplies coordinates itself - it only ever proposes a more
- *   complete, geocoder-friendly version of what the person typed (e.g.
- *   "brigade" -> "Brigade Market, Sabon Gari, Kano, Nigeria"), grounded in
- *   its general knowledge of well-known local places. That candidate string
- *   is then sent to the REAL geocoder (Mapbox) to resolve to an actual,
- *   authoritative coordinate. If Mapbox can't find a match for any proposed
- *   candidate, nothing is returned - we never fall back to trusting a
- *   model-guessed lat/lng directly, since that risks confidently sending a
- *   rider to the wrong place.
+ * When the direct Mapbox search returns nothing for a query (e.g. colloquial
+ * names like "Brigade" for Brigade Market), this endpoint tries again with
+ * two extra strategies — both completely free and requiring no API key:
  *
- * Only called when the direct Mapbox search already came up empty (see the
- * frontend callers), so this adds latency/cost only on searches that were
- * already failing outright - not on every keystroke.
+ * 1. Photon (photon.komoot.io) — OSM-based geocoder with Elasticsearch backend,
+ *    proximity-biased toward Kano center. Better POI recall than Nominatim
+ *    because it ranks by relevance + distance rather than just text matching.
+ *
+ * 2. Nominatim (nominatim.openstreetmap.org) — called with "Kano Nigeria"
+ *    appended to the raw query, which often resolves shorthand/colloquial
+ *    names the uncontextualized query missed.
+ *
+ * Both sources run in parallel and are bounding-box filtered to the Kano
+ * metro area so out-of-range results never surface.
+ *
+ * No ANTHROPIC_API_KEY or any other paid API key is required.
  */
+
+const KANO_CENTER_LAT = 12.0022;
+const KANO_CENTER_LNG = 8.5920;
+const KANO_LAT_MIN = 11.9000;
+const KANO_LAT_MAX = 12.1000;
+const KANO_LNG_MIN = 8.4000;
+const KANO_LNG_MAX = 8.6500;
+
+function isInsideKano(lat, lng) {
+  return (
+    lat >= KANO_LAT_MIN && lat <= KANO_LAT_MAX &&
+    lng >= KANO_LNG_MIN && lng <= KANO_LNG_MAX
+  );
+}
+
+async function photonSearch(query) {
+  try {
+    // Append "Kano Nigeria" for better context, bias toward Kano center,
+    // and restrict bbox to Kano state so no out-of-area results slip in.
+    const q = encodeURIComponent(query + " Kano Nigeria");
+    const url =
+      `https://photon.komoot.io/api/?q=${q}` +
+      `&lat=${KANO_CENTER_LAT}&lon=${KANO_CENTER_LNG}` +
+      `&limit=5&lang=en` +
+      `&bbox=${KANO_LNG_MIN},${KANO_LAT_MIN},${KANO_LNG_MAX},${KANO_LAT_MAX}`;
+
+    const res = await fetch(url, {
+      headers: { "User-Agent": "NaijaDrops/1.0" },
+    });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    if (!data?.features?.length) return [];
+
+    return data.features
+      .filter((f) => {
+        const [lng, lat] = f.geometry?.coordinates || [];
+        return isInsideKano(lat, lng);
+      })
+      .map((f) => {
+        const props = f.properties || {};
+        const [lng, lat] = f.geometry.coordinates;
+
+        // Build a readable description from Photon's property bag
+        const parts = [
+          props.name,
+          props.street && props.housenumber
+            ? `${props.housenumber} ${props.street}`
+            : props.street,
+          props.district || props.suburb || props.locality,
+          props.city || props.county,
+          props.country,
+        ].filter(Boolean);
+
+        return {
+          name: props.name || parts[0] || null,
+          description: parts.join(", "),
+          lat,
+          lng,
+          id: `photon-${props.osm_type}-${props.osm_id}`,
+          source: "web-search",
+          isOSM: true,
+          isPhoton: true,
+        };
+      })
+      .filter((r) => r.name);
+  } catch (e) {
+    console.error("Photon smart search error:", e);
+    return [];
+  }
+}
+
+async function nominatimSearch(query) {
+  try {
+    const q = encodeURIComponent(query + ", Kano, Nigeria");
+    const url =
+      `https://nominatim.openstreetmap.org/search` +
+      `?format=json&q=${q}&countrycodes=ng&limit=5&addressdetails=1`;
+
+    const res = await fetch(url, {
+      headers: {
+        "Accept-Language": "en",
+        "User-Agent": "NaijaDrops/1.0",
+      },
+    });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+
+    return data
+      .filter((item) =>
+        isInsideKano(parseFloat(item.lat), parseFloat(item.lon))
+      )
+      .map((item) => ({
+        name: item.display_name.split(",")[0],
+        description: item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        id: `osm-${item.osm_type}-${item.osm_id}`,
+        source: "web-search",
+        isOSM: true,
+      }));
+  } catch (e) {
+    console.error("Nominatim smart search error:", e);
+    return [];
+  }
+}
+
 export async function POST(req) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      console.warn("ANTHROPIC_API_KEY not set - smart location search disabled.");
-      return NextResponse.json({ success: false, reason: "not_configured", results: [] });
-    }
-
-    const { query, mapboxToken } = await req.json();
+    const { query } = await req.json();
     const trimmed = (query || "").trim();
+
     if (trimmed.length < 3) {
-      return NextResponse.json({ success: false, reason: "query_too_short", results: [] });
+      return NextResponse.json({
+        success: false,
+        reason: "query_too_short",
+        results: [],
+      });
     }
 
-    const prompt = `A user is searching for a place inside or near Kano, Kano State, Nigeria, in a delivery app's address search. Their raw search text was: "${trimmed}"
+    // Both sources run in parallel — no API key required for either
+    const [photonResults, nominatimResults] = await Promise.all([
+      photonSearch(trimmed),
+      nominatimSearch(trimmed),
+    ]);
 
-This is very likely a shorthand, nickname, or partial name for a real, well-known local place - a market, barracks, neighborhood, institution, hospital, mosque, motor park, or similar Kano landmark (e.g. "Brigade" commonly refers to Brigade Market, near the 3 Brigade Nigerian Army barracks in Kano).
-
-If you recognize this as referring to one or more real, identifiable places in or near Kano, respond with up to 3 candidate full, geocoder-friendly names, most likely match first, each formatted as "Place Name, Area/Neighborhood, Kano, Nigeria" (include the area/neighborhood if you know it - this is what makes the search actually resolve, a bare place name alone often won't). Do NOT invent or guess GPS coordinates - only propose the name/text form.
-
-If you don't recognize this as a specific real place (it's too vague, generic, or you have no genuine knowledge of it), return an empty candidates array rather than guessing.
-
-Respond with ONLY a JSON object, no other text, in exactly this shape:
-{"confident": true | false, "candidates": ["Full Name, Area, Kano, Nigeria", ...]}`;
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Anthropic API error (smart location search):", response.status, errText);
-      return NextResponse.json({ success: false, reason: "api_error", results: [] });
-    }
-
-    const data = await response.json();
-    const textBlock = data.content?.find((c) => c.type === "text");
-    if (!textBlock) {
-      return NextResponse.json({ success: false, reason: "no_response", results: [] });
-    }
-
-    let parsed;
-    try {
-      const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      return NextResponse.json({ success: false, reason: "unparseable", results: [] });
-    }
-
-    if (!parsed.confident || !Array.isArray(parsed.candidates) || parsed.candidates.length === 0) {
-      return NextResponse.json({ success: true, results: [] });
-    }
-
-    // Try each candidate against the real geocoder, in the order Claude
-    // ranked them, and merge/dedupe whatever actually resolves.
+    // Merge and deduplicate by ~100m proximity grid
     const seen = new Set();
     const results = [];
-    for (const candidate of parsed.candidates.slice(0, 3)) {
-      const matches = await getMapboxSuggestions(candidate, mapboxToken);
-      for (const m of matches.slice(0, 2)) {
-        const key = `${m.lat.toFixed(5)},${m.lng.toFixed(5)}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        results.push({ ...m, source: "ai-assisted" });
-      }
-      if (results.length >= 3) break;
+    for (const candidate of [...photonResults, ...nominatimResults]) {
+      const key = `${candidate.lat.toFixed(4)},${candidate.lng.toFixed(4)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push(candidate);
+      if (results.length >= 5) break;
     }
 
     return NextResponse.json({ success: true, results });
   } catch (err) {
     console.error("Smart location search error:", err);
-    return NextResponse.json({ success: false, reason: "exception", results: [] });
+    return NextResponse.json({
+      success: false,
+      reason: "exception",
+      results: [],
+    });
   }
 }

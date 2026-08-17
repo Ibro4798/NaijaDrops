@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -424,9 +424,9 @@ export default function CreateDelivery() {
                             <MapPin size={14} className="text-emerald-500" />
                             <div className="text-sm font-bold text-ink flex items-center gap-1.5">
                               {loc.name}
-                              {loc.isAI && (
-                                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                              )}
+                                {(loc.isAI || loc.source === "web-search") && (
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
+                                )}
                             </div>
                           </button>
                         ))}
@@ -476,9 +476,9 @@ export default function CreateDelivery() {
                             <MapPin size={14} className="text-emerald-500" />
                             <div className="text-sm font-bold text-ink flex items-center gap-1.5">
                               {loc.name}
-                              {loc.isAI && (
-                                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
-                              )}
+                                {(loc.isAI || loc.source === "web-search") && (
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
+                                )}
                             </div>
                           </button>
                         ))}

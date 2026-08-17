@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -512,8 +512,8 @@ export default function Step1Page() {
                     <div>
                       <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
                         {s.name}
-                        {s.source === "ai-assisted" && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
+                        {(s.source === "ai-assisted" || s.source === "ai-fallback" || s.source === "web-search" || s.isAI) && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                         )}
                       </div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>
@@ -579,8 +579,8 @@ export default function Step1Page() {
                     <div>
                       <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
                         {s.name}
-                        {s.source === "ai-assisted" && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">AI Match</span>
+                        {(s.source === "ai-assisted" || s.source === "ai-fallback" || s.source === "web-search" || s.isAI) && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                         )}
                       </div>
                       <div className="text-charcoal-500 text-xs mt-0.5 leading-tight">{s.description}</div>

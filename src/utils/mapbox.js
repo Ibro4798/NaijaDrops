@@ -1,57 +1,113 @@
-﻿// Mapbox Utilities for Kano Precision Search
+// Mapbox Utilities for Kano Precision Search
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 // Kano Bounding Box [minLng, minLat, maxLng, maxLat]
 const KANO_BBOX = "8.4000,11.9000,8.6500,12.1000";
 
 /**
- * FIX: Mapbox's Geocoding API (used below) no longer returns POI data at
- * all - Mapbox removed it from v5/v6 and now points developers at a
- * separate "Search Box" product for POI search. That's the actual reason
- * named places like markets ("Brigade", "Kantin Kwari") never showed up
- * here - it's not a Kano-specific coverage gap, Mapbox Geocoding simply
- * doesn't carry that data type anymore for ANY location.
+ * Location search strategy: three sources merged, no extra API keys required.
  *
- * Search Box API would be the natural fix, but its documented coverage is
- * currently limited to the US, Canada, and Europe - it does not cover
- * Nigeria, so switching to it would silently return nothing for Kano
- * searches. Not usable here.
+ * 1. Mapbox Geocoding — best for roads, addresses, administrative areas.
+ *    Does NOT return POIs/markets anymore (removed in v5/v6). Still useful
+ *    for street-level searches.
  *
- * Practical workaround: query OpenStreetMap's Nominatim search alongside
- * Mapbox's geocoder and merge the results. Nominatim does carry POI/business
- * tags (coverage depends on how well local contributors have mapped Kano,
- * which varies, but it's the only free option that can plausibly know about
- * a specific market by name). Results are merged and de-duplicated, with
- * Mapbox results first since they're generally more reliable for addresses
- * and roads.
+ * 2. Nominatim (OpenStreetMap) — free, no key. Covers named places/markets
+ *    where OSM contributors have added them. Coverage in Kano varies.
  *
- * Note for later: the public Nominatim endpoint has a strict usage policy
- * (max ~1 request/second, no heavy automated use) - fine at pilot volume,
- * but if this app has real production traffic later, swap NOMINATIM_URL for
- * a paid OSM-based provider (e.g. LocationIQ, Geoapify) or a self-hosted
- * Nominatim instance to stay within terms.
+ * 3. Photon (photon.komoot.io) — free, no key. Also built on OSM data but
+ *    uses a smarter Elasticsearch backend with proximity biasing. Often finds
+ *    POIs that Nominatim misses because it scores by relevance + distance
+ *    rather than just text matching. We bias it toward the Kano city center
+ *    so results are ranked by proximity automatically.
+ *
+ * All three run in parallel, results are merged and de-duplicated.
+ * Mapbox first (best address quality), then Nominatim, then Photon.
+ *
+ * Production note: Nominatim has a 1 req/sec rate limit for the public
+ * endpoint. At scale, replace with LocationIQ or a self-hosted instance.
+ * Photon's public endpoint has no published hard limit but should not be
+ * hammered in production either.
  */
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+const PHOTON_URL = "https://photon.komoot.io/api";
+
+// Kano city center for Photon proximity biasing
+const KANO_CENTER_LAT = 12.0022;
+const KANO_CENTER_LNG = 8.5920;
+const KANO_LAT_MIN = 11.9000;
+const KANO_LAT_MAX = 12.1000;
+const KANO_LNG_MIN = 8.4000;
+const KANO_LNG_MAX = 8.6500;
+
+function isInsideKano(lat, lng) {
+    return lat >= KANO_LAT_MIN && lat <= KANO_LAT_MAX &&
+           lng >= KANO_LNG_MIN && lng <= KANO_LNG_MAX;
+}
 
 async function getNominatimSuggestions(query) {
     try {
         const url = `${NOMINATIM_URL}?format=json&q=${encodeURIComponent(query + ", Kano, Nigeria")}&countrycodes=ng&limit=5&addressdetails=1`;
-        const response = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const response = await fetch(url, { headers: { 'Accept-Language': 'en', 'User-Agent': 'NaijaDrops/1.0' } });
         if (!response.ok) return [];
         const data = await response.json();
         if (!Array.isArray(data)) return [];
 
-        return data.map(item => ({
-            name: item.display_name.split(',')[0],
-            description: item.display_name,
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-            id: `osm-${item.osm_type}-${item.osm_id}`,
-            isMapbox: false,
-            isOSM: true
-        }));
+        return data
+            .filter(item => isInsideKano(parseFloat(item.lat), parseFloat(item.lon)))
+            .map(item => ({
+                name: item.display_name.split(',')[0],
+                description: item.display_name,
+                lat: parseFloat(item.lat),
+                lng: parseFloat(item.lon),
+                id: `osm-${item.osm_type}-${item.osm_id}`,
+                isMapbox: false,
+                isOSM: true
+            }));
     } catch (error) {
         console.error("Nominatim suggestion error:", error);
+        return [];
+    }
+}
+
+async function getPhotonSuggestions(query) {
+    try {
+        // Bias results toward Kano center; bbox limits to Kano state
+        const url = `${PHOTON_URL}/?q=${encodeURIComponent(query)}&lat=${KANO_CENTER_LAT}&lon=${KANO_CENTER_LNG}&limit=5&lang=en&bbox=${KANO_LNG_MIN},${KANO_LAT_MIN},${KANO_LNG_MAX},${KANO_LAT_MAX}`;
+        const response = await fetch(url, { headers: { 'User-Agent': 'NaijaDrops/1.0' } });
+        if (!response.ok) return [];
+        const data = await response.json();
+        if (!data?.features || !Array.isArray(data.features)) return [];
+
+        return data.features
+            .filter(f => {
+                const [lng, lat] = f.geometry?.coordinates || [];
+                return isInsideKano(lat, lng);
+            })
+            .map(f => {
+                const props = f.properties || {};
+                const [lng, lat] = f.geometry.coordinates;
+                // Build a human-readable description from Photon's property bag
+                const nameParts = [
+                    props.name,
+                    props.street && props.housenumber ? `${props.housenumber} ${props.street}` : props.street,
+                    props.district || props.suburb || props.locality,
+                    props.city || props.county,
+                    props.country
+                ].filter(Boolean);
+                return {
+                    name: props.name || nameParts[0] || 'Unknown',
+                    description: nameParts.join(', '),
+                    lat,
+                    lng,
+                    id: `photon-${f.properties?.osm_type}-${f.properties?.osm_id}`,
+                    isMapbox: false,
+                    isOSM: true,
+                    isPhoton: true
+                };
+            })
+            .filter(r => r.name && r.name !== 'Unknown');
+    } catch (error) {
+        console.error("Photon suggestion error:", error);
         return [];
     }
 }
@@ -104,11 +160,16 @@ export const getMapboxSuggestions = async (query, providedToken = null) => {
     })();
 
     const nominatimPromise = getNominatimSuggestions(query);
+    const photonPromise = getPhotonSuggestions(query);
 
-    const [mapboxResults, osmResults] = await Promise.all([mapboxPromise, nominatimPromise]);
+    const [mapboxResults, osmResults, photonResults] = await Promise.all([
+        mapboxPromise,
+        nominatimPromise,
+        photonPromise
+    ]);
 
     const merged = [...mapboxResults];
-    for (const candidate of osmResults) {
+    for (const candidate of [...osmResults, ...photonResults]) {
         if (!isDuplicate(candidate, merged)) {
             merged.push(candidate);
         }
