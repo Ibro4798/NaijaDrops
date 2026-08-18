@@ -47,6 +47,16 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
   const [mode, setMode] = useState("text"); // 'text' | 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  // Guards background GPS refinement (see handleUseMyLocation) from touching
+  // state after the customer has already navigated to step 2 and this
+  // component has unmounted - the underlying location watch itself keeps
+  // running regardless, this just stops a pointless setState-after-unmount.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -279,60 +289,69 @@ export default function Step1Page() {
     setActiveInput(null);
   }
 
-  // FIX: this used to call navigator.geolocation.getCurrentPosition()
-  // directly with a flat 10s timeout and no fallback at all - if GPS didn't
-  // resolve cleanly (weak signal, indoors, first-run permission prompt
-  // eating into the timeout) the whole thing just failed with no recovery.
-  // Standardized on the shared getReliableLocation() helper used elsewhere
-  // in the app, which tries for a good GPS reading briefly and falls back
-  // to IP-based location rather than failing outright.
+  // Uses the shared getReliableLocation() helper (src/utils/geolocation.js)
+  // used elsewhere in the app - real device positioning only, no IP
+  // fallback (removed deliberately: an IP lookup resolves to the mobile
+  // carrier's gateway city, not the device, which is worse than useless
+  // for a pin-drop delivery address).
   async function handleUseMyLocation() {
     setGpsLoading(true);
     setGpsError(null);
     setGpsStatusMsg(null);
-    // FIX: geolocation.js already computed live status text
-    // ("Getting GPS location...", "Precision Lock: ±40m") but nothing
-    // wired the onProgress callback up here, so this button just showed a
-    // dead spinner for up to 32s on a slow connection. Now the status text
-    // shows, and the map pans to the first real reading (even the fast
-    // approximate one) immediately instead of staying put until the final
-    // high-accuracy lock - only the first fix and the final one trigger a
-    // reverse-geocode call, so pings in between just move the map for free.
+    // FIX: previously this whole function awaited getReliableLocation() to
+    // fully finish - up to 32s on a slow connection - before Continue was
+    // reachable, even though the FIRST usable reading (often the fast
+    // approximate one) is almost always good enough to send someone to
+    // step 2 with. Now the first reading immediately unblocks: reverse-
+    // geocode it once, set pickup, clear the spinner - done, no more
+    // waiting. Any better fix that arrives afterward (the underlying watch
+    // keeps running until it gets a precise lock) just tightens pickup's
+    // lat/lng silently in the background - no re-geocode, no status text,
+    // no spinner - so it's invisible whether the customer is still on this
+    // screen or has already moved on to step 2. isMountedRef guards against
+    // touching state after they've navigated away and this component has
+    // unmounted.
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
-        setGpsStatusMsg(msg);
+        if (!firstFixHandled) setGpsStatusMsg(msg);
         if (!reading) return;
-        setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
+
         if (!firstFixHandled) {
           firstFixHandled = true;
+          setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
           reverseGeocodeMapbox(reading.lat, reading.lng, mapboxToken)
             .then(name => {
+              if (!isMountedRef.current) return;
               setPickup({ name, lat: reading.lat, lng: reading.lng });
               setPickupInput(name);
             })
-            .catch(() => { /* the final resolve below still lands a real address */ });
+            .catch(() => { /* stays on whatever the fallback below sets */ })
+            .finally(() => {
+              if (!isMountedRef.current) return;
+              setGpsLoading(false);
+              setGpsStatusMsg(null);
+            });
+        } else if (isMountedRef.current) {
+          // A better fix landed after the customer was already unblocked -
+          // tighten the coordinates only, keep the address label stable.
+          setPickup(p => (p ? { ...p, lat: reading.lat, lng: reading.lng } : p));
+          setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat }));
         }
       });
-      if (!loc) {
+      if (!loc && !firstFixHandled) {
         setGpsError("Couldn't get your location. Check your GPS/network and try again.");
-        setGpsLoading(false);
-        return;
       }
-      const { lat, lng } = loc;
-      const name = await reverseGeocodeMapbox(lat, lng, mapboxToken);
-      const point = { name, lat, lng };
-      setPickup(point);
-      setPickupInput(name);
-      setMapViewState(v => ({ ...v, longitude: lng, latitude: lat, zoom: 14 }));
     } catch (err) {
-      setGpsError(
-        err?.code === err?.PERMISSION_DENIED
-          ? "Location access denied. Enable it in your browser settings and try again."
-          : "Couldn't get your location. Check your GPS/network and try again."
-      );
+      if (!firstFixHandled) {
+        setGpsError(
+          err?.code === err?.PERMISSION_DENIED
+            ? "Location access denied. Enable it in your browser settings and try again."
+            : "Couldn't get your location. Check your GPS/network and try again."
+        );
+      }
     } finally {
-      setGpsLoading(false);
+      if (!firstFixHandled && isMountedRef.current) setGpsLoading(false);
       setGpsStatusMsg(null);
     }
   }
