@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .fix-backup/
+
+# Fix backup artifacts (previously only ".fix-backup/" was listed here,
+# which never matched the named variants every fix script actually creates)
+.fix-backup*/
+*.bak
+*.bak_*
