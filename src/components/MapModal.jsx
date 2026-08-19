@@ -189,25 +189,30 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     setIsResolving(true);
     setLocationError(null);
     setLocationStatus(null);
-    // FIX: track whether the first real reading (approximate or GPS) has
-    // already been painted + geocoded, so we don't re-hit the reverse
-    // geocoder on every single watch ping as the fix refines - only the
-    // first fix and the final resolved one get an address lookup, with the
-    // pin itself moving live on every ping in between.
+    // FIX: track whether the first USABLE reading (see geolocation.js -
+    // accuracy <=150m, or 8s elapsed with nothing better) has already been
+    // painted + geocoded. Earlier this fired on the very first reading
+    // regardless of accuracy, including the coarse approximate fetch which
+    // has no accuracy ceiling of its own (can be hundreds of meters to a
+    // few kilometers off on sparse cell coverage) - reverse-geocoding that
+    // could flash a wrong neighborhood name before the real fix corrected
+    // it. The pin itself still moves live on every reading (usable or not)
+    // for visual feedback - only the reverse-geocode + address label is
+    // gated on usability.
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
         // FIX: onProgress was never wired up here before, so this button
         // showed a bare spinner for up to 32 seconds on a slow connection
-        // with zero feedback. Now the live status text shows, and as soon
-        // as a first reading (even the fast approximate one) comes in, the
-        // pin moves to it immediately instead of staying frozen until the
-        // final high-accuracy lock.
+        // with zero feedback. Now the live status text shows, and the pin
+        // moves to every reading (even the rough approximate one)
+        // immediately instead of staying frozen until the final
+        // high-accuracy lock.
         setLocationStatus(msg);
         if (!reading) return;
         setMarkerPosition({ lat: reading.lat, lng: reading.lng });
         setViewState((v) => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14.5 }));
-        if (!firstFixHandled) {
+        if (!firstFixHandled && reading.usable) {
           firstFixHandled = true;
           reverseGeocode(reading.lat, reading.lng);
         }

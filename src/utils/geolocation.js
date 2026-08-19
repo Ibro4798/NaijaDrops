@@ -54,7 +54,24 @@
  *    before anything has come back yet. Callers that want a live-updating
  *    pin (paint approximate immediately, refine as better fixes arrive)
  *    can use it; callers that only want the status text can ignore it.
+ * 7. Every reading also carries a `usable` boolean - true once its accuracy
+ *    is <=150m, OR once 8 seconds have passed with nothing better (so a
+ *    genuinely poor-signal device doesn't hang forever). This exists
+ *    because a caller that wants to act immediately on the FIRST reading
+ *    (e.g. reverse-geocode it and let someone move on to the next screen -
+ *    see send-package/step-1) needs a floor on how bad that first reading
+ *    is allowed to be. The coarse approximate fetch above (point 5) has no
+ *    accuracy ceiling of its own - on sparse cell-tower coverage it can be
+ *    off by hundreds of meters to a few kilometers - so committing to it
+ *    unconditionally as soon as it arrives risks reverse-geocoding, and
+ *    locking in, the wrong neighborhood entirely. `usable` is the signal
+ *    for "safe to act on now"; readings that aren't yet usable are still
+ *    passed through (so a caller can move a live pin around for visual
+ *    feedback) but callers should not commit to them as a final answer.
  */
+
+const USABLE_ACCURACY_M = 150;
+const MAX_WAIT_FOR_USABLE_MS = 8000;
 
 // Shared connection-quality helpers (used here and by DriverHeartbeat) so
 // "slow connection" means the same thing everywhere in the app.
@@ -123,7 +140,8 @@ export async function getReliableLocation(onProgress) {
                     lat: pos.coords.latitude,
                     lng: pos.coords.longitude,
                     accuracy: pos.coords.accuracy,
-                    source: 'approx'
+                    source: 'approx',
+                    usable: pos.coords.accuracy <= USABLE_ACCURACY_M || (Date.now() - startTime) >= MAX_WAIT_FOR_USABLE_MS
                 };
                 updateStatus("📍 Approximate location found - locking precise GPS...", approx);
             },
@@ -146,7 +164,8 @@ export async function getReliableLocation(onProgress) {
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude,
                         accuracy: pos.coords.accuracy,
-                        source: 'gps'
+                        source: 'gps',
+                        usable: pos.coords.accuracy <= USABLE_ACCURACY_M || elapsedMs >= MAX_WAIT_FOR_USABLE_MS
                     };
                     updateStatus(`🎯 Precision Lock: ±${Math.round(pos.coords.accuracy)}m`, bestReading);
                 }

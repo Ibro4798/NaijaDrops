@@ -16,6 +16,38 @@ function applyTheme(resolved) {
   }
 }
 
+// FIX (a real cause of the "Something went wrong" crash screen, and a much
+// more frequent one than the notification-listener chunk-load issue):
+// localStorage.getItem/setItem below were called with no try/catch, in a
+// component mounted in layout.js as a sibling of {children} - outside the
+// tree app/error.jsx protects, so any throw here skips straight to
+// app/global-error.jsx and takes down the ENTIRE app. Unlike the
+// notification listeners (which only fail in narrow conditions),
+// ThemeProvider's localStorage read runs in a useEffect on EVERY page load
+// for EVERY visitor - and storage access throwing isn't rare: in-app
+// browsers (WhatsApp's, Instagram's - very plausible here, given delivery
+// links get shared over WhatsApp) and privacy-hardened browsers are known
+// to restrict or block it. That mismatch - a crash source this common,
+// sitting somewhere this unprotected - is almost certainly why the crash
+// screen was showing up "a bit too much." Wrapped so a blocked/unavailable
+// store just falls back to the dark default instead of ever throwing.
+function safeGetItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage blocked/unavailable - theme choice just won't persist across
+    // visits this session. Never something worth crashing over.
+  }
+}
+
 export function ThemeProvider({ children }) {
     // Dark is the default theme - light is available as an explicit choice
     // via the picker on the Profile page.
@@ -25,7 +57,7 @@ export function ThemeProvider({ children }) {
 
     useEffect(() => {
         setMounted(true);
-        const stored = localStorage.getItem('themeMode'); // 'light' | 'dark' | 'system'
+        const stored = safeGetItem('themeMode'); // 'light' | 'dark' | 'system'
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
         const resolve = (m) => (m === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : m);
@@ -38,7 +70,7 @@ export function ThemeProvider({ children }) {
 
         // Keep tracking OS changes live while mode is 'system'.
         const handleSystemChange = (e) => {
-            const currentMode = localStorage.getItem('themeMode') || 'dark';
+            const currentMode = safeGetItem('themeMode') || 'dark';
             if (currentMode === 'system') {
                 const next = e.matches ? 'dark' : 'light';
                 setTheme(next);
@@ -50,7 +82,7 @@ export function ThemeProvider({ children }) {
     }, []);
 
     const setMode = useCallback((newMode) => {
-        localStorage.setItem('themeMode', newMode);
+        safeSetItem('themeMode', newMode);
         setModeState(newMode);
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const resolved = newMode === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : newMode;

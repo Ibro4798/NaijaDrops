@@ -298,28 +298,32 @@ export default function Step1Page() {
     setGpsLoading(true);
     setGpsError(null);
     setGpsStatusMsg(null);
-    // FIX: previously this whole function awaited getReliableLocation() to
-    // fully finish - up to 32s on a slow connection - before Continue was
-    // reachable, even though the FIRST usable reading (often the fast
-    // approximate one) is almost always good enough to send someone to
-    // step 2 with. Now the first reading immediately unblocks: reverse-
-    // geocode it once, set pickup, clear the spinner - done, no more
-    // waiting. Any better fix that arrives afterward (the underlying watch
-    // keeps running until it gets a precise lock) just tightens pickup's
-    // lat/lng silently in the background - no re-geocode, no status text,
-    // no spinner - so it's invisible whether the customer is still on this
-    // screen or has already moved on to step 2. isMountedRef guards against
-    // touching state after they've navigated away and this component has
-    // unmounted.
+    // FIX: the first version of this "unblock on first fix" change (see
+    // below) committed to whatever reading arrived FIRST, with no floor on
+    // how bad it was allowed to be. geolocation.js's coarse approximate
+    // fetch (enableHighAccuracy:false) has no accuracy ceiling of its own -
+    // on sparse cell-tower coverage it can be off by hundreds of meters to
+    // a few kilometers - so a customer could get unblocked onto a pickup
+    // pin reverse-geocoded to the wrong neighborhood entirely, with no
+    // guarantee the silent background refinement finishes correcting it
+    // before they submit the order. Now only a reading geolocation.js has
+    // marked `usable` (accuracy <=150m, or 8s elapsed with nothing better -
+    // see geolocation.js) is allowed to unblock and commit as pickup. Any
+    // earlier, rougher reading still pans the live map for visual feedback
+    // (nice to see something moving instead of a dead screen) but is never
+    // reverse-geocoded or set as the actual pickup point.
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
         if (!firstFixHandled) setGpsStatusMsg(msg);
         if (!reading) return;
 
+        setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
+
+        if (!reading.usable) return;
+
         if (!firstFixHandled) {
           firstFixHandled = true;
-          setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
           reverseGeocodeMapbox(reading.lat, reading.lng, mapboxToken)
             .then(name => {
               if (!isMountedRef.current) return;
@@ -336,7 +340,6 @@ export default function Step1Page() {
           // A better fix landed after the customer was already unblocked -
           // tighten the coordinates only, keep the address label stable.
           setPickup(p => (p ? { ...p, lat: reading.lat, lng: reading.lng } : p));
-          setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat }));
         }
       });
       if (!loc && !firstFixHandled) {
