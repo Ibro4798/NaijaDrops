@@ -47,16 +47,6 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
   const [mode, setMode] = useState("text"); // 'text' | 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  // Guards background GPS refinement (see handleUseMyLocation) from touching
-  // state after the customer has already navigated to step 2 and this
-  // component has unmounted - the underlying location watch itself keeps
-  // running regardless, this just stops a pointless setState-after-unmount.
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
-
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -246,36 +236,18 @@ export default function Step1Page() {
     clearTimeout(searchTimeout.current);
     if (val.length < 2) { type === "pickup" ? setPickupSuggestions([]) : setDropoffSuggestions([]); return; }
     searchTimeout.current = setTimeout(async () => {
+      // getMapboxSuggestions (src/utils/mapbox.js) already merges Mapbox +
+      // Nominatim + Photon results internally - there used to be a second
+      // fallback call to /api/smart-location-search here for the
+      // empty-result case, but that endpoint queries the same Nominatim +
+      // Photon APIs with the same query string, so it could never surface
+      // anything the call above didn't already try. Removed as dead
+      // weight. If a name like "Brigade" still doesn't resolve, that's a
+      // gap in OpenStreetMap's coverage for that name, not a wiring bug -
+      // worth a curated alias table if/when it's worth building.
       const results = await getMapboxSuggestions(val, mapboxToken, { lat: mapViewState.latitude, lng: mapViewState.longitude });
       if (type === "pickup") setPickupSuggestions(results);
       else setDropoffSuggestions(results);
-
-      // FIX: direct Mapbox search comes back empty for a lot of real,
-      // well-known local names that just aren't in its index for Kano
-      // (e.g. "Brigade" for Brigade Market). Only in that empty-result
-      // case, fall back to an AI-assisted search that asks Claude to
-      // expand the shorthand into a fuller, geocoder-friendly name and
-      // re-queries Mapbox with that - Claude never supplies coordinates
-      // itself, so a wrong/unrecognized query just yields nothing extra
-      // rather than a guessed pin. This only fires on searches that were
-      // already failing outright, not on every keystroke.
-      if (results.length === 0 && val.trim().length >= 3) {
-        try {
-          const res = await fetch("/api/smart-location-search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: val, mapboxToken }),
-          });
-          const data = await res.json();
-          if (latestQuery.current[type] !== val) return; // stale - user kept typing
-          if (data.success && data.results?.length) {
-            if (type === "pickup") setPickupSuggestions(data.results);
-            else setDropoffSuggestions(data.results);
-          }
-        } catch (e) {
-          console.error("Smart location search failed:", e);
-        }
-      }
     }, 280);
   }
 
@@ -298,63 +270,48 @@ export default function Step1Page() {
     setGpsLoading(true);
     setGpsError(null);
     setGpsStatusMsg(null);
-    // FIX: the first version of this "unblock on first fix" change (see
-    // below) committed to whatever reading arrived FIRST, with no floor on
-    // how bad it was allowed to be. geolocation.js's coarse approximate
-    // fetch (enableHighAccuracy:false) has no accuracy ceiling of its own -
-    // on sparse cell-tower coverage it can be off by hundreds of meters to
-    // a few kilometers - so a customer could get unblocked onto a pickup
-    // pin reverse-geocoded to the wrong neighborhood entirely, with no
-    // guarantee the silent background refinement finishes correcting it
-    // before they submit the order. Now only a reading geolocation.js has
-    // marked `usable` (accuracy <=150m, or 8s elapsed with nothing better -
-    // see geolocation.js) is allowed to unblock and commit as pickup. Any
-    // earlier, rougher reading still pans the live map for visual feedback
-    // (nice to see something moving instead of a dead screen) but is never
-    // reverse-geocoded or set as the actual pickup point.
+    // REVERTED (per explicit request) back to waiting for getReliableLocation()
+    // to fully resolve before committing pickup and unblocking Continue - the
+    // "unblock on first/approximate fix" behavior tried after this was
+    // reported as making GPS location "not work as before," so it's rolled
+    // back rather than iterated on further here. Live status text + map
+    // panning on intermediate readings is kept, since that part was never in
+    // question - only the "commit early" behavior is reverted.
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
-        if (!firstFixHandled) setGpsStatusMsg(msg);
+        setGpsStatusMsg(msg);
         if (!reading) return;
-
         setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
-
-        if (!reading.usable) return;
-
         if (!firstFixHandled) {
           firstFixHandled = true;
           reverseGeocodeMapbox(reading.lat, reading.lng, mapboxToken)
             .then(name => {
-              if (!isMountedRef.current) return;
               setPickup({ name, lat: reading.lat, lng: reading.lng });
               setPickupInput(name);
             })
-            .catch(() => { /* stays on whatever the fallback below sets */ })
-            .finally(() => {
-              if (!isMountedRef.current) return;
-              setGpsLoading(false);
-              setGpsStatusMsg(null);
-            });
-        } else if (isMountedRef.current) {
-          // A better fix landed after the customer was already unblocked -
-          // tighten the coordinates only, keep the address label stable.
-          setPickup(p => (p ? { ...p, lat: reading.lat, lng: reading.lng } : p));
+            .catch(() => { /* the final resolve below still lands a real address */ });
         }
       });
-      if (!loc && !firstFixHandled) {
+      if (!loc) {
         setGpsError("Couldn't get your location. Check your GPS/network and try again.");
+        setGpsLoading(false);
+        return;
       }
+      const { lat, lng } = loc;
+      const name = await reverseGeocodeMapbox(lat, lng, mapboxToken);
+      const point = { name, lat, lng };
+      setPickup(point);
+      setPickupInput(name);
+      setMapViewState(v => ({ ...v, longitude: lng, latitude: lat, zoom: 14 }));
     } catch (err) {
-      if (!firstFixHandled) {
-        setGpsError(
-          err?.code === err?.PERMISSION_DENIED
-            ? "Location access denied. Enable it in your browser settings and try again."
-            : "Couldn't get your location. Check your GPS/network and try again."
-        );
-      }
+      setGpsError(
+        err?.code === err?.PERMISSION_DENIED
+          ? "Location access denied. Enable it in your browser settings and try again."
+          : "Couldn't get your location. Check your GPS/network and try again."
+      );
     } finally {
-      if (!firstFixHandled && isMountedRef.current) setGpsLoading(false);
+      setGpsLoading(false);
       setGpsStatusMsg(null);
     }
   }
@@ -534,7 +491,7 @@ export default function Step1Page() {
                     <div>
                       <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
                         {s.name}
-                        {(s.source === "ai-assisted" || s.source === "ai-fallback" || s.source === "web-search" || s.isAI) && (
+                        {s.isOSM && (
                           <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                         )}
                       </div>
@@ -601,7 +558,7 @@ export default function Step1Page() {
                     <div>
                       <div className="text-ink text-sm font-semibold leading-tight flex items-center gap-1.5">
                         {s.name}
-                        {(s.source === "ai-assisted" || s.source === "ai-fallback" || s.source === "web-search" || s.isAI) && (
+                        {s.isOSM && (
                           <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                         )}
                       </div>

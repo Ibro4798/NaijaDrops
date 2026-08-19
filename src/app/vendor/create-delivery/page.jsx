@@ -190,41 +190,21 @@ export default function CreateDelivery() {
           area: s.description,
           lat: s.lat,
           lng: s.lng,
-          isWeb: true
+          isWeb: true,
+          isOSM: s.isOSM
         }));
         setSuggestions(prev => ({ ...prev, [slot]: [...localResults, ...webResults].slice(0, 5) }));
 
-        // FIX: falls back to an AI-assisted search only when both the
-        // hardcoded local list and Mapbox itself come up completely empty -
-        // this is exactly where colloquial/shorthand local names (e.g.
-        // "Brigade" for Brigade Market) were failing outright before. Claude
-        // only ever proposes a fuller name for Mapbox to re-geocode; it
-        // never supplies a coordinate itself, so an unrecognized query just
-        // yields nothing extra instead of a guessed pin.
-        if (localResults.length === 0 && webResults.length === 0 && val.trim().length >= 3) {
-          try {
-            const res = await fetch('/api/smart-location-search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: val, mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN }),
-            });
-            const data = await res.json();
-            if (latestSearchRef.current[slot] !== val) return; // stale
-            if (data.success && data.results?.length) {
-              const aiResults = data.results.map(s => ({
-                name: s.name,
-                area: s.description,
-                lat: s.lat,
-                lng: s.lng,
-                isWeb: true,
-                isAI: true
-              }));
-              setSuggestions(prev => ({ ...prev, [slot]: aiResults.slice(0, 5) }));
-            }
-          } catch (e) {
-            console.error('Smart location search failed:', e);
-          }
-        }
+        // getMapboxSuggestions (src/utils/mapbox.js) already merges Mapbox +
+        // Nominatim + Photon internally - there used to be a fallback call
+        // to /api/smart-location-search here for when both the local list
+        // and that already-merged result came up empty, but that endpoint
+        // queries the same Nominatim + Photon APIs with the same query
+        // string, so it could never surface anything the call above didn't
+        // already try. Removed as dead weight (same as send-package/step-1
+        // and MapModal.jsx). If a name like "Brigade" still doesn't
+        // resolve, that's a gap in OpenStreetMap's coverage for that name,
+        // not a wiring bug here.
       } catch (e) {
         console.error("Search failed", e);
         // FIX: a failed search used to just leave the dropdown silently
@@ -424,7 +404,7 @@ export default function CreateDelivery() {
                             <MapPin size={14} className="text-emerald-500" />
                             <div className="text-sm font-bold text-ink flex items-center gap-1.5">
                               {loc.name}
-                                {(loc.isAI || loc.source === "web-search") && (
+                                {loc.isOSM && (
                                   <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                                 )}
                             </div>
@@ -476,7 +456,7 @@ export default function CreateDelivery() {
                             <MapPin size={14} className="text-emerald-500" />
                             <div className="text-sm font-bold text-ink flex items-center gap-1.5">
                               {loc.name}
-                                {(loc.isAI || loc.source === "web-search") && (
+                                {loc.isOSM && (
                                   <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5">Web Match</span>
                                 )}
                             </div>

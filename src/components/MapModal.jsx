@@ -132,36 +132,16 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
 
     searchTimeoutRef.current = setTimeout(async () => {
       try {
+        // getMapboxSuggestions (src/utils/mapbox.js) already merges Mapbox +
+        // Nominatim + Photon internally - there used to be a fallback call
+        // to /api/smart-location-search here for the empty-result case, but
+        // that endpoint queries the same Nominatim + Photon APIs with the
+        // same query string, so it could never surface anything the call
+        // above didn't already try. Removed as dead weight (same as
+        // send-package/step-1). If a name like "Brigade" still doesn't
+        // resolve, that's a gap in OpenStreetMap's coverage for that name,
+        // not a wiring bug here.
         const sugs = await getMapboxSuggestions(query, mapboxToken);
-
-        // FIX: MapModal was the one search entry point in the app that
-        // never got wired up to the AI-assisted expansion fallback that
-        // send-package/step-1 and vendor/create-delivery already have -
-        // a real, well-known local name (e.g. "Brigade" for Brigade
-        // Market) that Mapbox+OSM don't have indexed would just show an
-        // empty dropdown here specifically, even though the exact same
-        // search would have found a match elsewhere in the app. Only
-        // fires on searches that already came up empty, same as the
-        // other two call sites - no extra cost on searches that were
-        // already working.
-        if (sugs.length === 0 && query.trim().length >= 3) {
-          try {
-            const res = await fetch("/api/smart-location-search", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query, mapboxToken }),
-            });
-            const data = await res.json();
-            if (data.success && data.results?.length) {
-              setSuggestions(data.results);
-              setShowSuggestions(true);
-              return;
-            }
-          } catch (e) {
-            console.error("Smart location search failed:", e);
-          }
-        }
-
         setSuggestions(sugs);
         setShowSuggestions(true);
       } catch (err) {
@@ -189,30 +169,17 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     setIsResolving(true);
     setLocationError(null);
     setLocationStatus(null);
-    // FIX: track whether the first USABLE reading (see geolocation.js -
-    // accuracy <=150m, or 8s elapsed with nothing better) has already been
-    // painted + geocoded. Earlier this fired on the very first reading
-    // regardless of accuracy, including the coarse approximate fetch which
-    // has no accuracy ceiling of its own (can be hundreds of meters to a
-    // few kilometers off on sparse cell coverage) - reverse-geocoding that
-    // could flash a wrong neighborhood name before the real fix corrected
-    // it. The pin itself still moves live on every reading (usable or not)
-    // for visual feedback - only the reverse-geocode + address label is
-    // gated on usability.
+    // REVERTED (per explicit request) back to the original first-fix
+    // behavior, alongside the same revert in send-package/step-1 - see the
+    // comment there for why.
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
-        // FIX: onProgress was never wired up here before, so this button
-        // showed a bare spinner for up to 32 seconds on a slow connection
-        // with zero feedback. Now the live status text shows, and the pin
-        // moves to every reading (even the rough approximate one)
-        // immediately instead of staying frozen until the final
-        // high-accuracy lock.
         setLocationStatus(msg);
         if (!reading) return;
         setMarkerPosition({ lat: reading.lat, lng: reading.lng });
         setViewState((v) => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14.5 }));
-        if (!firstFixHandled && reading.usable) {
+        if (!firstFixHandled) {
           firstFixHandled = true;
           reverseGeocode(reading.lat, reading.lng);
         }
@@ -294,7 +261,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
                     <div>
                       <div className="font-bold text-[#18181b] text-sm line-clamp-1 truncate flex items-center gap-1.5">
                         <span>{sug.name || sug.description}</span>
-                        {(sug.source === "ai-assisted" || sug.source === "ai-fallback" || sug.source === "web-search" || sug.isAI) && (
+                        {sug.isOSM && (
                           <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-1.5 py-0.5 leading-none">Web Match</span>
                         )}
                       </div>
