@@ -47,6 +47,20 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
   const [mode, setMode] = useState("text"); // 'text' | 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  // Guards background GPS refinement (see handleUseMyLocation) from touching
+  // state after the customer has already navigated to step 2 and this
+  // component has unmounted - the underlying location watch itself keeps
+  // running regardless, this just stops a pointless setState-after-unmount.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  // Holds the AbortController for an in-flight GPS acquisition so the
+  // Cancel button (see handleCancelGps) can stop it on demand.
+  const gpsAbortControllerRef = useRef(null);
+
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -270,50 +284,81 @@ export default function Step1Page() {
     setGpsLoading(true);
     setGpsError(null);
     setGpsStatusMsg(null);
-    // REVERTED (per explicit request) back to waiting for getReliableLocation()
-    // to fully resolve before committing pickup and unblocking Continue - the
-    // "unblock on first/approximate fix" behavior tried after this was
-    // reported as making GPS location "not work as before," so it's rolled
-    // back rather than iterated on further here. Live status text + map
-    // panning on intermediate readings is kept, since that part was never in
-    // question - only the "commit early" behavior is reverted.
+    // RE-ADDED (per explicit request), this time with the accuracy floor
+    // that was missing the first time this shipped: unblock as soon as a
+    // reading is marked `usable` by geolocation.js (accuracy <=150m, or 8s
+    // elapsed with nothing better - see geolocation.js), not on whatever
+    // arrives first regardless of quality. That gap was the actual reason
+    // this got reverted before - the fix here isn't "wait for full
+    // resolution again", it's "only commit to something accurate enough
+    // to act on." Any earlier, rougher reading still pans the live map for
+    // visual feedback. Once usable, reverse-geocode, set pickup, and clear
+    // the spinner - Continue is reachable right away. The underlying GPS
+    // watch keeps running in the background; a better fix that arrives
+    // afterward silently tightens pickup's lat/lng (no re-geocode, no
+    // status text) whether the customer is still here or already on step 2.
+    // gpsAbortControllerRef lets the Cancel button below stop the watch on
+    // demand instead of forcing a wait through the full timeout.
+    gpsAbortControllerRef.current = new AbortController();
     let firstFixHandled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
-        setGpsStatusMsg(msg);
+        if (!firstFixHandled) setGpsStatusMsg(msg);
         if (!reading) return;
+
         setMapViewState(v => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14 }));
+
+        if (!reading.usable) return;
+
         if (!firstFixHandled) {
           firstFixHandled = true;
           reverseGeocodeMapbox(reading.lat, reading.lng, mapboxToken)
             .then(name => {
+              if (!isMountedRef.current) return;
               setPickup({ name, lat: reading.lat, lng: reading.lng });
               setPickupInput(name);
             })
-            .catch(() => { /* the final resolve below still lands a real address */ });
+            .catch(() => { /* pickup stays null - gpsError below covers it */ })
+            .finally(() => {
+              if (!isMountedRef.current) return;
+              setGpsLoading(false);
+              setGpsStatusMsg(null);
+            });
+        } else if (isMountedRef.current) {
+          // A better fix landed after the customer was already unblocked -
+          // tighten the coordinates only, keep the address label stable.
+          setPickup(p => (p ? { ...p, lat: reading.lat, lng: reading.lng } : p));
         }
-      });
-      if (!loc) {
+      }, { signal: gpsAbortControllerRef.current.signal });
+
+      if (!loc && !firstFixHandled) {
         setGpsError("Couldn't get your location. Check your GPS/network and try again.");
-        setGpsLoading(false);
-        return;
       }
-      const { lat, lng } = loc;
-      const name = await reverseGeocodeMapbox(lat, lng, mapboxToken);
-      const point = { name, lat, lng };
-      setPickup(point);
-      setPickupInput(name);
-      setMapViewState(v => ({ ...v, longitude: lng, latitude: lat, zoom: 14 }));
     } catch (err) {
-      setGpsError(
-        err?.code === err?.PERMISSION_DENIED
-          ? "Location access denied. Enable it in your browser settings and try again."
-          : "Couldn't get your location. Check your GPS/network and try again."
-      );
+      if (!firstFixHandled) {
+        setGpsError(
+          err?.code === err?.PERMISSION_DENIED
+            ? "Location access denied. Enable it in your browser settings and try again."
+            : "Couldn't get your location. Check your GPS/network and try again."
+        );
+      }
     } finally {
-      setGpsLoading(false);
-      setGpsStatusMsg(null);
+      if (!firstFixHandled && isMountedRef.current) setGpsLoading(false);
+      if (isMountedRef.current) setGpsStatusMsg(null);
+      gpsAbortControllerRef.current = null;
     }
+  }
+
+  // Stops an in-flight GPS acquisition. If nothing usable had come back
+  // yet, this just clears the spinner with no pickup set - same as it
+  // never having been pressed. Not shown once a usable fix has already
+  // landed and Continue is unblocked, since at that point there's nothing
+  // left worth cancelling from the customer's perspective (the background
+  // refinement it would stop is invisible and low-stakes either way).
+  function handleCancelGps() {
+    gpsAbortControllerRef.current?.abort();
+    setGpsLoading(false);
+    setGpsStatusMsg(null);
   }
 
   async function handleLinkPaste() {
@@ -466,11 +511,18 @@ export default function Step1Page() {
               {gpsLoading ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
               Use my location
             </button>
-            <button onClick={() => { setLinkTarget("pickup"); setShowLinkModal(true); }}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-charcoal-800 hover:bg-charcoal-700 border border-white/10 rounded-xl text-charcoal-300 text-xs font-bold transition-all">
-              <LinkIcon size={12} />
-              Paste map link
-            </button>
+            {gpsLoading ? (
+              <button onClick={handleCancelGps} type="button"
+                className="px-3 py-2.5 bg-charcoal-800 hover:bg-charcoal-700 border border-white/10 rounded-xl text-charcoal-400 text-xs font-bold transition-all">
+                Cancel
+              </button>
+            ) : (
+              <button onClick={() => { setLinkTarget("pickup"); setShowLinkModal(true); }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-charcoal-800 hover:bg-charcoal-700 border border-white/10 rounded-xl text-charcoal-300 text-xs font-bold transition-all">
+                <LinkIcon size={12} />
+                Paste map link
+              </button>
+            )}
           </div>
           {gpsError && (
             <p className="text-red-400 text-[11px] font-bold mt-2">{gpsError}</p>

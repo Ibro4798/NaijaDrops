@@ -33,7 +33,28 @@ export default function TrackingPage() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const [order, setOrder] = useState(null);
-  const [isVendorView, setIsVendorView] = useState(false);
+  // FIX (real security/attribution bug): isVendorView used to be set to
+  // true for ANY authenticated user whose RLS-permitted read of this order
+  // succeeded - but the "Vendor, assigned rider, broadcast rider, or admin
+  // can view order" RLS policy on orders legitimately lets a RIDER read it
+  // too (they need that to see their own bid/job). This component never
+  // checked WHICH of those it actually was - so a rider who was simply
+  // offered the job (even one who lost the bid) opening the shared
+  // tracking link got the full vendor management view: other riders' bid
+  // amounts, and - worse - a "Cancel Order" button for a delivery that
+  // isn't theirs to cancel. Chat was similarly broken the other way: a
+  // genuinely authenticated rider had currentUserId forced to null
+  // whenever isVendorView was false, so their own messages couldn't be
+  // attributed to them - the chat system only ever really supported two
+  // identities (vendor vs "everyone else, anonymous"), not the three roles
+  // that actually exist here (vendor / rider / customer).
+  // viewerRole is now computed by an actual ownership comparison (see the
+  // load() effect below) and can be 'vendor' | 'rider' | 'customer'.
+  // isVendorView is kept as a derived boolean for the many existing
+  // isVendorView-gated UI checks below, but it's now backed by real
+  // identity instead of "a row came back."
+  const [viewerRole, setViewerRole] = useState('customer');
+  const isVendorView = viewerRole === 'vendor';
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -67,20 +88,35 @@ export default function TrackingPage() {
   useEffect(() => {
     let channel;
     async function load() {
-      // Try the authenticated path first - covers vendors viewing their own order
-      // history (vendor/history links here) via normal RLS.
+      // Try the authenticated path first - covers vendors AND riders viewing
+      // an order they legitimately have RLS access to (vendor/history links
+      // here for vendors; a rider's own job for riders).
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
         const { data: authedOrder } = await supabase
           .from('orders')
-          .select('*, riders(id, current_lat, current_lng, last_seen_at, users(full_name)), vendors(business_name, logo_url)')
+          .select('*, riders(id, current_lat, current_lng, last_seen_at, users(full_name)), vendors(id, business_name, logo_url, user_id)')
           .eq('id', orderId)
           .single();
         if (authedOrder) {
+          // FIX: this used to just be "an authenticated read succeeded" -
+          // see the note above the viewerRole state declaration for why
+          // that's wrong. Determine which of the two real identities this
+          // actually is by comparing the order's own vendor_id/rider_id
+          // against a row for THIS user, not by trusting that RLS letting
+          // the read through means "this is the vendor."
+          const [{ data: myVendorRow }, { data: myRiderRow }] = await Promise.all([
+            supabase.from('vendors').select('id').eq('user_id', user.id).maybeSingle(),
+            supabase.from('riders').select('id').eq('user_id', user.id).maybeSingle(),
+          ]);
+          const role =
+            myVendorRow && authedOrder.vendor_id === myVendorRow.id ? 'vendor' :
+            myRiderRow && authedOrder.rider_id === myRiderRow.id ? 'rider' :
+            'customer'; // authenticated (e.g. a broadcast rider who wasn't assigned) but not a party to this order in a privileged sense
           prevStatusRef.current = authedOrder.status;
           setOrder(authedOrder);
-          setIsVendorView(true);
+          setViewerRole(role);
           setLoading(false);
           channel = supabase
             .channel(`track-${orderId}`)
@@ -102,7 +138,7 @@ export default function TrackingPage() {
         if (!res.ok || !json.success) { setNotFound(true); setLoading(false); return; }
         prevStatusRef.current = json.order.status;
         setOrder(json.order);
-        setIsVendorView(false);
+        setViewerRole('customer');
       } catch {
         setNotFound(true);
       }
@@ -384,7 +420,8 @@ export default function TrackingPage() {
   const riderIsStale = !!(riderLastSeenAt && (Date.now() - new Date(riderLastSeenAt).getTime() > STALE_LOCATION_MS));
   const riderAssigned = !!(order.rider_id || order.riders?.id || order.rider);
   const isPaid = order.payment_status === 'paid';
-  const viewerRole = isVendorView ? 'vendor' : 'customer';
+  // viewerRole is now real state (see the load() effect) - vendor, rider,
+  // or customer, based on actual ownership, not just "logged in".
 
   // --- Delivered: brief handoff to the dedicated receipt page ---
   if (order.status === 'delivered') {
@@ -520,10 +557,17 @@ export default function TrackingPage() {
             </button>
           ) : (
             <button
-              onClick={() => openChat('vendor_customer')}
+              onClick={() => openChat(viewerRole === 'rider' ? 'vendor_rider' : 'vendor_customer')}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
             >
-              <MessageCircle size={14} /> Message the sender
+              {/* FIX: this button used to always open the vendor<->customer
+                  channel regardless of who was viewing - harmless before,
+                  since a rider never legitimately reached this branch (the
+                  viewerRole bug above sent them into the vendor view
+                  instead). Now that a rider correctly lands here, they need
+                  the vendor<->rider channel and the label to match who
+                  they're actually messaging. */}
+              <MessageCircle size={14} /> {viewerRole === 'rider' ? 'Message the vendor' : 'Message the sender'}
             </button>
           )}
         </div>
@@ -561,10 +605,10 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {showChat && (isVendorView ? currentUserId : true) && (
+        {showChat && (viewerRole !== 'customer' ? currentUserId : true) && (
           <OrderChat
             orderId={order.id}
-            currentUserId={isVendorView ? currentUserId : null}
+            currentUserId={viewerRole !== 'customer' ? currentUserId : null}
             viewerRole={viewerRole}
             riderAssigned={false}
             initialChannel={chatChannel}
@@ -716,10 +760,10 @@ export default function TrackingPage() {
         </div>
       </div>
 
-      {showChat && (isVendorView ? currentUserId : true) && (
+      {showChat && (viewerRole !== 'customer' ? currentUserId : true) && (
         <OrderChat
           orderId={order.id}
-          currentUserId={isVendorView ? currentUserId : null}
+          currentUserId={viewerRole !== 'customer' ? currentUserId : null}
           viewerRole={viewerRole}
           riderAssigned={riderAssigned}
           initialChannel={chatChannel}

@@ -94,7 +94,7 @@ export function isConstrainedConnection() {
     return conn.effectiveType === "3g";
 }
 
-export async function getReliableLocation(onProgress) {
+export async function getReliableLocation(onProgress, { signal } = {}) {
     return new Promise((resolve) => {
         let locationFound = false;
         let bestReading = null;
@@ -152,7 +152,29 @@ export async function getReliableLocation(onProgress) {
         const cleanup = () => {
             locationFound = true;
             navigator.geolocation.clearWatch(watchId);
+            if (signal) signal.removeEventListener('abort', onAbort);
         };
+
+        // FIX: lets a caller stop an in-flight GPS acquisition on demand
+        // (a visible "Cancel" button next to the spinner) rather than being
+        // stuck waiting out the full 15-32s timeout with no way out. Resolves
+        // with whatever bestReading is known at the moment of cancellation -
+        // even a rough one is still real device positioning, not a guess -
+        // or null if nothing had come back yet, exactly like a natural
+        // timeout would. Cancelling never treats an unusable reading as
+        // final on its own; the caller decides what to do with a resolved-
+        // but-not-yet-`usable` reading the same way it already does for the
+        // timeout case below.
+        const onAbort = () => {
+            if (locationFound) return;
+            cleanup();
+            updateStatus("Cancelled.");
+            resolve(bestReading);
+        };
+        if (signal) {
+            if (signal.aborted) { onAbort(); return; }
+            signal.addEventListener('abort', onAbort);
+        }
 
         const watchId = navigator.geolocation.watchPosition(
             (pos) => {
