@@ -32,6 +32,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const gpsAbortControllerRef = useRef(null);
   
   // Track center coordinates for returning
   const [markerPosition, setMarkerPosition] = useState({ lat: viewState.latitude, lng: viewState.longitude });
@@ -169,42 +170,60 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
     setIsResolving(true);
     setLocationError(null);
     setLocationStatus(null);
-    // REVERTED (per explicit request) back to the original first-fix
-    // behavior, alongside the same revert in send-package/step-1 - see the
-    // comment there for why.
-    let firstFixHandled = false;
+    // FIX: mirrors the working pattern in send-package/step-1 - unblock
+    // (stop the spinner, reverse-geocode, enable Confirm) as soon as a
+    // reading clears the `usable` floor from geolocation.js (<=150m, or
+    // 8s elapsed with nothing better), instead of committing to whatever
+    // arrives first regardless of accuracy and then, separately, waiting
+    // for the entire promise to settle before ever clearing the spinner.
+    // That mismatch was the actual bug: the pin/address could update
+    // early but isResolving stayed true until the full 15-32s timeout,
+    // with no way to cancel out of it.
+    gpsAbortControllerRef.current = new AbortController();
+    let handled = false;
     try {
       const loc = await getReliableLocation((msg, reading) => {
-        setLocationStatus(msg);
+        if (!handled) setLocationStatus(msg);
         if (!reading) return;
         setMarkerPosition({ lat: reading.lat, lng: reading.lng });
         setViewState((v) => ({ ...v, longitude: reading.lng, latitude: reading.lat, zoom: 14.5 }));
-        if (!firstFixHandled) {
-          firstFixHandled = true;
-          reverseGeocode(reading.lat, reading.lng);
+        if (!reading.usable || handled) return;
+        handled = true;
+        reverseGeocode(reading.lat, reading.lng);
+        setIsResolving(false);
+        setLocationStatus(null);
+      }, { signal: gpsAbortControllerRef.current.signal });
+      if (!handled) {
+        if (loc) {
+          setMarkerPosition({ lat: loc.lat, lng: loc.lng });
+          setViewState((v) => ({ ...v, longitude: loc.lng, latitude: loc.lat, zoom: 14.5 }));
+          reverseGeocode(loc.lat, loc.lng);
+        } else {
+          setLocationError("Couldn't find your location. Search for your street or landmark instead, or try again.");
         }
-      });
-      if (loc) {
-        setMarkerPosition({ lat: loc.lat, lng: loc.lng });
-        setViewState((v) => ({ ...v, longitude: loc.lng, latitude: loc.lat, zoom: 14.5 }));
-        reverseGeocode(loc.lat, loc.lng);
-      } else {
-        // FIX: previously did nothing at all here - the button would just
-        // stop spinning with zero indication of what happened. This is what
-        // "the button fails" meant in practice: GPS and the IP fallback can
-        // both genuinely fail (denied permission, dead network, IP lookup
-        // rate-limited), and there was no way to tell the difference between
-        // "still working" and "gave up."
-        setLocationError("Couldn't find your location. Search for your street or landmark instead, or try again.");
       }
     } catch (error) {
        console.error("Geolocation error:", error);
-       setLocationError("Couldn't find your location. Search for your street or landmark instead, or try again.");
+       if (!handled) setLocationError("Couldn't find your location. Search for your street or landmark instead, or try again.");
     } finally {
-      setIsResolving(false);
-      setLocationStatus(null);
+      if (!handled) {
+        setIsResolving(false);
+        setLocationStatus(null);
+      }
+      gpsAbortControllerRef.current = null;
     }
   };
+
+  // Stops an in-flight GPS acquisition on demand (Cancel button next to
+  // the locate-me control below). If nothing usable had landed yet this
+  // just clears the spinner with no pin change - same as the button never
+  // having been pressed. Not shown once a usable fix has already
+  // unblocked Confirm, since there is nothing left worth cancelling.
+  function handleCancelGps() {
+    gpsAbortControllerRef.current?.abort();
+    setIsResolving(false);
+    setLocationStatus(null);
+  }
 
   const handleMove = useCallback((evt) => {
       setViewState(evt.viewState);
@@ -237,7 +256,7 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
+          <button onClick={() => { if (isResolving) handleCancelGps(); onClose(); }} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
         </div>
 
         {/* Search Bar */}
@@ -331,6 +350,12 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
           <button onClick={useMyLocation} disabled={isResolving} className="absolute top-1/2 right-4 -translate-y-1/2 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-emerald-600 hover:scale-105 active:scale-95 transition-all group z-10 border border-gray-100 disabled:opacity-60">
             <Navigation size={22} className="group-hover:rotate-12 transition-transform" />
           </button>
+
+          {isResolving && (
+            <button onClick={handleCancelGps} type="button" className="absolute top-[calc(50%+56px)] right-4 z-10 px-4 py-2 bg-white rounded-full shadow-xl text-[10px] font-black uppercase tracking-widest text-charcoal-500 hover:text-charcoal-700 transition-all border border-gray-100">
+              Cancel
+            </button>
+          )}
 
           {locationError && (
             <div className="absolute top-[calc(50%+50px)] right-4 z-10 max-w-[220px] bg-red-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl">

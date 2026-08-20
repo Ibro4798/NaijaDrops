@@ -79,6 +79,10 @@ export default function CreateDelivery() {
   const [submitError, setSubmitError] = useState(null);
   
   const searchTimeoutRef = useRef(null);
+  // Lets the Cancel button next to the GPS locate buttons stop an
+  // in-flight getReliableLocation() watch on demand instead of forcing
+  // a wait through the full 15-32s timeout with no way out.
+  const gpsAbortControllerRef = useRef(null);
   const [effectiveRates, setEffectiveRates] = useState(PRICING_RATES);
 
   useEffect(() => {
@@ -252,20 +256,44 @@ export default function CreateDelivery() {
   // slow connection) isn't a silent spinner.
   const useCurrentLocation = async (slot) => {
     setGpsStatus({ slot, loading: true, message: null });
+    // FIX: mirrors the working pattern in send-package/step-1 - real
+    // AbortController wired through to getReliableLocation() so the new
+    // Cancel button below can actually stop this, plus unblocking as soon
+    // as a reading clears the `usable` floor (<=150m, or 8s elapsed with
+    // nothing better - see geolocation.js) instead of always waiting out
+    // the full promise. Previously this had neither: no signal was passed
+    // in, so there was nothing for a Cancel button to hook into, and the
+    // button always waited for full resolution regardless of accuracy.
+    gpsAbortControllerRef.current = new AbortController();
+    let handled = false;
     try {
-        const location = await getReliableLocation((msg) => {
-          setGpsStatus({ slot, loading: true, message: msg });
-        });
-        if (location) {
+        const location = await getReliableLocation((msg, reading) => {
+          if (!handled) setGpsStatus({ slot, loading: true, message: msg });
+          if (!reading || !reading.usable || handled) return;
+          handled = true;
+          setMapTarget({ coords: { lat: reading.lat, lng: reading.lng }, name: 'Current Location' });
+          setActiveModal(slot);
+          setGpsStatus({ slot: null, loading: false, message: null });
+        }, { signal: gpsAbortControllerRef.current.signal });
+        if (!handled && location) {
             setMapTarget({ coords: { lat: location.lat, lng: location.lng }, name: 'Current Location' });
             setActiveModal(slot);
         }
     } catch (err) {
         console.error('Location lookup failed:', err);
     } finally {
-        setGpsStatus({ slot: null, loading: false, message: null });
+        if (!handled) setGpsStatus({ slot: null, loading: false, message: null });
+        gpsAbortControllerRef.current = null;
     }
   };
+
+  // Stops an in-flight GPS acquisition. If nothing usable had come back
+  // yet this just clears the spinner with no pin change - same as the
+  // button never having been pressed.
+  function handleCancelGps() {
+    gpsAbortControllerRef.current?.abort();
+    setGpsStatus({ slot: null, loading: false, message: null });
+  }
 
   const handleSubmitOrder = async () => {
     setIsSubmitting(true);
@@ -416,11 +444,18 @@ export default function CreateDelivery() {
                   {linkResolveError.pickup && (
                     <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.pickup}</p>
                   )}
-                  <button onClick={() => useCurrentLocation('pickup')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95">
-                    {gpsStatus.slot === 'pickup'
-                      ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
-                      : <><Navigation size={16} className="text-emerald-500" /> Pin Current Location</>}
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => useCurrentLocation('pickup')} disabled={gpsStatus.slot === 'pickup'} className="flex-1 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-60">
+                      {gpsStatus.slot === 'pickup'
+                        ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
+                        : <><Navigation size={16} className="text-emerald-500" /> Pin Current Location</>}
+                    </button>
+                    {gpsStatus.slot === 'pickup' && (
+                      <button type="button" onClick={handleCancelGps} className="px-4 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl text-charcoal-400 font-black text-xs uppercase tracking-widest transition-all active:scale-95">
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -468,11 +503,18 @@ export default function CreateDelivery() {
                   {linkResolveError.dropoff && (
                     <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{linkResolveError.dropoff}</p>
                   )}
-                  <button disabled={!pickup} onClick={() => useCurrentLocation('dropoff')} className="w-full py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
-                    {gpsStatus.slot === 'dropoff'
-                      ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
-                      : <><Navigation size={16} className="text-emerald-500" /> Pin Destination</>}
-                  </button>
+                  <div className="flex gap-2">
+                    <button disabled={!pickup || gpsStatus.slot === 'dropoff'} onClick={() => useCurrentLocation('dropoff')} className="flex-1 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center gap-2 text-ink font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30">
+                      {gpsStatus.slot === 'dropoff'
+                        ? <><Loader2 className="animate-spin shrink-0" size={16} /> <span className="truncate normal-case tracking-normal font-bold">{gpsStatus.message || 'Locating...'}</span></>
+                        : <><Navigation size={16} className="text-emerald-500" /> Pin Destination</>}
+                    </button>
+                    {gpsStatus.slot === 'dropoff' && (
+                      <button type="button" onClick={handleCancelGps} className="px-4 py-4 bg-white/5 border border-white/5 hover:bg-white/10 rounded-2xl text-charcoal-400 font-black text-xs uppercase tracking-widest transition-all active:scale-95">
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
