@@ -42,7 +42,7 @@ function isExpired(order) {
 }
 
 export async function GET(req, { params }) {
-  const { orderId } = params;
+  const { orderId } = await params;
   const { searchParams } = new URL(req.url);
   const channel = searchParams.get('channel');
 
@@ -73,7 +73,7 @@ export async function GET(req, { params }) {
 }
 
 export async function POST(req, { params }) {
-  const { orderId } = params;
+  const { orderId } = await params;
 
   let body;
   try {

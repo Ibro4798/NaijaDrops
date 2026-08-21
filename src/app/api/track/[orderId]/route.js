@@ -16,7 +16,7 @@ const supabaseAdmin = createClient(
 const POST_DELIVERY_GRACE_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 export async function GET(req, { params }) {
-  const { orderId } = params;
+  const { orderId } = await params;
 
   if (!orderId) {
     return NextResponse.json({ error: 'Missing order id' }, { status: 400 });
