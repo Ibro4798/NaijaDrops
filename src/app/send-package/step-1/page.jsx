@@ -47,20 +47,6 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
   const [mode, setMode] = useState("text"); // 'text' | 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  // Guards background GPS refinement (see handleUseMyLocation) from touching
-  // state after the customer has already navigated to step 2 and this
-  // component has unmounted - the underlying location watch itself keeps
-  // running regardless, this just stops a pointless setState-after-unmount.
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
-
-  // Holds the AbortController for an in-flight GPS acquisition so the
-  // Cancel button (see handleCancelGps) can stop it on demand.
-  const gpsAbortControllerRef = useRef(null);
-
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -188,6 +174,22 @@ export default function Step1Page() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkError, setLinkError] = useState(null);
   const searchTimeout = useRef(null);
+  // FIX: handleUseMyLocation/handleCancelGps below need these two refs, but
+  // they were declared inside LocationNoteSection instead - a different
+  // component, further up this file. That meant gpsAbortControllerRef and
+  // isMountedRef did not exist in this scope at all: the very first line of
+  // handleUseMyLocation (gpsAbortControllerRef.current = new
+  // AbortController()) threw a ReferenceError before its own try block
+  // even started, so the finally that clears the spinner never ran (stuck
+  // spinner), and handleCancelGps hit the same undefined reference and
+  // died before it could call setGpsLoading(false) (dead Cancel button).
+  // Moved here, where they are actually used.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+  const gpsAbortControllerRef = useRef(null);
 
   // Per-location "help your rider find you" notes.
   const [pickupNote, setPickupNote] = useState("");
