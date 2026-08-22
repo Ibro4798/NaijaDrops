@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -99,10 +99,18 @@ export default function OrderChat({
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `order_id=eq.${orderId}` }, (payload) => {
         const msg = payload.new;
         const ch = msg.channel || 'vendor_rider';
+        // FIX: this was appending every INSERT unconditionally, including
+        // realtime's echo of messages THIS client just sent - which had
+        // already been added to state optimistically a moment earlier in
+        // handleSendMessage/handleSendOffer (with a different, client-only
+        // id). Result: the sender's own message rendered twice. The other
+        // party isn't affected - they never had an optimistic copy, so
+        // their only copy is this real one.
+        if (msg.sender_id === currentUserId) return;
         setMessagesByChannel(prev => ({ ...prev, [ch]: [...(prev[ch] || []), msg] }));
         if (ch === activeChannelRef.current) {
           setTimeout(scrollToBottom, 100);
-        } else if (msg.sender_id !== currentUserId) {
+        } else {
           setUnread(u => ({ ...u, [ch]: (u[ch] || 0) + 1 }));
         }
       })
@@ -312,7 +320,10 @@ export default function OrderChat({
   const priceLockedByPayment = onVendorRiderTab && order?.payment_status === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled';
   const priceLockedByAgreement = onVendorRiderTab && order?.price_locked && order.payment_status !== 'paid';
 
-  const messages = messagesByChannel[activeChannel] || [];
+  // type='system_ephemeral' rows exist purely to trigger the global
+  // ChatNotificationListener toast (it listens to ALL messages INSERTs) -
+  // they're not meant to sit in the conversation history itself.
+  const messages = (messagesByChannel[activeChannel] || []).filter(m => m.type !== 'system_ephemeral');
   const currentTabLabel = availableChannels.find(c => c.key === activeChannel)?.label || 'Chat';
 
   // Only the most recent still-pending offer gets action buttons - older
