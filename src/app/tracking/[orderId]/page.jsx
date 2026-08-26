@@ -69,6 +69,7 @@ export default function TrackingPage() {
   const [bids, setBids] = useState([]);
   const [bidActionId, setBidActionId] = useState(null);
   const [bidsError, setBidsError] = useState(null);
+  const [broadcastCount, setBroadcastCount] = useState(0);
   const expandPollRef = useRef(null);
   const anonPollRef = useRef(null);
   const prevStatusRef = useRef(null);
@@ -193,9 +194,14 @@ export default function TrackingPage() {
 
     let cancelled = false;
     const loadBids = async () => {
+      // Nested riders(...) rides along the same one-to-one users -> riders
+      // relationship rider_visible_to_vendor() already grants the vendor
+      // read access through (a rider only ever bids after being broadcast
+      // the order, which is exactly what that RLS check allows) - so the
+      // photo/rating come along for free with no extra policy needed.
       const { data, error } = await supabase
         .from('bids')
-        .select('*, users:rider_id(full_name, receipt_display_name)')
+        .select('*, users:rider_id(full_name, receipt_display_name, riders(profile_photo_url, rating))')
         .eq('order_id', order.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -212,6 +218,37 @@ export default function TrackingPage() {
     return () => {
       cancelled = true;
       supabase.removeChannel(bidChannel);
+    };
+  }, [isVendorView, order?.id, order?.status, supabase]);
+
+  // "X drivers viewed your request" - counts rows in order_broadcasts for
+  // this order (one row per rider the dispatch job fanned out to) while
+  // the vendor is on the waiting screen, and ticks up live as the search
+  // radius expands and more riders get broadcast the job.
+  useEffect(() => {
+    if (!isVendorView || !order?.id) return;
+    const waiting = order.status === 'pending' || order.status === 'looking_for_driver';
+    if (!waiting) { setBroadcastCount(0); return; }
+
+    let cancelled = false;
+    const loadCount = async () => {
+      const { count, error } = await supabase
+        .from('order_broadcasts')
+        .select('id', { count: 'exact', head: true })
+        .eq('order_id', order.id);
+      if (!cancelled && !error) setBroadcastCount(count || 0);
+    };
+    loadCount();
+
+    const broadcastCountChannel = supabase
+      .channel(`vendor-broadcast-count-${order.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_broadcasts', filter: `order_id=eq.${order.id}` },
+        () => loadCount())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(broadcastCountChannel);
     };
   }, [isVendorView, order?.id, order?.status, supabase]);
 
@@ -500,6 +537,33 @@ export default function TrackingPage() {
             </div>
           </div>
 
+          {isVendorView && (
+            <div className="bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-ink font-black text-sm">
+                  {broadcastCount > 0
+                    ? `${broadcastCount} rider${broadcastCount > 1 ? 's' : ''} viewed your request`
+                    : 'Reaching out to nearby riders…'}
+                </p>
+                <p className="text-charcoal-500 text-xs mt-0.5">
+                  {bids.length > 0 ? 'Waiting for you to review offers' : 'Waiting for offers from riders'}
+                </p>
+              </div>
+              <div className="flex -space-x-2 shrink-0">
+                {bids.slice(0, 4).map(bid => {
+                  const photo = bid.users?.riders?.profile_photo_url;
+                  return photo ? (
+                    <img key={bid.id} src={photo} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-charcoal-950" />
+                  ) : (
+                    <div key={bid.id} className="w-8 h-8 rounded-full bg-charcoal-800 border-2 border-charcoal-950 flex items-center justify-center text-[10px] font-black text-charcoal-400">
+                      {(bid.users?.receipt_display_name || bid.users?.full_name || 'R').charAt(0).toUpperCase()}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-white/10 pt-6 space-y-3">
             <div className="flex items-center gap-2 text-sm"><Package size={14} className="text-charcoal-400" /><span className="text-ink font-bold">{order.item_description}</span></div>
             <div className="flex justify-between text-sm"><span className="text-charcoal-400">From</span><span className="text-ink">{order.pickup_name}</span></div>
@@ -518,13 +582,26 @@ export default function TrackingPage() {
                 <p className="text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{bidsError}</p>
               )}
               <div className="space-y-3">
-                {bids.map(bid => (
+                {bids.map(bid => {
+                  const riderName = bid.users?.receipt_display_name || bid.users?.full_name || 'Rider';
+                  const riderPhoto = bid.users?.riders?.profile_photo_url;
+                  const riderRating = bid.users?.riders?.rating;
+                  return (
                   <div key={bid.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-ink font-black text-lg font-outfit">₦{Number(bid.amount).toLocaleString()}</p>
-                      <p className="text-charcoal-400 text-xs truncate">
-                        {bid.users?.receipt_display_name || bid.users?.full_name || 'Rider'} · was ₦{order.agreed_price?.toLocaleString()}
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {riderPhoto ? (
+                        <img src={riderPhoto} alt={riderName} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl bg-charcoal-800 flex items-center justify-center text-sm font-black text-charcoal-400 shrink-0">
+                          {riderName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-ink font-black text-lg font-outfit">₦{Number(bid.amount).toLocaleString()}</p>
+                        <p className="text-charcoal-400 text-xs truncate">
+                          {riderName}{riderRating ? ` · ★ ${Number(riderRating).toFixed(1)}` : ''} · was ₦{order.agreed_price?.toLocaleString()}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
@@ -543,7 +620,8 @@ export default function TrackingPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

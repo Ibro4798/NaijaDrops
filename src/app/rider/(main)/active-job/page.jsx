@@ -207,10 +207,18 @@ export default function ActiveJobPage() {
     document.addEventListener('visibilitychange', handleVisible);
     window.addEventListener('focus', fetchActiveJob);
     window.addEventListener('online', fetchActiveJob);
+
+    // Same belt-and-suspenders as the dashboard's resync: a dropped
+    // realtime websocket doesn't always trip visibilitychange/focus/online
+    // on its own, so a rider sitting on "Waiting for vendor payment" could
+    // be stuck there past the moment payment actually cleared until they
+    // refreshed manually. This quiet poll re-checks the order directly.
+    const pollId = setInterval(fetchActiveJob, 20000);
     return () => {
       document.removeEventListener('visibilitychange', handleVisible);
       window.removeEventListener('focus', fetchActiveJob);
       window.removeEventListener('online', fetchActiveJob);
+      clearInterval(pollId);
     };
   }, [fetchActiveJob]);
 

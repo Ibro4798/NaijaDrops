@@ -190,11 +190,23 @@ export default function RiderDashboard() {
     document.addEventListener('visibilitychange', handleVisible);
     window.addEventListener('focus', resync);
     window.addEventListener('online', resync);
+
+    // Belt-and-suspenders on top of the realtime channels above: a
+    // Supabase websocket can die silently (weak signal, carrier network
+    // switch, background throttling) without ever firing visibilitychange,
+    // focus, or online - the tab looks "active" the whole time but stops
+    // hearing updates. That's exactly the case a rider reported: their bid
+    // got accepted, the order moved to 'matched', but this screen kept
+    // showing the plain "no jobs nearby" empty state until they manually
+    // refreshed. A quiet 20s poll closes that gap without waiting on a
+    // browser event that may never come.
+    const pollId = setInterval(resync, 20000);
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', handleVisible);
       window.removeEventListener('focus', resync);
       window.removeEventListener('online', resync);
+      clearInterval(pollId);
     };
   }, [rider, checkActiveJob, fetchBroadcastJobs, fetchMyBids, router]);
 
