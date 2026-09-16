@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { ArrowLeft, Phone, Truck, Hash, FileText, IdCard, Bike, UserCircle2 } from "lucide-react";
 import DriverReviewActions from "./DriverReviewActions";
+import { resolveRiderDocUrls } from "@/utils/signedDocUrl";
 
 export const dynamic = "force-dynamic";
 

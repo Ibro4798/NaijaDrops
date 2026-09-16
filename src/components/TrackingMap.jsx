@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import Map, { Marker, Source, Layer } from 'react-map-gl';
@@ -27,8 +27,6 @@ export default function TrackingMap({ driverLocation, dropoffLocation, demandDat
   // Interpolation state
   const [displayedDriverLocation, setDisplayedDriverLocation] = useState(driverLocation);
   const animationRef = useRef(null);
-
-  if (!driverLocation) return null;
 
   // Fetch Route
   useEffect(() => {
@@ -87,6 +85,8 @@ export default function TrackingMap({ driverLocation, dropoffLocation, demandDat
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocation]);
+
+  if (!driverLocation) return null;
 
   return (
     <div className="h-full w-full bg-gray-100 relative">

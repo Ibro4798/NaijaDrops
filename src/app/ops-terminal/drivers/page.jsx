@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { FileText, IdCard, ShieldCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import InviteDriverButton from "./InviteDriverButton";
+import { resolveRiderDocUrls } from "@/utils/signedDocUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,7 @@ export default async function AdminDriversPage() {
     .order("created_at", { ascending: false });
 
   const all = await Promise.all(
-    (riders || []).map(async (r) => ({
-      ...r,
-      profile_photo_url: await getSignedDocUrl(supabase, r.profile_photo_url),
-    }))
+    (riders || []).map((r) => resolveRiderDocUrls(supabase, r))
   );
   const pendingRiders = all.filter(r => r.status === "pending");
   const approvedRiders = all.filter(r => r.status === "approved");
