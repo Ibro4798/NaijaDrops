@@ -10,7 +10,7 @@ import { roundUpTo50 } from '@/utils/pricing';
 // missing UI: a "Suggest a price" toggle with an amount field, and once a
 // bid is pending, the card switches to a waiting state instead of showing
 // stale accept/negotiate actions for an offer already in flight.
-export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAcceptBase, onCounterOffer, onReject, isEmbedded = false }) {
+export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepting = false, onAcceptBase, onCounterOffer, onReject, isEmbedded = false }) {
   const [showDetails, setShowDetails] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [confirmingAccept, setConfirmingAccept] = useState(false);
@@ -178,9 +178,10 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
             </div>
             <button
               onClick={onAcceptBase}
-              className="w-full py-4 bg-white/5 hover:bg-white/10 text-charcoal-300 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5"
+              disabled={accepting}
+              className="w-full py-4 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-charcoal-300 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
             >
-              Or just accept ₦{basePrice.toLocaleString()} now instead
+              {accepting ? <Loader2 size={14} className="animate-spin" /> : `Or just accept ₦${basePrice.toLocaleString()} now instead`}
             </button>
           </div>
         ) : !confirmingAccept ? (
@@ -244,13 +245,15 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, onAccep
             </div>
             <button
               onClick={onAcceptBase}
-              className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-[0.25em] shadow-glow transition-all active:scale-95 flex items-center justify-center gap-3"
+              disabled={accepting}
+              className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-[0.25em] shadow-glow transition-all active:scale-95 flex items-center justify-center gap-3"
             >
-              <Check size={22} /> Yes, This Job Is Mine
+              {accepting ? <Loader2 size={22} className="animate-spin" /> : <><Check size={22} /> Yes, This Job Is Mine</>}
             </button>
             <button
               onClick={() => setConfirmingAccept(false)}
-              className="w-full py-4 bg-white/5 hover:bg-white/10 text-charcoal-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+              disabled={accepting}
+              className="w-full py-4 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-charcoal-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
             >
               Cancel
             </button>

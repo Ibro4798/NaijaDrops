@@ -20,6 +20,7 @@ export default function RiderDashboard() {
   const [rejectedNotice, setRejectedNotice] = useState(null);
   const [acceptedNotice, setAcceptedNotice] = useState(null);
   const [submittingBidFor, setSubmittingBidFor] = useState(null);
+  const [acceptingOrderId, setAcceptingOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState(null);
@@ -267,10 +268,21 @@ export default function RiderDashboard() {
   }
 
   async function acceptAtBasePrice(order) {
+    if (acceptingOrderId) return;
     setError(null);
-    const { error: rpcErr } = await supabase.rpc('accept_order_direct', { p_order_id: order.id });
-    if (rpcErr) { setError(rpcErr.message); return; }
-    router.push('/rider/active-job');
+    setAcceptingOrderId(order.id);
+    try {
+      const { error: rpcErr } = await supabase.rpc('accept_order_direct', { p_order_id: order.id });
+      if (rpcErr) {
+        alert(rpcErr.message);
+        return;
+      }
+      router.push('/rider/active-job');
+    } catch (err) {
+      alert('Could not accept this job. Check your connection and try again.');
+    } finally {
+      setAcceptingOrderId(null);
+    }
   }
 
   async function counterOffer(order, amount) {
@@ -470,6 +482,7 @@ export default function RiderDashboard() {
               bidSubmitting={submittingBidFor === job.id}
               isEmbedded
               onAcceptBase={() => acceptAtBasePrice(job)}
+              accepting={acceptingOrderId === job.id}
               onCounterOffer={(amount) => counterOffer(job, amount)}
               onReject={() => rejectJob(job)}
             />

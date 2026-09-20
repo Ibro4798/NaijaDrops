@@ -537,8 +537,8 @@ export default function TrackingPage() {
       <div className="min-h-screen bg-charcoal-950 flex flex-col">
         <StatusToastBanner />
         <div className="h-64 relative bg-charcoal-900 flex items-center justify-center overflow-hidden">
-          <div className="absolute w-40 h-40 rounded-full border-2 border-emerald-500/20 animate-ping" style={{ animationDuration: '2.5s' }} />
-          <div className="absolute w-28 h-28 rounded-full border-2 border-emerald-500/30 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.4s' }} />
+          <div className="absolute w-40 h-40 rounded-full border-2 border-emerald-500/40 animate-ping" style={{ animationDuration: '2.5s' }} />
+          <div className="absolute w-28 h-28 rounded-full border-2 border-emerald-500/50 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.4s' }} />
           <div className="relative w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center shadow-glow">
             <Radar className="text-charcoal-950 animate-spin" size={28} style={{ animationDuration: '3s' }} />
           </div>
