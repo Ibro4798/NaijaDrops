@@ -287,6 +287,25 @@ export default function TrackingPage() {
     prevStatusRef.current = newStatus;
     setStatusToast(STATUS_LABELS[newStatus] || newStatus);
     setTimeout(() => setStatusToast(null), 4500);
+
+    // FIX: this only ever set in-page toast state - there was no OS-level
+    // notification at all on this page, unlike the equivalent vendor-side
+    // listener. Matches that same document.hidden + permission-granted
+    // gate, so it only fires when the tab is genuinely in the background,
+    // not stacked on top of the in-page toast above.
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      new Notification(STATUS_LABELS[newStatus] || newStatus, { body: "Tap to see the latest on your delivery.", icon: '/favicon.png' });
+    }
+
+    // Fire-and-forget: lets whichever party actually has a tab open right
+    // now (this page for the customer, OrderStatusNotificationListener for
+    // the vendor) wake up the OTHER party's phone via real push too, not
+    // just their own tab.
+    fetch('/api/push/send-order-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    }).catch(() => {});
   }
 
   // Anonymous customers (no account, viewing via the public link) have no

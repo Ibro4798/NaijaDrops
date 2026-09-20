@@ -47,12 +47,14 @@ function StatusToast({ notification, onClose, onTap }) {
 
         <ChevronRight size={16} className="text-white/20 group-hover:text-emerald-500 shrink-0 transition-colors group-hover:translate-x-0.5" />
 
-        <div
+        <button
+          type="button"
           onClick={e => { e.stopPropagation(); onClose(); }}
-          className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/30 hover:text-white transition-all pointer-events-auto"
+          aria-label="Dismiss"
+          className="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/30 hover:text-white transition-all pointer-events-auto"
         >
           <X size={12} />
-        </div>
+        </button>
       </button>
     </motion.div>
   );
@@ -124,6 +126,12 @@ export default function OrderStatusNotificationListener() {
           if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
             new Notification(milestone.label, { body: newNotif.text, icon: '/favicon.png' });
           }
+
+          fetch('/api/push/send-order-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id }),
+          }).catch(() => {});
         })
         .subscribe();
     };

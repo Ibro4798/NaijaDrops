@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import ClientNotificationListeners from "@/components/ClientNotificationListeners";
+import NotificationPermissionPrompt from "@/components/NotificationPermissionPrompt";
 
 const outfit = Outfit({ 
   subsets: ["latin"],
@@ -78,6 +79,7 @@ export default function RootLayout({ children }) {
           <ServiceWorkerRegister />
           {children}
           <ClientNotificationListeners />
+          <NotificationPermissionPrompt />
         </ThemeProvider>
       </body>
     </html>

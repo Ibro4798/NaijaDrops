@@ -40,18 +40,41 @@
 
   --shadow-glow: 0 0 20px -5px var(--color-emerald-500);
   --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  /* Elevation shadows for the light theme's tonal surfaces. Light mode
+     previously separated cards from their background with a 1px border
+     only (--app-charcoal-700/800) - visually correct but not how light
+     UIs actually read as "layered". These give the same surfaces a soft
+     cast shadow instead of (or alongside) that border, which is what
+     actually reads as elevation rather than "a box with an outline".
+     Unused in dark mode - glow/premium above already cover that. */
+  --shadow-elevation-1: 0 1px 2px rgba(20, 24, 21, 0.04), 0 1px 3px rgba(20, 24, 21, 0.06);
+  --shadow-elevation-2: 0 2px 8px rgba(20, 24, 21, 0.06), 0 6px 20px rgba(20, 24, 21, 0.08);
 }
 
 :root {
-  /* LIGHT (default) */
-  --app-charcoal-950: #ffffff;
-  --app-charcoal-900: #f7f7f8;
-  --app-charcoal-800: #eef0f2;
-  --app-charcoal-700: #e2e4e8;
-  --app-charcoal-600: #52525b;
-  --app-charcoal-500: #3f3f46;
-  --app-charcoal-400: #52525b;
-  --app-ink: #0a0a0c;
+  /* LIGHT (default)
+     FIX: this used to be a flat inversion of the dark scale (950 <-> 50,
+     i.e. literally swapping which end is "near black" vs "near white"),
+     which produced two concrete problems: (1) every surface was some
+     shade of true neutral gray with zero relation to the emerald brand
+     color, which is why it read as "a dark theme turned inside out"
+     rather than a light theme designed on its own terms, and (2)
+     app-charcoal-600 and app-charcoal-400 had both accidentally been set
+     to the exact same value (#52525b) - so any two elements styled with
+     charcoal-400 vs charcoal-600 (e.g. a muted label next to secondary
+     body text) were visually identical in light mode despite being
+     different tokens everywhere else in the app.
+     This palette keeps the same 7-step ramp so no component file needs to
+     change, but gives every step a slight cool-green undertone tying it to
+     --color-emerald-500, and makes each step genuinely distinct. */
+  --app-charcoal-950: #fbfdfc;
+  --app-charcoal-900: #f2f5f3;
+  --app-charcoal-800: #e8ece9;
+  --app-charcoal-700: #dbe1dd;
+  --app-charcoal-600: #5b615d;
+  --app-charcoal-500: #7a817c;
+  --app-charcoal-400: #a4aba6;
+  --app-ink: #14181a;
 }
 
 .dark {
@@ -173,6 +196,20 @@
   .hide-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
+  }
+
+  /* Ensures any icon-only control meets a comfortable tap target size
+     (44x44 CSS px - WCAG 2.5.5/AAA and Apple's HIG minimum, above the
+     24x24 WCAG 2.5.8/AA floor and Material's 48dp being the more generous
+     end) without forcing the *visible* icon to grow. Apply directly to the
+     clickable element (button/a), not a wrapper - min-width/min-height
+     only pads the hit area, it doesn't resize the icon inside it. */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
