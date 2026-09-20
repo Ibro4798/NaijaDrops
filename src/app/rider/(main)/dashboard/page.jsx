@@ -281,19 +281,41 @@ export default function RiderDashboard() {
     const roundedAmount = roundUpTo50(amount);
     setError(null);
     setSubmittingBidFor(order.id);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data, error: bidErr } = await supabase
-      .from('bids')
-      .insert({ order_id: order.id, rider_id: user.id, amount: roundedAmount, status: 'pending' })
-      .select()
-      .single();
-    setSubmittingBidFor(null);
-    if (bidErr) { setError(bidErr.message); return; }
-    // Bid stays visible in the "waiting for vendor" state now - it used to
-    // be removed from the feed entirely on submission, which meant a rider
-    // could never see their own pending offer or fall back to accepting
-    // the base price without it reappearing first.
-    setMyBids(prev => ({ ...prev, [order.id]: data }));
+    // FIX: this used to call supabase.auth.getUser() - a real network
+    // round trip to Supabase's auth server to re-verify the JWT - with no
+    // try/catch and no check on the returned error. If that call failed
+    // (most concretely: a stale/invalid refresh token, which happens
+    // naturally as sessions age), `user` came back null and the very next
+    // line's `user.id` threw - skipping straight past the
+    // setSubmittingBidFor(null) below and leaving the Send button spinning
+    // forever with no bid ever submitted and no error shown. getSession()
+    // reads the already-verified local session with no network call
+    // (appropriate here since it's just supplying rider_id for an insert
+    // that RLS independently authorizes), and everything is now wrapped so
+    // the spinner is guaranteed to clear either way.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setError('Your session has expired. Please log out and log back in.');
+        return;
+      }
+
+      const { data, error: bidErr } = await supabase
+        .from('bids')
+        .insert({ order_id: order.id, rider_id: session.user.id, amount: roundedAmount, status: 'pending' })
+        .select()
+        .single();
+      if (bidErr) { setError(bidErr.message); return; }
+      // Bid stays visible in the "waiting for vendor" state now - it used
+      // to be removed from the feed entirely on submission, which meant a
+      // rider could never see their own pending offer or fall back to
+      // accepting the base price without it reappearing first.
+      setMyBids(prev => ({ ...prev, [order.id]: data }));
+    } catch (err) {
+      setError('Could not send your offer. Check your connection and try again.');
+    } finally {
+      setSubmittingBidFor(null);
+    }
   }
 
   async function rejectJob(order) {
