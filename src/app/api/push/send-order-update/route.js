@@ -2,11 +2,23 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || "mailto:ibrahim@naijadrops.tech",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+// FIX: setVapidDetails() used to run at module scope - the instant this
+// file loads, which includes Next.js's build-time "collect page data" step,
+// before env vars are guaranteed to be populated the same way they are at
+// request time. web-push validates the public key eagerly and throws if
+// it's missing/malformed, which crashed the entire production build even
+// though nothing was actually wrong at runtime. Deferred into a lazy
+// initializer that only runs the first time a request actually comes in.
+let vapidConfigured = false;
+function ensureVapidConfigured() {
+  if (vapidConfigured) return;
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || "mailto:ibrahim@naijadrops.tech",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+  vapidConfigured = true;
+}
 
 // Mirrors the MILESTONES map in OrderStatusNotificationListener.jsx - kept
 // separate rather than shared because this one runs server-side and needs
@@ -32,6 +44,14 @@ const MILESTONES = {
 // limiting before this matters at scale.
 export async function POST(req) {
   try {
+    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      // Env vars not set yet (e.g. this deploy predates adding them) -
+      // fail quietly rather than 500, since this route is always called
+      // fire-and-forget from the client and never awaited for its result.
+      return NextResponse.json({ skipped: true, reason: "VAPID env vars not configured" });
+    }
+    ensureVapidConfigured();
+
     const { orderId } = await req.json();
     if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
 
