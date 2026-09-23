@@ -30,10 +30,27 @@ export const metadata = {
   title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 29",
   description: "No more chasing riders on the phone. NaijaDrops brings trackable, reliable delivery to Kano vendors and customers. Launching Saturday, August 29.",
   metadataBase: new URL('https://naijadrops.tech'),
+  // FIX: iOS Safari's Add to Home Screen reads the apple-touch-icon link
+  // tag specifically, not the web manifest's icons array - it was pointing
+  // at the raw 640x640 source file (padding + shadow baked in) rather than
+  // a properly cropped 180x180 render, so the icon would have looked small
+  // and off-center on a home screen grid next to other apps' full-bleed
+  // icons. appleWebApp below is the other half of this: iOS only skips its
+  // own browser chrome (address bar, tab switcher) for an added site if
+  // apple-mobile-web-app-capable is present - without it, the added icon
+  // just reopens the page inside Safari like a bookmark, not a standalone
+  // app. It is also required for Web Push to work at all on iOS, per
+  // Apple's own restriction (push only works from an installed,
+  // standalone-launched PWA).
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
-    apple: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "NaijaDrops",
   },
   openGraph: {
     title: "NaijaDrops | Reliable Delivery in Kano — Launching Aug 29",

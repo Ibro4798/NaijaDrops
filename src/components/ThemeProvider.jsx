@@ -1,6 +1,14 @@
 ﻿'use client';
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
+// TEMPORARY: light theme is still being polished (contrast issues on
+// several screens designed dark-first) and shouldn't be reachable by real
+// users yet. Flip this back to true once that pass is done - everything
+// else in this file (the mode picker, system-preference tracking, storage)
+// stays intact and works exactly as before, this just stops it from ever
+// resolving to anything but 'dark' in the meantime.
+const LIGHT_THEME_ENABLED = false;
+
 const ThemeContext = createContext({
   theme: 'dark',       // resolved theme actually applied: 'light' | 'dark'
   mode: 'dark',        // user's chosen mode: 'light' | 'dark' | 'system'
@@ -57,6 +65,17 @@ export function ThemeProvider({ children }) {
 
     useEffect(() => {
         setMounted(true);
+
+        if (!LIGHT_THEME_ENABLED) {
+            // Deliberately ignores any stored preference and the device's
+            // system setting - always dark, full stop, until the flag above
+            // flips back.
+            setModeState('dark');
+            setTheme('dark');
+            applyTheme('dark');
+            return;
+        }
+
         const stored = safeGetItem('themeMode'); // 'light' | 'dark' | 'system'
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -82,6 +101,7 @@ export function ThemeProvider({ children }) {
     }, []);
 
     const setMode = useCallback((newMode) => {
+        if (!LIGHT_THEME_ENABLED && newMode !== 'dark') return;
         safeSetItem('themeMode', newMode);
         setModeState(newMode);
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

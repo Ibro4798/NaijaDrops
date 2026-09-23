@@ -264,25 +264,31 @@ export default function ProfilePage() {
               </div>
               <div>
                  <h3 className="text-ink font-black text-xl italic tracking-tight">Appearance</h3>
-                 <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Light, Dark, or Match Your Device</p>
+                 <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Dark for now - Light is still being polished</p>
               </div>
            </div>
 
            <div className="grid grid-cols-3 gap-3">
               {[
-                { value: 'light', label: 'Light', Icon: Sun },
-                { value: 'dark', label: 'Dark', Icon: Moon },
-                { value: 'system', label: 'System', Icon: Monitor },
-              ].map(({ value, label, Icon }) => (
+                { value: 'light', label: 'Light', Icon: Sun, soon: true },
+                { value: 'dark', label: 'Dark', Icon: Moon, soon: false },
+                { value: 'system', label: 'System', Icon: Monitor, soon: true },
+              ].map(({ value, label, Icon, soon }) => (
                 <button
                   key={value}
-                  onClick={() => setThemeMode(value)}
-                  className={`flex flex-col items-center gap-2 py-5 rounded-2xl border transition-all ${
-                    themeMode === value
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                      : 'bg-charcoal-900 border-white/5 text-charcoal-500 hover:text-ink hover:border-white/10'
+                  onClick={() => !soon && setThemeMode(value)}
+                  disabled={soon}
+                  className={`relative flex flex-col items-center gap-2 py-5 rounded-2xl border transition-all ${
+                    soon
+                      ? 'bg-charcoal-900 border-white/5 text-charcoal-600 opacity-50 cursor-not-allowed'
+                      : themeMode === value
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                        : 'bg-charcoal-900 border-white/5 text-charcoal-500 hover:text-ink hover:border-white/10'
                   }`}
                 >
+                  {soon && (
+                    <span className="absolute top-1.5 right-1.5 text-[7px] font-black uppercase tracking-widest bg-white/10 text-charcoal-400 px-1.5 py-0.5 rounded-full">Soon</span>
+                  )}
                   <Icon size={20} />
                   <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
                 </button>
