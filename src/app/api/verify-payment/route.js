@@ -125,11 +125,18 @@ export async function POST(req) {
         .from('orders')
         .update({
             payment_status: 'paid',
-            delivery_pin: generatedPin
+            delivery_pin: generatedPin,
+            payment_reference: reference
         })
         .eq('id', orderId);
 
-    if (updateErr) throw updateErr;
+    if (updateErr) {
+      if (updateErr.code === '23505') {
+        console.error(`Payment reference reuse blocked: ${reference} was already used on a different order (attempted on ${orderId}).`);
+        return NextResponse.json({ error: 'This payment reference has already been used on a different order.' }, { status: 409 });
+      }
+      throw updateErr;
+    }
 
     return NextResponse.json({ success: true });
 

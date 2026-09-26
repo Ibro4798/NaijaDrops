@@ -24,7 +24,7 @@ export const loadPaystackScript = () => {
   });
 };
 
-export const initializePaystack = ({ email, amount, reference, onSuccess, onClose, onError }) => {
+export const initializePaystack = ({ email, amount, reference, metadata, onSuccess, onClose, onError }) => {
   if (!window.PaystackPop) {
     console.error("Paystack script not loaded");
     if (onError) onError("Payment gateway failed to load. Check your connection and try again.");
@@ -50,6 +50,7 @@ export const initializePaystack = ({ email, amount, reference, onSuccess, onClos
     amount: amount * 100, // Paystack expects amount in Kobo
     currency: 'NGN',
     ref: reference || 'ND_' + Math.floor((Math.random() * 1000000000) + 1), // Generate random reference if none provided
+    metadata: metadata || {},
     callback: function(response) {
       if (onSuccess) onSuccess(response);
     },

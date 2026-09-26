@@ -141,6 +141,7 @@ function PaymentContent() {
             email: userEmail,
             amount: orderData.agreed_price,
             reference: `ND_${Date.now()}_${orderId.slice(0, 5)}`,
+            metadata: { orderId, riderId: orderData.rider_id || null },
             onSuccess: (response) => {
                 handleRealPaymentSuccess(response.reference);
             },
