@@ -27,6 +27,11 @@ export default function RiderDashboard() {
   const [gpsStatusMsg, setGpsStatusMsg] = useState(null);
   const [hasActiveJob, setHasActiveJob] = useState(false);
   const userIdRef = useRef(null);
+  // Mirrors myBids so the realtime bid handler below can check what this
+  // rider's bid looked like BEFORE an update, without depending on
+  // payload.old (see the note in that handler).
+  const myBidsRef = useRef({});
+  useEffect(() => { myBidsRef.current = myBids; }, [myBids]);
 
   // A rider with a job already in progress (matched/picked_up/in_transit)
   // has to stay online and finish it - they shouldn't be sitting on the
@@ -128,7 +133,18 @@ export default function RiderDashboard() {
               const row = payload.new || payload.old;
               if (!row) return;
 
-              if (payload.new?.status === 'rejected' && payload.old?.status === 'pending') {
+              // FIX: both checks below used to require payload.old.status ===
+              // 'pending', but the bids table has default replica identity,
+              // so Supabase realtime only sends the primary key in
+              // payload.old on an UPDATE - .status was always undefined and
+              // neither notice (nor the redirect) could ever fire. A rider
+              // whose offer was accepted saw the job silently vanish from
+              // the feed and a near-empty "no jobs nearby" screen until the
+              // 20s background poll happened to catch up. Acceptance is now
+              // detected from the new row alone (a bid can only become
+              // 'accepted' once), and rejection from what this rider's own
+              // state already knew was pending.
+              if (payload.new?.status === 'rejected' && myBidsRef.current[row.order_id]?.status === 'pending') {
                 setRejectedNotice({ orderId: row.order_id, amount: row.amount });
                 setTimeout(() => setRejectedNotice(prev => (prev?.orderId === row.order_id ? null : prev)), 8000);
               }
@@ -139,8 +155,9 @@ export default function RiderDashboard() {
               // indication anything had happened - the job was already
               // theirs and they had no idea. Now it's an immediate,
               // impossible-to-miss handoff straight into the job.
-              if (payload.new?.status === 'accepted' && payload.old?.status === 'pending') {
+              if (payload.new?.status === 'accepted') {
                 setAcceptedNotice({ orderId: row.order_id, amount: row.amount });
+                setHasActiveJob(true);
                 router.push('/rider/active-job');
               }
 
@@ -436,21 +453,6 @@ export default function RiderDashboard() {
       {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
 
       <AnimatePresence>
-        {acceptedNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-5 py-4"
-          >
-            <p className="text-emerald-400 text-sm font-bold">
-              Your offer of ₦{Number(acceptedNotice.amount).toLocaleString()} was accepted — this job is yours. Taking you there now...
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {rejectedNotice && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -468,7 +470,29 @@ export default function RiderDashboard() {
         )}
       </AnimatePresence>
 
-      {rider.operational_status !== 'online' ? (
+      {hasActiveJob || acceptedNotice ? (
+        // FIX: once a job is assigned it drops out of the feed (it is no
+        // longer pending), which used to leave this screen showing "No jobs
+        // nearby" - effectively blank - until the redirect happened. This
+        // is the intermediary state for that gap.
+        <div className="flex flex-col items-center text-center gap-4 py-16 px-4">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+            <Loader2 size={28} className="animate-spin" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-ink font-black text-lg">
+              {acceptedNotice ? `Your offer of ₦${Number(acceptedNotice.amount).toLocaleString()} was accepted` : 'You have a job in progress'}
+            </p>
+            <p className="text-charcoal-400 text-sm">Opening your delivery...</p>
+          </div>
+          <button
+            onClick={() => router.push('/rider/active-job')}
+            className="bg-emerald-500 text-charcoal-950 font-black py-3 px-8 rounded-2xl uppercase text-xs tracking-widest"
+          >
+            Open now
+          </button>
+        </div>
+      ) : rider.operational_status !== 'online' ? (
         <p className="text-charcoal-400 text-center py-16">Go online to start receiving jobs.</p>
       ) : jobs.length === 0 ? (
         <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online — the search radius expands automatically.</p>

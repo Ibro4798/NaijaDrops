@@ -302,6 +302,18 @@ export default function ActiveJobPage() {
 
   const isWithinPickupRange = pickupDistanceMeters !== null && pickupDistanceMeters <= PICKUP_PROXIMITY_METERS;
 
+  // While the customer is still paying, check for the payment landing every
+  // few seconds instead of waiting on the 20s background poll - this is the
+  // one state where a rider is actively watching the screen for it to
+  // change. Realtime normally beats this; it's the fallback for a silently
+  // dropped websocket.
+  const awaitingPaymentNow = !!order && order.status === 'matched' && order.payment_status !== 'paid';
+  useEffect(() => {
+    if (!awaitingPaymentNow) return;
+    const id = setInterval(fetchActiveJob, 5000);
+    return () => clearInterval(id);
+  }, [awaitingPaymentNow, fetchActiveJob]);
+
 
   const updateStatus = async (nextStatus) => {
     setUpdating(true);
@@ -374,6 +386,86 @@ export default function ActiveJobPage() {
         <button onClick={() => router.push('/rider')} className="bg-emerald-500 text-charcoal-950 font-black py-4 px-8 rounded-2xl uppercase text-xs tracking-widest">
           Find Jobs
         </button>
+      </div>
+    );
+  }
+
+  // FIX: this used to fall through to the full mission screen (map, both
+  // addresses, recipient phone number, "Launch GPS Navigation") with just a
+  // small amber card at the very bottom saying payment was pending. Nothing
+  // on it was actionable yet, and a rider could see the drop-off address
+  // and recipient's phone before the customer had paid a naira. It now gets
+  // its own dedicated waiting screen, and the full details only appear once
+  // payment clears (this re-renders automatically via the realtime update
+  // and the fast poll above).
+  if (order.status === 'matched' && order.payment_status !== 'paid') {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10 space-y-8">
+        {riderId && <DriverHeartbeat riderId={riderId} isOnline={true} />}
+
+        <Suspense fallback={null}>
+          <ChatParamsReader onParams={(channel) => { setChatChannel(channel); setShowChat(true); }} />
+        </Suspense>
+
+        <div className="relative w-28 h-28 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-amber-500/40 animate-ping" style={{ animationDuration: '2.5s' }} />
+          <div className="absolute inset-3 rounded-full border-2 border-amber-500/50 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.4s' }} />
+          <div className="relative w-20 h-20 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+            <Loader2 size={34} className="animate-spin" />
+          </div>
+        </div>
+
+        <div className="text-center space-y-2 max-w-xs">
+          <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.25em]">This job is yours</p>
+          <h1 className="text-2xl font-black text-ink font-outfit">Waiting for the customer to pay</h1>
+          <p className="text-charcoal-400 text-sm leading-relaxed">
+            Payment is being completed right now. Your route and pickup details unlock automatically the moment it clears - you don&apos;t need to do anything.
+          </p>
+        </div>
+
+        <div className="w-full max-w-sm bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <Package size={18} className="text-charcoal-500 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">Item</div>
+              <div className="text-ink font-bold">{order.item_category || 'Package'}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <MapPin size={18} className="text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">Pickup area</div>
+              <div className="text-ink font-bold">{order.pickup_name}</div>
+            </div>
+          </div>
+          {order.agreed_price ? (
+            <div className="flex items-center justify-between pt-3 border-t border-white/5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">Agreed fare</span>
+              <span className="text-emerald-400 font-black text-lg">₦{Number(order.agreed_price).toLocaleString()}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <button
+          onClick={() => { setChatChannel(null); setShowChat(true); }}
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+        >
+          <MessageCircle size={16} /> Message customer
+        </button>
+
+        <AnimatePresence>
+          {showChat && currentUserId && (
+            <OrderChat
+              orderId={order.id}
+              currentUserId={currentUserId}
+              viewerRole="rider"
+              riderAssigned={true}
+              initialChannel={chatChannel}
+              onClose={() => setShowChat(false)}
+              isReadOnly={false}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
