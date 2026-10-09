@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft, Zap, Loader2, Lock } from "lucide-react";
+import { cancelOrder } from "@/app/vendor/active-orders/actions";
+import { upcomingWindows } from "@/utils/windows";
 
 const DRAFT_KEY = "nd_order_draft";
 
@@ -31,6 +33,31 @@ function Step3Content() {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Scheduled delivery windows: only shown to vendors ops has switched on.
+  const [scheduledEnabled, setScheduledEnabled] = useState(false);
+  const [windowChoice, setWindowChoice] = useState("now");
+  const [payFirst, setPayFirst] = useState(false);
+  const windowOptions = upcomingWindows();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("vendors")
+          .select("scheduled_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (data?.scheduled_enabled) setScheduledEnabled(true);
+        // Only used for wording: the database decides the real policy on insert.
+        const { data: pf } = await supabase.rpc("payment_required_for_me");
+        setPayFirst(pf === true);
+      } catch { /* feature simply stays hidden */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [showPhoneGate, setShowPhoneGate] = useState(false);
@@ -104,6 +131,20 @@ function Step3Content() {
 
       if (!vendorProfile) throw new Error("Vendor profile not found. Please go back and select 'Send Packages' again.");
 
+      const extras = Array.isArray(draft.extra_stops) ? draft.extra_stops : [];
+      if (extras.length > 0 && Number(draft.stop_count) !== 1 + extras.length) {
+        throw new Error("Please review your drop-offs again before continuing.");
+      }
+
+      let scheduledAtIso = null;
+      if (windowChoice !== "now") {
+        const startMs = new Date(windowChoice).getTime();
+        if (!Number.isFinite(startMs) || startMs - Date.now() < 60 * 60 * 1000) {
+          throw new Error("That delivery window has just closed. Please pick another.");
+        }
+        scheduledAtIso = new Date(startMs).toISOString();
+      }
+
       const { data: order, error: err } = await supabase.from("orders").insert({
         vendor_id: vendorProfile.id,
         pickup_name: draft.pickup.name,
@@ -125,25 +166,60 @@ function Step3Content() {
         recipient_phone: draft.recipient_phone,
         notify_receiver: draft.notify_receiver,
         agreed_price: draft.estimated_price,
+        ...(extras.length > 0 ? { stop_count: 1 + extras.length } : {}),
+        ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {}),
         status: "pending",
       }).select().single();
 
       if (err) throw err;
 
+      if (extras.length > 0) {
+        const stopRows = [
+          {
+            order_id: order.id,
+            seq: 1,
+            dropoff_name: draft.dropoff.name,
+            dropoff_lat: draft.dropoff.lat,
+            dropoff_lng: draft.dropoff.lng,
+            dropoff_details: draft.dropoff_note || null,
+            recipient_name: draft.recipient_name || null,
+            recipient_phone: draft.recipient_phone || null,
+          },
+          ...extras.map((s, i) => ({
+            order_id: order.id,
+            seq: i + 2,
+            dropoff_name: s.name,
+            dropoff_lat: s.lat,
+            dropoff_lng: s.lng,
+            dropoff_details: s.note || null,
+            recipient_name: s.recipient_name || null,
+            recipient_phone: s.recipient_phone || null,
+          })),
+        ];
+        const { error: stopsErr } = await supabase.from("order_stops").insert(stopRows);
+        if (stopsErr) {
+          await cancelOrder(order.id, "Extra drop-offs could not be saved").catch(() => {});
+          throw new Error("Could not save your extra drop-offs. Please try again.");
+        }
+      }
+
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...draft, orderId: order.id }));
 
-      // Kick off the first dispatch broadcast immediately rather than
-      // waiting for the tracking page's own 15s poll cycle to fire it -
-      // this order shouldn't sit invisible to nearby riders for up to 15
-      // extra seconds just because of where the redirect happens to land.
-      fetch("/api/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id })
-      }).catch(() => { /* tracking page's own retry loop covers this */ });
-
       setRedirecting(true);
-      router.replace(`/tracking/${order.id}`);
+      if (order.payment_required) {
+        // PAY FIRST (decided per order by the database from your payment
+        // policy): riders are only notified once payment is confirmed (see
+        // /api/verify-payment and the Paystack webhook).
+        router.replace(`/payment?orderId=${order.id}`);
+      } else {
+        // Payment not required up front: dispatch straight away, as before.
+        fetch("/api/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: order.id })
+        }).catch(() => { /* tracking page's own retry loop covers this */ });
+        router.replace(`/tracking/${order.id}`);
+      }
     } catch (e) {
       setError("Failed to create order: " + e.message);
       setCreatingOrder(false);
@@ -238,12 +314,42 @@ function Step3Content() {
               <span className="text-charcoal-500 font-bold">To</span>
               <span className="text-ink font-black text-right max-w-[180px] truncate">{draft.dropoff?.name}</span>
             </div>
+            {Array.isArray(draft.extra_stops) && draft.extra_stops.length > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-charcoal-500 font-bold">Extra drop-offs</span>
+                <span className="text-ink font-black">+{draft.extra_stops.length}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-charcoal-500 font-bold">Estimated Fare</span>
               <span className="text-emerald-400 font-black">₦{draft.estimated_price?.toLocaleString()}</span>
             </div>
           </div>
         </div>
+        {scheduledEnabled && windowOptions.length > 0 && (
+          <div className="w-full max-w-sm mb-6 bg-white/[0.04] border border-white/10 rounded-3xl p-5">
+            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Delivery time</div>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => setWindowChoice("now")}
+                className={"w-full text-left px-4 py-3 rounded-2xl border text-sm font-black " + (windowChoice === "now" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 text-ink")}
+              >
+                Now - find a rider right away
+              </button>
+              {windowOptions.map((w) => (
+                <button
+                  key={w.iso}
+                  type="button"
+                  onClick={() => setWindowChoice(w.iso)}
+                  className={"w-full text-left px-4 py-3 rounded-2xl border text-sm font-black " + (windowChoice === w.iso ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 text-ink")}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {error && (
           <div className="w-full max-w-sm mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-bold">
             {error}
@@ -254,11 +360,11 @@ function Step3Content() {
           disabled={creatingOrder}
           className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all active:scale-95 disabled:opacity-50"
         >
-          {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> Find My Rider</>}
+          {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> {windowChoice !== "now" ? "Pay & Schedule" : payFirst ? "Pay & Find My Rider" : "Find My Rider"}</>}
         </button>
-        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">No payment until delivery</p>
+        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">{windowChoice !== "now" || payFirst ? "Pay securely first" : "No payment until delivery"}</p>
         <p className="text-charcoal-700 text-[10px] font-bold mt-6 uppercase tracking-widest text-center max-w-xs leading-relaxed">
-          You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders.
+          {windowChoice !== "now" || payFirst ? "You'll pay with Paystack next. Once paid, nearby riders are notified right away (scheduled orders are handed to a rider before your window)." : "You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders."}
         </p>
       </div>
     </div>

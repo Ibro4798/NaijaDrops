@@ -14,6 +14,8 @@ const NAV_SECTIONS = [
   {
     label: "Operations",
     items: [
+      { href: "/ops-terminal/scheduled", label: "Scheduled", icon: Package },
+      { href: "/ops-terminal/payments", label: "Payment Policy", icon: DollarSign },
       { href: "/ops-terminal/drivers", label: "Tactical Fleet", icon: Users },
       { href: "/ops-terminal/admins", label: "Access Logs", icon: ShieldCheck },
       { href: "/ops-terminal/pricing", label: "Fuel Pricing", icon: Fuel },

@@ -38,6 +38,21 @@ export async function POST(req) {
 
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
+    // Only orders still waiting for a rider are ever broadcast.
+    if (order.status !== "pending" && order.status !== "looking_for_driver") {
+      return NextResponse.json({ success: false, message: "Order is not waiting for a rider." });
+    }
+    // PAY FIRST: riders are only notified for orders that require payment up
+    // front once they are paid. (order.payment_required is set by the database
+    // from the payment policy when the order is created.)
+    if (order.payment_required && order.payment_status !== "paid") {
+      return NextResponse.json({ success: false, message: "Order is not paid yet - riders are not notified until payment is confirmed." });
+    }
+    // Scheduled orders are never auto-broadcast; ops releases them to a rider.
+    if (order.scheduled_at) {
+      return NextResponse.json({ success: false, scheduled: true, message: "Scheduled order - released by ops." });
+    }
+
     // 2. Section 7: Geofence Validation
     if (!isWithinPilotZone(order.pickup_lat, order.pickup_lng)) {
       return NextResponse.json({ 

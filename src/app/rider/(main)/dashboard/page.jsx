@@ -62,7 +62,7 @@ export default function RiderDashboard() {
 
     const openJobs = (data || [])
       .map(row => row.orders)
-      .filter(o => o && (o.status === 'pending' || o.status === 'looking_for_driver'));
+      .filter(o => o && (o.status === 'pending' || o.status === 'looking_for_driver') && (!o.payment_required || o.payment_status === 'paid'));
     setJobs(openJobs);
     return openJobs;
   }, [supabase]);

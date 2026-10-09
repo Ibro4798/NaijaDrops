@@ -228,9 +228,12 @@ export default function Step2Page() {
       recipient_phone: receiverPhone.trim(),
       notify_receiver: notifyReceiver,
       estimated_price: estimatedPrice,
+      base_price: estimatedPrice,
+      extras_total: 0,
+      stop_count: 1,
     };
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(updated));
-    router.push("/send-package/step-3");
+    router.push("/send-package/stops");
   }
 
   if (!draft) return (
