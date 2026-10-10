@@ -13,6 +13,7 @@ const MapCanvas = dynamic(() => import('@/components/MapCanvas'), { ssr: false, 
 import SlideToConfirm from '@/components/rider/SlideToConfirm';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import OrderChat from '@/components/OrderChat';
+import DropoffChecklist from '@/components/rider/DropoffChecklist';
 import { distanceMeters } from '@/utils/geolocation';
 
 // "General location of the pickup spot", not an exact building - Kano's
@@ -113,6 +114,10 @@ export default function ActiveJobPage() {
   const [chatChannel, setChatChannel] = useState(null);
   const [showNotes, setShowNotes] = useState(false);
   const [deliveryPhotoUrl, setDeliveryPhotoUrl] = useState(null);
+  // Orders with extra drop-offs: the final "Mark Delivered" slider stays
+  // locked until the checklist reports every stop delivered.
+  const [stopsDone, setStopsDone] = useState(false);
+  const stopsGateOpen = !(Number(order?.stop_count) > 1) || stopsDone;
   const [uploadingDeliveryPhoto, setUploadingDeliveryPhoto] = useState(false);
   const [pickupDistanceMeters, setPickupDistanceMeters] = useState(null);
   const [pickupLocationError, setPickupLocationError] = useState(false);
@@ -583,6 +588,10 @@ export default function ActiveJobPage() {
            </a>
         </div>
 
+        {Number(order.stop_count) > 1 && ['matched', 'picked_up', 'in_transit'].includes(order.status) && (
+          <DropoffChecklist orderId={order.id} canComplete={order.status === 'in_transit'} onProgress={setStopsDone} />
+        )}
+
         {/* Delivery photo - encouraged, not required, right before the final
             confirm. Cheap insurance for a "no one home" or "wrong item"
             dispute later, without blocking a rider's income over an optional
@@ -682,8 +691,13 @@ export default function ActiveJobPage() {
                onConfirm={() => updateStatus('in_transit')} 
              />
            )}
-           {order.status === 'in_transit' && (
-             <SlideToConfirm 
+           {order.status === 'in_transit' && !stopsGateOpen && (
+             <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-5 text-center">
+               <p className="text-amber-500 font-black text-xs uppercase tracking-widest">Complete every drop-off above first</p>
+             </div>
+           )}
+           {order.status === 'in_transit' && stopsGateOpen && (
+             <SlideToConfirm
                text="Slide to Mark Delivered" 
                color="bg-emerald-500" 
                onConfirm={() => updateStatus('delivered')} 

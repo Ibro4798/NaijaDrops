@@ -47,3 +47,5 @@ next-env.d.ts
 .fix-backup*/
 *.bak
 *.bak_*
+
+_backup_payfirst_*

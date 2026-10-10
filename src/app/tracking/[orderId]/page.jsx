@@ -8,6 +8,7 @@ import MapCanvas from '@/components/MapCanvas';
 import OrderChat from '@/components/OrderChat';
 import OrderStatusStepper from '@/components/ui/OrderStatusStepper';
 import { cancelOrder } from '@/app/vendor/active-orders/actions';
+import ScheduledOrderView from '@/components/ScheduledOrderView';
 import Skeleton from '@/components/ui/Skeleton';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -340,6 +341,18 @@ export default function TrackingPage() {
     }
   }, [order?.status, orderId, router]);
 
+  // PAY FIRST: an unpaid order isn't visible to riders, so there is nothing
+  // to track yet - send the vendor to pay instead.
+  useEffect(() => {
+    if (!isVendorView || !order) return;
+    const unpaidAndWaiting =
+      order.payment_required &&
+      order.payment_status !== 'paid' &&
+      (order.status === 'pending' || order.status === 'looking_for_driver') &&
+      !order.rider_id;
+    if (unpaidAndWaiting) router.replace(`/payment?orderId=${order.id}`);
+  }, [isVendorView, order, router]);
+
   // The "expanding search radius" shown below only actually expands if
   // this effect is running somewhere - it works from whichever screen is
   // actually being watched (vendor's tracking page or the customer's), and
@@ -347,7 +360,7 @@ export default function TrackingPage() {
   useEffect(() => {
     if (!order || !orderId) return;
     const waiting = order.status === 'pending' || order.status === 'looking_for_driver';
-    if (!waiting) {
+    if (!waiting || order.scheduled_at || (order.payment_required && order.payment_status !== 'paid')) {
       if (expandPollRef.current) { clearInterval(expandPollRef.current); expandPollRef.current = null; }
       return;
     }
@@ -392,7 +405,7 @@ export default function TrackingPage() {
     return () => {
       if (expandPollRef.current) { clearInterval(expandPollRef.current); expandPollRef.current = null; }
     };
-  }, [order?.status, orderId, supabase]);
+  }, [order?.status, order?.scheduled_at, order?.payment_required, order?.payment_status, orderId, supabase]);
 
   // Shares the tracking link itself (this page's URL) - distinct from the
   // receipt page's own share button, which shares the finished receipt.
@@ -528,6 +541,17 @@ export default function TrackingPage() {
   // payment has happened yet, so there's nothing worth sending a customer
   // to watch. A chat entry point to the vendor is still useful for the
   // customer while they wait, and for the vendor to cancel if needed.
+  if (isWaitingForRider && order.scheduled_at) {
+    return (
+      <ScheduledOrderView
+        order={order}
+        isVendorView={isVendorView}
+        onCancel={handleCancelOrder}
+        cancelling={cancelling}
+      />
+    );
+  }
+
   if (isWaitingForRider) {
     const radius = Number(order.broadcast_radius_km) || 1.5;
     const maxRadius = Number(order.max_broadcast_radius_km) || 8;

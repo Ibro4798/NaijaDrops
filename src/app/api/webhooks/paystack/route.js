@@ -43,11 +43,36 @@ export async function POST(req) {
       // signature-verified event), so a conflict here means the reference
       // was already recorded by verify-payment for the same order moments
       // earlier, not an attack.
+      // PAY FIRST: never mark an order paid unless Paystack actually collected
+      // at least the order's price. Metadata alone can be forged, so the
+      // amount and currency are checked against our own record.
+      const { data: orderRow } = await supabase
+        .from("orders")
+        .select("agreed_price, payment_status, status")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      if (!orderRow) {
+        console.error(`Webhook: order ${orderId} not found - ignoring.`);
+        return NextResponse.json({ received: true });
+      }
+
+      const paidKobo = Number(body.data.amount) || 0;
+      if (!orderRow.agreed_price || paidKobo < orderRow.agreed_price * 100 || body.data.currency !== "NGN") {
+        console.error(`Webhook: amount/currency mismatch for order ${orderId} (paid ${paidKobo} ${body.data.currency}, expected ${orderRow.agreed_price} NGN) - NOT marking paid.`);
+        return NextResponse.json({ received: true });
+      }
+
+      if (orderRow.payment_status === "paid") {
+        return NextResponse.json({ received: true });
+      }
+
       const { error } = await supabase
         .from("orders")
-        .update({ 
+        .update({
           payment_status: "paid",
-          payment_reference: body.data.reference
+          payment_reference: body.data.reference,
+          price_locked: true
         })
         .eq("id", orderId);
 
@@ -61,6 +86,25 @@ export async function POST(req) {
       }
 
       console.log(`Order ${orderId} payment confirmed via Paystack webhook.`);
+
+      if (!error && orderRow.status === "cancelled") {
+        console.error(`REFUND NEEDED: order ${orderId} was cancelled but a payment arrived (${body.data.reference}).`);
+      }
+
+      // PAY FIRST: now that the order is paid, notify riders (the dispatch
+      // route itself skips scheduled, unpaid-required and non-waiting orders).
+      if (!error) {
+        try {
+          await fetch(`${new URL(req.url).origin}/api/dispatch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId }),
+            signal: AbortSignal.timeout(8000),
+          });
+        } catch (dispatchErr) {
+          console.error("Post-payment dispatch failed (webhook):", dispatchErr);
+        }
+      }
     }
 
     return NextResponse.json({ received: true });

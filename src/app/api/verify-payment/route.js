@@ -21,6 +21,10 @@ export async function POST(req) {
     }
 
     if (!process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY.includes('dummy')) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error('PAYSTACK_SECRET_KEY is missing/placeholder in production - refusing to simulate a payment.');
+          return NextResponse.json({ error: 'Payment verification is misconfigured on the server (missing PAYSTACK_SECRET_KEY). Contact support.' }, { status: 500 });
+        }
         console.warn('Using dummy verification due to missing PAYSTACK_SECRET_KEY');
         // FALLBACK FOR DEV: If no secret key is set, simulate success but warn clearly
         return simulateSuccess(reference, orderId);
@@ -126,7 +130,8 @@ export async function POST(req) {
         .update({
             payment_status: 'paid',
             delivery_pin: generatedPin,
-            payment_reference: reference
+            payment_reference: reference,
+            price_locked: true
         })
         .eq('id', orderId);
 
@@ -136,6 +141,19 @@ export async function POST(req) {
         return NextResponse.json({ error: 'This payment reference has already been used on a different order.' }, { status: 409 });
       }
       throw updateErr;
+    }
+
+    // PAY FIRST: payment is confirmed, so now (and only now) notify riders.
+    // /api/dispatch itself skips scheduled orders.
+    try {
+      await fetch(`${new URL(req.url).origin}/api/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch (dispatchErr) {
+      console.error('Post-payment dispatch failed (the tracking page retries):', dispatchErr);
     }
 
     return NextResponse.json({ success: true });

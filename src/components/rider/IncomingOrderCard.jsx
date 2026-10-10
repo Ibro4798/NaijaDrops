@@ -51,6 +51,12 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                  <p className="text-ink font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
               </div>
               <div className="text-4xl sm:text-5xl font-black text-ink font-outfit tracking-tighter italic truncate">₦{basePrice.toLocaleString()}</div>
+              {Number(order.stop_count) > 1 && (
+                <div className="inline-flex self-start bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">{order.stop_count} drop-offs</div>
+              )}
+              {order.scheduled_at && (
+                <div className="inline-flex self-start bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Scheduled {new Date(order.scheduled_at).toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: 'numeric', minute: '2-digit' })}</div>
+              )}
            </div>
            
            <button 
@@ -193,7 +199,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
               Accept Signal <ChevronRight size={24} />
             </button>
 
-            {!showBidInput ? (
+            {((order.payment_required && order.payment_status === 'paid') || order.price_locked) ? null : !showBidInput ? (
               <button
                 onClick={() => { setShowBidInput(true); setBidAmount(basePrice ? String(basePrice) : ''); }}
                 className="w-full py-4 bg-white/5 hover:bg-white/10 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
