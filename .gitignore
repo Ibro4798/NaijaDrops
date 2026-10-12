@@ -49,3 +49,6 @@ next-env.d.ts
 *.bak_*
 
 _backup_payfirst_*
+
+_backup_*
+kano_vendors_50.csv
