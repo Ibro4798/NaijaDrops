@@ -38,6 +38,8 @@ function Step3Content() {
   const [scheduledEnabled, setScheduledEnabled] = useState(false);
   const [windowChoice, setWindowChoice] = useState("now");
   const [payFirst, setPayFirst] = useState(false);
+  // "after_match": pay once a price is agreed. "at_pickup": pay when the rider reaches the pickup point.
+  const [paymentTiming, setPaymentTiming] = useState("after_match");
   const windowOptions = upcomingWindows();
 
   useEffect(() => {
@@ -166,6 +168,8 @@ function Step3Content() {
         recipient_phone: draft.recipient_phone,
         notify_receiver: draft.notify_receiver,
         agreed_price: draft.estimated_price,
+        // The database forces after_match for scheduled / pay-first orders regardless of this value.
+        payment_timing: (windowChoice === "now" && !payFirst) ? paymentTiming : "after_match",
         ...(extras.length > 0 ? { stop_count: 1 + extras.length } : {}),
         ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {}),
         status: "pending",
@@ -350,6 +354,29 @@ function Step3Content() {
             </div>
           </div>
         )}
+        {windowChoice === "now" && !payFirst && (
+          <div className="w-full max-w-sm mb-6 bg-white/[0.04] border border-white/10 rounded-3xl p-5">
+            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">When do you pay?</div>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentTiming("after_match")}
+                className={"w-full text-left px-4 py-3 rounded-2xl border " + (paymentTiming === "after_match" ? "border-emerald-500 bg-emerald-500/10" : "border-white/10")}
+              >
+                <div className={"text-sm font-black " + (paymentTiming === "after_match" ? "text-emerald-400" : "text-ink")}>After you agree a price</div>
+                <div className="text-xs text-charcoal-400 font-medium mt-1 leading-relaxed">Negotiate with riders first. Once you accept one, you pay and they head to pickup.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentTiming("at_pickup")}
+                className={"w-full text-left px-4 py-3 rounded-2xl border " + (paymentTiming === "at_pickup" ? "border-emerald-500 bg-emerald-500/10" : "border-white/10")}
+              >
+                <div className={"text-sm font-black " + (paymentTiming === "at_pickup" ? "text-emerald-400" : "text-ink")}>At pickup</div>
+                <div className="text-xs text-charcoal-400 font-medium mt-1 leading-relaxed">Your rider heads to pickup first. You pay when they arrive, then they set off with your package.</div>
+              </button>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="w-full max-w-sm mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-bold">
             {error}
@@ -362,9 +389,9 @@ function Step3Content() {
         >
           {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> {windowChoice !== "now" ? "Pay & Schedule" : payFirst ? "Pay & Find My Rider" : "Find My Rider"}</>}
         </button>
-        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">{windowChoice !== "now" || payFirst ? "Pay securely first" : "No payment until delivery"}</p>
+        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">{windowChoice !== "now" || payFirst ? "Pay securely first" : (paymentTiming === "at_pickup" ? "Pay when your rider arrives" : "Pay after you agree a price")}</p>
         <p className="text-charcoal-700 text-[10px] font-bold mt-6 uppercase tracking-widest text-center max-w-xs leading-relaxed">
-          {windowChoice !== "now" || payFirst ? "You'll pay with Paystack next. Once paid, nearby riders are notified right away (scheduled orders are handed to a rider before your window)." : "You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders."}
+          {windowChoice !== "now" || payFirst ? "You'll pay with Paystack next. Once paid, nearby riders are notified right away (scheduled orders are handed to a rider before your window)." : "You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders. " + (paymentTiming === "at_pickup" ? "Your rider heads to pickup first - you pay when they arrive, then they set off with your package." : "Once you accept a rider, you pay and they head to pickup.")}
         </p>
       </div>
     </div>

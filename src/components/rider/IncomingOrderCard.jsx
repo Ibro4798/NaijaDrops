@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, ChevronRight, Zap, X, HandCoins, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { roundUpTo50 } from '@/utils/pricing';
+import useBackToClose from '@/utils/useBackToClose';
 
 // FIX: this card accepted an `onCounterOffer` prop from day one, but never
 // actually rendered anything that called it - there was no input field, no
@@ -16,6 +17,8 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
   const [confirmingAccept, setConfirmingAccept] = useState(false);
   const [showBidInput, setShowBidInput] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
+  // Android Back closes the enlarged photo instead of leaving the app.
+  useBackToClose(photoExpanded, () => setPhotoExpanded(false));
 
   if (!order) return null;
 
@@ -95,6 +98,15 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
               <Package size={11} /> Tap to view full size
             </div>
           </button>
+        )}
+
+        {order.payment_timing === 'at_pickup' && !order.payment_required && (
+          <div className="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
+            <p className="text-amber-400 font-black text-xs uppercase tracking-widest mb-1">Pay at pickup</p>
+            <p className="text-charcoal-400 text-xs leading-relaxed">
+              You head to the pickup point first. The customer pays when you arrive, and you set off with the package once payment is confirmed.
+            </p>
+          </div>
         )}
 
         {/* Route Visualization */}

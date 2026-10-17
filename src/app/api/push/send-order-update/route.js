@@ -59,7 +59,7 @@ export async function POST(req) {
 
     const { data: order, error } = await admin
       .from("orders")
-      .select("id, status, vendor_id, rider_user_id, item_description, dropoff_name")
+      .select("id, status, vendor_id, rider_user_id, item_description, dropoff_name, payment_timing, pickup_arrived_at, payment_status, agreed_price")
       .eq("id", orderId)
       .single();
 
@@ -67,6 +67,13 @@ export async function POST(req) {
 
     const milestone = MILESTONES[order.status];
     if (!milestone) return NextResponse.json({ skipped: true });
+
+    // PAY AT PICKUP: rider has arrived and the order is unpaid -> ask the vendor to pay.
+    const arrivedUnpaid =
+      order.status === "matched" &&
+      order.payment_timing === "at_pickup" &&
+      !!order.pickup_arrived_at &&
+      order.payment_status !== "paid";
 
     const recipientUserIds = [];
     if (order.vendor_id) {
@@ -77,7 +84,7 @@ export async function POST(req) {
         .single();
       if (vendor?.user_id) recipientUserIds.push(vendor.user_id);
     }
-    if (order.rider_user_id) recipientUserIds.push(order.rider_user_id);
+    if (order.rider_user_id && !arrivedUnpaid) recipientUserIds.push(order.rider_user_id);
 
     if (recipientUserIds.length === 0) return NextResponse.json({ skipped: true });
 
@@ -89,8 +96,10 @@ export async function POST(req) {
     if (!subs?.length) return NextResponse.json({ sent: 0 });
 
     const payload = JSON.stringify({
-      title: milestone.title,
-      body: milestone.body(order),
+      title: arrivedUnpaid ? "Your rider has arrived - pay now" : milestone.title,
+      body: arrivedUnpaid
+        ? `Pay ₦${Number(order.agreed_price || 0).toLocaleString()} now so your rider can set off with ${order.item_description || "the package"}.`
+        : milestone.body(order),
       url: `/tracking/${order.id}`,
     });
 

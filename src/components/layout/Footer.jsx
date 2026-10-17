@@ -66,6 +66,7 @@ export default function Footer() {
               {[
                 { label: 'Privacy Policy', href: '/privacy' },
                 { label: 'Terms of Service', href: '/terms' },
+                { label: 'Delete Account', href: '/delete-account' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link 

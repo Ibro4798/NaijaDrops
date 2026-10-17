@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import useBackToClose from '@/utils/useBackToClose';
 
 export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, onClose }) {
   const supabase = createClient();
@@ -11,6 +12,9 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Android Back closes the review sheet instead of leaving the app.
+  useBackToClose(isOpen && !!order && !!driverProfile, onClose);
 
   if (!isOpen || !order || !driverProfile) return null;
 

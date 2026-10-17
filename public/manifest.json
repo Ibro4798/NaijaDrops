@@ -1,10 +1,12 @@
 {
+  "id": "/",
   "name": "NaijaDrops Deliveries",
   "short_name": "NaijaDrops",
-  "description": "The premier logistics delivery app mapping out Kano seamlessly.",
+  "description": "Trackable, reliable delivery for vendors and customers in Kano.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0a1210",
   "theme_color": "#10b981",
   "orientation": "portrait",
   "icons": [
@@ -15,19 +17,19 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

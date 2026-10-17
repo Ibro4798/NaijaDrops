@@ -45,14 +45,14 @@ export default function Navbar() {
               const checkActiveOrder = async () => {
                   // âœ… FIX: orders table has vendor_id not user_id
                   const { data: orders } = await supabase.from('orders')
-                    .select('id, status, payment_status')
+                    .select('id, status, payment_status, payment_timing, pickup_arrived_at')
                     .eq('vendor_id', vendorId)
                     .in('status', ['pending', 'looking_for_driver', 'matched', 'picked_up', 'in_transit'])
                     .order('created_at', { ascending: false })
                     .limit(1);
                     
                   const order = orders?.[0] || null;
-                  setActiveOrder(order ? { ...order, isAwaitingPayment: order.status === 'matched' && order.payment_status !== 'paid' } : null);
+                  setActiveOrder(order ? { ...order, isAwaitingPayment: order.status === 'matched' && order.payment_status !== 'paid' && (order.payment_timing !== 'at_pickup' || !!order.pickup_arrived_at) } : null);
               };
               
               await checkActiveOrder();

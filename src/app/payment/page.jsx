@@ -135,7 +135,7 @@ function PaymentContent() {
         // under the exact same generic email, making real transactions
         // impossible to tell apart. Keying it to the order's actual
         // vendor_id at least makes each vendor's payments distinguishable.
-        const userEmail = orderData.vendor_id ? `vendor-${orderData.vendor_id}@naijadrops.com` : 'customer@naijadrops.com';
+        const userEmail = orderData.vendor_id ? `vendor-${orderData.vendor_id}@naijadrops.tech` : 'customer@naijadrops.tech';
 
         initializePaystack({
             email: userEmail,

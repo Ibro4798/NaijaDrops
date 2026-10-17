@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateAdmin } from '@/utils/admin';
 
 export async function POST(request) {
+    // SECURITY: this route uses the service-role key, so it must never run
+    // for an unauthenticated or non-admin caller. Deleting accounts is
+    // destructive, so it requires a super admin.
+    let caller;
+    try {
+        caller = await validateAdmin('super_admin');
+    } catch (authErr) {
+        const forbidden = /Forbidden/i.test(authErr?.message || '');
+        return NextResponse.json(
+            { error: forbidden ? 'Forbidden' : 'Unauthorized' },
+            { status: forbidden ? 403 : 401 }
+        );
+    }
+
     // Requires SUPABASE_SERVICE_ROLE_KEY — this runs on the server only.
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +29,10 @@ export async function POST(request) {
 
         if (!userId) {
             return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
+        }
+
+        if (userId === caller.user.id) {
+            return NextResponse.json({ error: 'You cannot delete your own admin account here.' }, { status: 400 });
         }
 
         // 1. Delete the user from Auth. 

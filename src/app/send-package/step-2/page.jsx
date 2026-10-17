@@ -1,37 +1,15 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Package, Phone, User, ArrowRight, Bell, Camera, X, Loader2
+  ArrowLeft, Package, Phone, User, ArrowRight
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import imageCompression from "browser-image-compression";
 import { fetchPricingSettings, getFuelMultiplier } from "@/utils/pricing";
 
 const DRAFT_KEY = "nd_order_draft";
-
-// The delivery-photos bucket's actual limit (checked directly in
-// Supabase) - there was never a need to compress every photo down to
-// 0.8MB, that number was arbitrary and forced more compression work than
-// necessary on every device, worst of all on the weakest ones.
-const BUCKET_LIMIT_BYTES = 5 * 1024 * 1024;
-// A lot of budget-phone cameras already shoot smaller/lower-res photos
-// than flagship phones - if it's already reasonably small, running it
-// through compression at all is wasted CPU time for no benefit.
-const SKIP_COMPRESSION_UNDER_BYTES = 1.5 * 1024 * 1024;
-// If compression hasn't finished by this point, something's wrong - a
-// stuck Web Worker, an older WebView struggling with a large image,
-// whatever the specific cause, the fix is the same: stop waiting on it.
-const COMPRESSION_TIMEOUT_MS = 12000;
-
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("COMPRESSION_TIMEOUT")), ms)),
-  ]);
-}
 
 // Pricing constants
 const BASE_PRICE = 500;
@@ -64,13 +42,6 @@ export default function Step2Page() {
   const [description, setDescription] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
-  const [notifyReceiver, setNotifyReceiver] = useState(false);
-
-  const [packagePhotoUrl, setPackagePhotoUrl] = useState("");
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadTakingLong, setUploadTakingLong] = useState(false);
-  const fileInputRef = useRef(null);
 
   const supabase = createClient();
   const [fuelMultiplier, setFuelMultiplier] = useState(1);
@@ -95,126 +66,17 @@ export default function Step2Page() {
       if (d.size) setSize(d.size);
       if (d.vehicle) setVehicle(d.vehicle);
       if (d.description) setDescription(d.description);
-      if (d.package_photo_url) setPackagePhotoUrl(d.package_photo_url);
       if (d.recipient_name) setReceiverName(d.recipient_name);
       if (d.recipient_phone) setReceiverPhone(d.recipient_phone);
-      if (d.notify_receiver !== undefined) setNotifyReceiver(d.notify_receiver);
     } catch {
       router.replace("/send-package/step-1");
     }
   }, []);
 
-  // FIX: a package photo used to be optional - canContinue never checked
-  // packagePhotoUrl at all, so a rider could be asked to accept a job with
-  // zero visual on what they're picking up. Now it's required: the button
-  // stays disabled until a photo has actually finished uploading (not just
-  // been selected - packagePhotoUrl is only set once the upload succeeds).
-  const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8 && !!packagePhotoUrl;
-  const [photoUploadError, setPhotoUploadError] = useState(null);
-
-  async function handlePhotoSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setPhotoPreview(URL.createObjectURL(file));
-    setUploadingPhoto(true);
-    setUploadTakingLong(false);
-    setPhotoUploadError(null);
-
-    // Purely cosmetic - if this is still running after 5s, say so, rather
-    // than leaving a rider staring at a bare spinner wondering if the app
-    // has frozen. Older/weaker phones genuinely do take longer here, so
-    // this is honest, not just decoration.
-    const slowTimer = setTimeout(() => setUploadTakingLong(true), 5000);
-
-    try {
-      let uploadFile = file;
-
-      if (file.size > SKIP_COMPRESSION_UNDER_BYTES) {
-        try {
-          // FIX: this used to always target 0.8MB with default iteration
-          // settings, regardless of the bucket's real 5MB limit - forcing
-          // more compression passes (each one real CPU time) than the
-          // bucket ever actually required. Targeting 1.5MB with fewer
-          // max iterations converges much faster, especially on a weak
-          // CPU, at the cost of a slightly larger (still well within
-          // budget) final file.
-          uploadFile = await withTimeout(
-            imageCompression(file, {
-              maxSizeMB: 1.5,
-              maxWidthOrHeight: 1280,
-              useWebWorker: true,
-              maxIteration: 4,
-              initialQuality: 0.75,
-            }),
-            COMPRESSION_TIMEOUT_MS
-          );
-        } catch (compressErr) {
-          // FIX: compression hanging or failing outright (a stuck Web
-          // Worker, an older WebView choking on a large image - common
-          // enough on budget devices that this can't be treated as a
-          // rare edge case) used to leave the rider stuck on "Uploading..."
-          // indefinitely, with the photo never actually going anywhere.
-          // If the original file already fits the bucket's real limit,
-          // just upload it as-is instead of blocking on compression that
-          // isn't working on this particular device.
-          console.warn("Photo compression timed out or failed, using original:", compressErr);
-          if (file.size <= BUCKET_LIMIT_BYTES) {
-            uploadFile = file;
-          } else {
-            throw new Error("PHOTO_TOO_LARGE");
-          }
-        }
-      }
-
-      const fileExt = uploadFile.type?.includes("png") ? "png" : "jpg";
-      const fileName = `package_${Date.now()}.${fileExt}`;
-      const { data, error } = await supabase.storage
-        .from("delivery-photos")
-        .upload(fileName, uploadFile, { contentType: uploadFile.type || "image/jpeg" });
-
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage.from("delivery-photos").getPublicUrl(fileName);
-        setPackagePhotoUrl(publicUrlData.publicUrl);
-      } else {
-        // FIX: a photo is now required to continue, so silently letting the
-        // rider proceed without one (the old alert said "you can still
-        // continue without it") is no longer correct. Clear the preview so
-        // the disabled Continue button and the upload prompt honestly
-        // reflect that no photo is actually attached yet, and show an
-        // inline error with a retry affordance instead of a blocking alert.
-        setPhotoPreview(null);
-        setPackagePhotoUrl("");
-        setPhotoUploadError("Couldn't upload the photo. Please try again - a package photo is required.");
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }
-    } catch (err) {
-      // FIX: compression or upload throwing outright (out-of-memory on a
-      // weak device, a corrupt file, etc) used to propagate uncaught -
-      // now it lands the same honest, retryable error state as a plain
-      // upload failure instead of silently breaking the page.
-      console.error("Photo select/upload failed:", err);
-      setPhotoPreview(null);
-      setPackagePhotoUrl("");
-      setPhotoUploadError(
-        err?.message === "PHOTO_TOO_LARGE"
-          ? "That photo is too large (over 5MB) to upload as-is, and this device couldn't compress it. Try a smaller photo."
-          : "Couldn't process that photo. Please try again."
-      );
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } finally {
-      clearTimeout(slowTimer);
-      setUploadingPhoto(false);
-      setUploadTakingLong(false);
-    }
-  }
-
-  function removePhoto() {
-    setPackagePhotoUrl("");
-    setPhotoPreview(null);
-    setPhotoUploadError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+  // Only a size, a short description and the receiver's details are needed to
+  // continue. (The package photo and the "notify receiver" toggle were removed
+  // from this step.)
+  const canContinue = size && vehicle && description.trim() && receiverName.trim() && receiverPhone.trim().length >= 8;
 
   function handleContinue() {
     if (!canContinue) return;
@@ -223,10 +85,9 @@ export default function Step2Page() {
       size,
       vehicle,
       description: description.trim(),
-      package_photo_url: packagePhotoUrl,
       recipient_name: receiverName.trim(),
       recipient_phone: receiverPhone.trim(),
-      notify_receiver: notifyReceiver,
+      notify_receiver: false,
       estimated_price: estimatedPrice,
       base_price: estimatedPrice,
       extras_total: 0,
@@ -285,40 +146,6 @@ export default function Step2Page() {
       </div>
 
       <div className="flex-1 px-5 overflow-y-auto pb-6 space-y-6">
-        {/* Package Photo */}
-        <div>
-          <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Photo <span className="text-emerald-500 normal-case tracking-normal">- required</span></label>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" id="package-photo-input" />
-          {photoPreview ? (
-            <div className="relative rounded-2xl overflow-hidden border border-white/10">
-              <img src={photoPreview} alt="Package" className="w-full h-40 object-cover" />
-              {uploadingPhoto && (
-                <div className="absolute inset-0 bg-charcoal-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-4 text-center">
-                  <Loader2 className="text-emerald-500 animate-spin" size={24} />
-                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Uploading...</span>
-                  {uploadTakingLong && (
-                    <span className="text-charcoal-400 text-[10px] font-medium normal-case">This can take a bit longer on some phones - still working.</span>
-                  )}
-                </div>
-              )}
-              <button onClick={removePhoto} className="absolute top-3 right-3 w-8 h-8 bg-charcoal-950/80 backdrop-blur-md rounded-xl flex items-center justify-center text-ink">
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <label htmlFor="package-photo-input" className="flex flex-col items-center justify-center gap-2 py-8 bg-charcoal-900 border border-dashed border-white/20 rounded-2xl cursor-pointer hover:border-emerald-500/40 transition-all">
-              <Camera size={24} className="text-charcoal-500" />
-              <span className="text-charcoal-400 text-xs font-bold">Add a photo of the package</span>
-              <span className="text-charcoal-600 text-[10px]">Required - so your rider knows what they're picking up</span>
-            </label>
-          )}
-          {photoUploadError && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-xl border bg-red-500/10 border-red-500/20">
-              <span className="text-red-400 text-xs font-medium leading-relaxed">{photoUploadError}</span>
-            </div>
-          )}
-        </div>
-
         {/* Package Size */}
         <div>
           <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest ml-1 mb-3 block">Package Size</label>
@@ -375,20 +202,6 @@ export default function Step2Page() {
           </div>
         </div>
 
-        {/* Notify toggle */}
-        <button onClick={() => setNotifyReceiver(!notifyReceiver)}
-          className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all ${notifyReceiver ? "border-emerald-500/40 bg-emerald-500/10" : "border-white/10 bg-white/[0.02]"}`}>
-          <div className="flex items-center gap-3">
-            <Bell size={16} className={notifyReceiver ? "text-emerald-400" : "text-charcoal-500"} />
-            <div className="text-left">
-              <div className={`text-sm font-bold ${notifyReceiver ? "text-ink" : "text-charcoal-300"}`}>Notify Receiver</div>
-              <div className="text-charcoal-500 text-xs">Call before delivery (optional)</div>
-            </div>
-          </div>
-          <div className={`w-11 h-6 rounded-full transition-all ${notifyReceiver ? "bg-emerald-500" : "bg-charcoal-700"} relative`}>
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${notifyReceiver ? "left-6" : "left-1"}`} />
-          </div>
-        </button>
       </div>
 
       {/* CTA */}
