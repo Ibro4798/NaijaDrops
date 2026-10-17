@@ -72,8 +72,8 @@ export default function LandingPage() {
         </div>
 
         <div className="flex items-center gap-3 md:gap-6">
-          <a href="/pricing" className="hidden md:block text-[11px] font-black uppercase tracking-widest text-charcoal-400 hover:text-emerald-400 transition-colors">
-            Pricing
+          <a href="/send-package/step-1" className="hidden md:block text-[11px] font-black uppercase tracking-widest text-charcoal-400 hover:text-emerald-400 transition-colors">
+            Get a quote
           </a>
           <InstallAppButton />
           <button
@@ -239,7 +239,7 @@ export default function LandingPage() {
           <div className="flex gap-6 text-[11px] font-bold uppercase tracking-widest text-charcoal-500">
             <a href="/terms"   className="hover:text-white transition-colors">Terms</a>
             <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
-            <a href="/pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="/send-package/step-1" className="hover:text-white transition-colors">Get a quote</a>
           </div>
         </div>
       </footer>

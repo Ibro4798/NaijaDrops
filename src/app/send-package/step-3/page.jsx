@@ -6,9 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft, Zap, Loader2, Lock } from "lucide-react";
 import { cancelOrder } from "@/app/vendor/active-orders/actions";
-import { upcomingWindows } from "@/utils/windows";
+import { formatWindowRange, formatWindowTime } from "@/utils/windows";
 
 const DRAFT_KEY = "nd_order_draft";
+
+// A window can be booked while it is open, before its cut-off, and while places remain.
+const isJoinable = (w) =>
+  w.is_open && Date.now() < new Date(w.cutoff_at).getTime() && (w.spots_left === null || w.spots_left > 0);
 
 // FIX: this page used to run its own entire parallel matching + negotiation
 // system - a "Quick Match" vs "Negotiate Price" toggle, its own bid
@@ -34,13 +38,12 @@ function Step3Content() {
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Scheduled delivery windows: only shown to vendors ops has switched on.
+  // Scheduled delivery: only vendors ops has switched on, and only into windows ops has created.
   const [scheduledEnabled, setScheduledEnabled] = useState(false);
   const [windowChoice, setWindowChoice] = useState("now");
-  const [payFirst, setPayFirst] = useState(false);
+  const [windows, setWindows] = useState([]);
   // "after_match": pay once a price is agreed. "at_pickup": pay when the rider reaches the pickup point.
   const [paymentTiming, setPaymentTiming] = useState("after_match");
-  const windowOptions = upcomingWindows();
 
   useEffect(() => {
     (async () => {
@@ -53,9 +56,9 @@ function Step3Content() {
           .eq("user_id", user.id)
           .maybeSingle();
         if (data?.scheduled_enabled) setScheduledEnabled(true);
-        // Only used for wording: the database decides the real policy on insert.
-        const { data: pf } = await supabase.rpc("payment_required_for_me");
-        setPayFirst(pf === true);
+        // Windows ops has opened (empty unless this vendor is switched on).
+        const { data: ws } = await supabase.rpc("open_schedule_windows");
+        setWindows(ws || []);
       } catch { /* feature simply stays hidden */ }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,13 +141,12 @@ function Step3Content() {
         throw new Error("Please review your drop-offs again before continuing.");
       }
 
-      let scheduledAtIso = null;
+      let scheduledWindow = null;
       if (windowChoice !== "now") {
-        const startMs = new Date(windowChoice).getTime();
-        if (!Number.isFinite(startMs) || startMs - Date.now() < 60 * 60 * 1000) {
+        scheduledWindow = windows.find((w) => w.id === windowChoice) || null;
+        if (!scheduledWindow || !isJoinable(scheduledWindow)) {
           throw new Error("That delivery window has just closed. Please pick another.");
         }
-        scheduledAtIso = new Date(startMs).toISOString();
       }
 
       const { data: order, error: err } = await supabase.from("orders").insert({
@@ -168,10 +170,10 @@ function Step3Content() {
         recipient_phone: draft.recipient_phone,
         notify_receiver: draft.notify_receiver,
         agreed_price: draft.estimated_price,
-        // The database forces after_match for scheduled / pay-first orders regardless of this value.
-        payment_timing: (windowChoice === "now" && !payFirst) ? paymentTiming : "after_match",
+        // Scheduled orders always pay first; the database enforces that regardless of this value.
+        payment_timing: windowChoice === "now" ? paymentTiming : "after_match",
         ...(extras.length > 0 ? { stop_count: 1 + extras.length } : {}),
-        ...(scheduledAtIso ? { scheduled_at: scheduledAtIso } : {}),
+        ...(scheduledWindow ? { schedule_window_id: scheduledWindow.id, scheduled_at: scheduledWindow.starts_at } : {}),
         status: "pending",
       }).select().single();
 
@@ -225,7 +227,11 @@ function Step3Content() {
         router.replace(`/tracking/${order.id}`);
       }
     } catch (e) {
-      setError("Failed to create order: " + e.message);
+      const msg = String(e?.message || "");
+      if (/WINDOW_FULL/.test(msg)) setError("That delivery window just filled up. Please pick another.");
+      else if (/WINDOW_CLOSED|WINDOW_REQUIRED/.test(msg)) setError("That delivery window has just closed. Please pick another.");
+      else if (/SCHEDULING_NOT_ENABLED/.test(msg)) setError("Scheduled delivery isn't available on your account yet.");
+      else setError("Failed to create order: " + msg);
       setCreatingOrder(false);
     }
   }
@@ -330,7 +336,7 @@ function Step3Content() {
             </div>
           </div>
         </div>
-        {scheduledEnabled && windowOptions.length > 0 && (
+        {scheduledEnabled && (
           <div className="w-full max-w-sm mb-6 bg-white/[0.04] border border-white/10 rounded-3xl p-5">
             <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Delivery time</div>
             <div className="grid grid-cols-1 gap-2">
@@ -341,20 +347,35 @@ function Step3Content() {
               >
                 Now - find a rider right away
               </button>
-              {windowOptions.map((w) => (
-                <button
-                  key={w.iso}
-                  type="button"
-                  onClick={() => setWindowChoice(w.iso)}
-                  className={"w-full text-left px-4 py-3 rounded-2xl border text-sm font-black " + (windowChoice === w.iso ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 text-ink")}
-                >
-                  {w.label}
-                </button>
-              ))}
+              {windows.map((w) => {
+                const open = isJoinable(w);
+                return (
+                  <button
+                    key={w.id}
+                    type="button"
+                    disabled={!open}
+                    onClick={() => setWindowChoice(w.id)}
+                    className={"w-full text-left px-4 py-3 rounded-2xl border " + (!open ? "opacity-40 border-white/10 text-ink" : windowChoice === w.id ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 text-ink")}
+                  >
+                    <div className="text-sm font-black">{w.label || formatWindowRange(w.starts_at, w.duration_minutes)}</div>
+                    <div className="text-xs font-medium mt-1 text-charcoal-400">
+                      {w.label ? formatWindowRange(w.starts_at, w.duration_minutes) + " - " : ""}
+                      {open
+                        ? "book before " + formatWindowTime(w.cutoff_at) + (w.spots_left !== null ? " - " + w.spots_left + " left" : "")
+                        : w.spots_left === 0 ? "Full" : "Closed"}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+            {windows.length === 0 && (
+              <p className="text-charcoal-500 text-xs mt-3 leading-relaxed">
+                No scheduled delivery window is open right now. Check back later, or send now.
+              </p>
+            )}
           </div>
         )}
-        {windowChoice === "now" && !payFirst && (
+        {windowChoice === "now" && (
           <div className="w-full max-w-sm mb-6 bg-white/[0.04] border border-white/10 rounded-3xl p-5">
             <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">When do you pay?</div>
             <div className="grid grid-cols-1 gap-2">
@@ -387,11 +408,11 @@ function Step3Content() {
           disabled={creatingOrder}
           className="w-full max-w-sm bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 font-black py-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all active:scale-95 disabled:opacity-50"
         >
-          {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> {windowChoice !== "now" ? "Pay & Schedule" : payFirst ? "Pay & Find My Rider" : "Find My Rider"}</>}
+          {creatingOrder ? <Loader2 size={22} className="animate-spin" /> : <><Zap size={22} /> {windowChoice !== "now" ? "Pay & Schedule" : "Find My Rider"}</>}
         </button>
-        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">{windowChoice !== "now" || payFirst ? "Pay securely first" : (paymentTiming === "at_pickup" ? "Pay when your rider arrives" : "Pay after you agree a price")}</p>
+        <p className="text-charcoal-600 text-xs font-bold mt-4 uppercase tracking-widest">{windowChoice !== "now" ? "Pay securely first" : (paymentTiming === "at_pickup" ? "Pay when your rider arrives" : "Pay after you agree a price")}</p>
         <p className="text-charcoal-700 text-[10px] font-bold mt-6 uppercase tracking-widest text-center max-w-xs leading-relaxed">
-          {windowChoice !== "now" || payFirst ? "You'll pay with Paystack next. Once paid, nearby riders are notified right away (scheduled orders are handed to a rider before your window)." : "You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders. " + (paymentTiming === "at_pickup" ? "Your rider heads to pickup first - you pay when they arrive, then they set off with your package." : "Once you accept a rider, you pay and they head to pickup.")}
+          {windowChoice !== "now" ? "You'll pay with Paystack next. Once paid, nearby riders are notified right away (scheduled orders are handed to a rider before your window)." : "You'll be taken straight to live tracking, where you can negotiate price and see bids from nearby riders. " + (paymentTiming === "at_pickup" ? "Your rider heads to pickup first - you pay when they arrive, then they set off with your package." : "Once you accept a rider, you pay and they head to pickup.")}
         </p>
       </div>
     </div>

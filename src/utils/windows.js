@@ -1,53 +1,40 @@
-// Pilot delivery windows. Nigeria (Africa/Lagos) is UTC+1 all year with no
-// daylight saving, so a fixed offset is exact here.
+// Delivery windows are created by ops (Ops Terminal > Scheduled) and live in the
+// schedule_windows table. This file only holds the helpers for dates and display.
+// Nigeria (Africa/Lagos) is UTC+1 all year with no daylight saving, so a fixed
+// offset is exact here.
 const LAGOS_OFFSET_MS = 60 * 60 * 1000;
+const TZ = "Africa/Lagos";
 
-// Vendors must book at least this long before the window starts.
-export const CUTOFF_MINUTES_BEFORE = 60;
-
-export const DELIVERY_WINDOWS = [
-  { id: "12:30", hour: 12, minute: 30, label: "12:30 PM" },
-  { id: "15:30", hour: 15, minute: 30, label: "3:30 PM" },
-];
-
-function dayLabel(dayOffset, startMs) {
-  if (dayOffset === 0) return "Today";
-  if (dayOffset === 1) return "Tomorrow";
-  return new Date(startMs).toLocaleDateString("en-NG", { weekday: "long", timeZone: "Africa/Lagos" });
+// "2026-10-20" + "12:30" (Lagos wall-clock) -> UTC ISO string, or null if invalid.
+export function lagosToUtcIso(dateStr, timeStr) {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || "");
+  const t = /^(\d{2}):(\d{2})$/.exec(timeStr || "");
+  if (!d || !t) return null;
+  const ms = Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]) - LAGOS_OFFSET_MS;
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
-// Windows whose cutoff has not passed yet, soonest first.
-export function upcomingWindows(now = new Date(), count = 4) {
-  const nowMs = now.getTime();
-  const lagos = new Date(nowMs + LAGOS_OFFSET_MS);
-  const y = lagos.getUTCFullYear();
-  const m = lagos.getUTCMonth();
-  const d = lagos.getUTCDate();
-  const out = [];
-
-  for (let dayOffset = 0; dayOffset < 3 && out.length < count; dayOffset++) {
-    for (const w of DELIVERY_WINDOWS) {
-      // Lagos wall-clock time -> real UTC instant.
-      const startMs = Date.UTC(y, m, d + dayOffset, w.hour, w.minute) - LAGOS_OFFSET_MS;
-      const cutoffMs = startMs - CUTOFF_MINUTES_BEFORE * 60 * 1000;
-      if (cutoffMs <= nowMs) continue;
-      if (out.length >= count) break;
-      out.push({
-        iso: new Date(startMs).toISOString(),
-        cutoffIso: new Date(cutoffMs).toISOString(),
-        label: dayLabel(dayOffset, startMs) + " " + w.label,
-      });
-    }
-  }
-  return out;
+// Today's date in Lagos as YYYY-MM-DD.
+export function lagosToday(now = new Date()) {
+  return new Date(now.getTime() + LAGOS_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 export function formatWindowTime(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleString("en-NG", {
-    timeZone: "Africa/Lagos",
+    timeZone: TZ,
     weekday: "short",
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+// "Tue 12:30 PM - 1:30 PM"
+export function formatWindowRange(startIso, durationMinutes) {
+  if (!startIso) return "";
+  const start = new Date(startIso);
+  const end = new Date(start.getTime() + (Number(durationMinutes) || 0) * 60 * 1000);
+  const time = (d) => d.toLocaleTimeString("en-NG", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+  const day = start.toLocaleDateString("en-NG", { timeZone: TZ, weekday: "short" });
+  return `${day} ${time(start)} - ${time(end)}`;
 }

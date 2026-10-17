@@ -31,6 +31,12 @@ const nextConfig = {
       { source: '/summary', destination: '/vendor/dashboard', permanent: true },
       { source: '/matching', destination: '/vendor/dashboard', permanent: true },
       { source: '/welcome', destination: '/', permanent: true },
+      // Legacy order-creation pages removed in favour of /send-package (one way to create an order)
+      { source: '/pricing', destination: '/send-package/step-1', permanent: false },
+      { source: '/vendor/create-delivery', destination: '/send-package/step-1', permanent: false },
+      { source: '/send-package/confirm', destination: '/send-package/step-3', permanent: false },
+      { source: '/select-mode', destination: '/', permanent: false },
+      { source: '/rider/jobs', destination: '/rider/dashboard', permanent: false },
       // Duplicate tracking route
       { source: '/track/:orderId', destination: '/tracking/:orderId', permanent: true },
       // Old /admin → ops-terminal (admins bookmarking /admin get sent to the right place)
