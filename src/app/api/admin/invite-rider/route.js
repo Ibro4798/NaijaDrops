@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateAdmin } from '@/utils/admin';
 
 export async function POST(request) {
+    // SECURITY: this route uses the service-role key to create accounts, so
+    // it must only ever run for a signed-in admin.
+    try {
+        await validateAdmin();
+    } catch (authErr) {
+        const forbidden = /Forbidden/i.test(authErr?.message || '');
+        return NextResponse.json(
+            { error: forbidden ? 'Forbidden' : 'Unauthorized' },
+            { status: forbidden ? 403 : 401 }
+        );
+    }
+
     // Requires SUPABASE_SERVICE_ROLE_KEY — this runs on the server only.
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,

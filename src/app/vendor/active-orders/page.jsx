@@ -202,7 +202,7 @@ export default function ActiveOrdersPage() {
                       Cancel
                     </button>
                   )}
-                  {order.status === "matched" && order.payment_status !== "paid" ? (
+                  {order.status === "matched" && order.payment_status !== "paid" && (order.payment_timing !== "at_pickup" || order.pickup_arrived_at) ? (
                     <button
                       onClick={() => router.push(`/payment?orderId=${order.id}`)}
                       className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 px-3 py-2 rounded-lg transition-all active:scale-95"

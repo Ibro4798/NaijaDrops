@@ -8,6 +8,7 @@ import { X, MapPin, Search, Navigation, CheckCircle2, Loader2, Globe } from 'luc
 import { getReliableLocation } from '@/utils/geolocation';
 import { getMapboxSuggestions, reverseGeocodeMapbox } from '@/utils/mapbox';
 import { extractFirstUrl, isAllowedHost } from '@/utils/MapResolver';
+import useBackToClose from '@/utils/useBackToClose';
 
 // workerClass override removed to fix blank map in Next.js 14+
 
@@ -236,6 +237,9 @@ export default function MapModal({ isOpen, onClose, onConfirm, initialLocation, 
       setMarkerPosition({ lat, lng });
       reverseGeocode(lat, lng);
   }, []);
+
+  // Android Back closes the map instead of leaving the app.
+  useBackToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

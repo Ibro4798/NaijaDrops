@@ -813,13 +813,24 @@ export default function TrackingPage() {
             next" prompt, and the moment payment clears it flips straight
             into the share prompt - both are the single most important
             action available at that stage, so both get top placement. */}
-        {isVendorView && order.status === 'matched' && !isPaid && (
+        {isVendorView && order.status === 'matched' && !isPaid && order.payment_timing === 'at_pickup' && !order.pickup_arrived_at && (
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-2">
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest">
+              <CreditCard size={16} /> Pay when your rider arrives
+            </div>
+            <p className="text-charcoal-300 text-sm leading-relaxed">
+              Your rider is heading to pickup. We&apos;ll ask you to pay ₦{order.agreed_price?.toLocaleString()} the moment they arrive, and they set off with your package once payment is confirmed.
+            </p>
+          </div>
+        )}
+
+        {isVendorView && order.status === 'matched' && !isPaid && !(order.payment_timing === 'at_pickup' && !order.pickup_arrived_at) && (
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
             <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest">
               <CreditCard size={16} /> Payment required
             </div>
             <p className="text-charcoal-300 text-sm leading-relaxed">
-              A rider has been assigned. Complete payment now so they can head to pickup - this order stays paused until then. The tracking link unlocks for your customer right after.
+              {order.payment_timing === 'at_pickup' ? 'Your rider has arrived at pickup. Pay now so they can set off with your package. The tracking link unlocks for your customer right after.' : 'A rider has been assigned. Complete payment now so they can head to pickup - this order stays paused until then. The tracking link unlocks for your customer right after.'}
             </p>
             <button
               onClick={() => router.push(`/payment?orderId=${order.id}`)}

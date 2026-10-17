@@ -69,6 +69,8 @@
  *    passed through (so a caller can move a live pin around for visual
  *    feedback) but callers should not commit to them as a final answer.
  */
+import { ensureLocationDisclosure } from "./locationDisclosure";
+
 
 const USABLE_ACCURACY_M = 150;
 const MAX_WAIT_FOR_USABLE_MS = 8000;
@@ -94,7 +96,21 @@ export function isConstrainedConnection() {
     return conn.effectiveType === "3g";
 }
 
-export async function getReliableLocation(onProgress, { signal } = {}) {
+export async function getReliableLocation(onProgress, opts = {}) {
+    // Google Play requires a prominent in-app disclosure BEFORE the system
+    // location prompt. Declining resolves null (same as any failed lookup),
+    // so every caller's existing "no location" handling just works.
+    const agreed = await ensureLocationDisclosure();
+    if (!agreed) {
+        if (onProgress) {
+            onProgress("📍 Location access is needed for this. You can also search for the place by name instead.", null);
+        }
+        return null;
+    }
+    return getReliableLocationInner(onProgress, opts);
+}
+
+async function getReliableLocationInner(onProgress, { signal } = {}) {
     return new Promise((resolve) => {
         let locationFound = false;
         let bestReading = null;

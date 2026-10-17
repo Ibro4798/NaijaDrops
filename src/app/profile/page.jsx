@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { getUserRole } from "@/utils/auth";
-import { User, Camera, Shield, Save, ArrowLeft, Star, Clock, MapPin, Sun, Moon, Monitor, Phone, Briefcase } from "lucide-react";
+import { User, Camera, Shield, Save, ArrowLeft, Star, Clock, MapPin, Sun, Moon, Monitor, Phone, Briefcase, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { useTheme } from "@/components/ThemeProvider";
@@ -20,6 +20,10 @@ export default function ProfilePage() {
   const [receiptDisplayName, setReceiptDisplayName] = useState("");
   const [phone, setPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const router = useRouter();
   const supabase = createClient();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
@@ -74,6 +78,31 @@ export default function ProfilePage() {
       alert("Failed to update profile.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm.trim().toUpperCase() !== "DELETE" || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteError(data?.error || "We couldn't delete your account. Please try again or contact support.");
+        setIsDeleting(false);
+        return;
+      }
+      try { await supabase.auth.signOut(); } catch { /* session already closed */ }
+      router.replace("/");
+    } catch (err) {
+      console.error(err);
+      setDeleteError("Network problem. Please check your connection and try again.");
+      setIsDeleting(false);
     }
   };
 
@@ -294,6 +323,74 @@ export default function ProfilePage() {
                 </button>
               ))}
            </div>
+        </section>
+
+        <section className="mt-8 bg-red-500/[0.04] border border-red-500/20 rounded-[3rem] p-10">
+           <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-400 border border-red-500/20">
+                 <Trash2 size={22} />
+              </div>
+              <div>
+                 <h3 className="text-ink font-black text-xl italic tracking-tight">Delete account</h3>
+                 <p className="text-charcoal-500 text-[9px] uppercase tracking-[0.2em] font-black">Permanent - cannot be undone</p>
+              </div>
+           </div>
+
+           {!showDelete ? (
+             <>
+               <p className="text-charcoal-400 text-sm font-medium leading-relaxed mb-6">
+                 Your name, contact details, photos, documents and saved location history are removed. Completed
+                 orders and payment records are kept for accounting and dispute purposes, without your personal details.
+               </p>
+               <button
+                 onClick={() => setShowDelete(true)}
+                 className="w-full py-4 rounded-2xl border border-red-500/30 text-red-400 hover:bg-red-500/10 font-black text-xs uppercase tracking-widest transition-all"
+               >
+                 Delete my account
+               </button>
+             </>
+           ) : (
+             <div className="space-y-4">
+               <p className="text-charcoal-300 text-sm font-medium leading-relaxed">
+                 This permanently deletes your NaijaDrops account and you will be signed out. You can&apos;t delete
+                 while an order is in progress or a payout is pending. Type <span className="font-black text-red-400">DELETE</span> to confirm.
+               </p>
+               <input
+                 type="text"
+                 value={deleteConfirm}
+                 onChange={(e) => setDeleteConfirm(e.target.value)}
+                 placeholder="Type DELETE"
+                 autoCapitalize="characters"
+                 autoComplete="off"
+                 className="w-full bg-charcoal-900 border border-white/10 rounded-2xl py-4 px-5 text-ink placeholder:text-charcoal-600 focus:outline-none focus:ring-2 focus:ring-red-500/40 text-sm font-bold tracking-widest"
+               />
+               {deleteError && (
+                 <div className="px-4 py-3 rounded-2xl border bg-red-500/10 border-red-500/20 text-red-400 text-xs font-medium leading-relaxed">
+                   {deleteError}
+                 </div>
+               )}
+               <div className="grid grid-cols-2 gap-3">
+                 <button
+                   onClick={() => { setShowDelete(false); setDeleteConfirm(""); setDeleteError(null); }}
+                   disabled={isDeleting}
+                   className="py-4 rounded-2xl bg-white/5 border border-white/10 text-charcoal-300 font-black text-xs uppercase tracking-widest"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   onClick={handleDeleteAccount}
+                   disabled={deleteConfirm.trim().toUpperCase() !== "DELETE" || isDeleting}
+                   className={`py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                     deleteConfirm.trim().toUpperCase() === "DELETE" && !isDeleting
+                       ? "bg-red-500 text-white"
+                       : "bg-white/5 text-charcoal-600 border border-white/10 cursor-not-allowed"
+                   }`}
+                 >
+                   {isDeleting ? "Deleting..." : "Delete forever"}
+                 </button>
+               </div>
+             </div>
+           )}
         </section>
 
       </div>

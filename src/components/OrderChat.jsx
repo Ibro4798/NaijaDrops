@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Send, X, AlertCircle, Check, ChevronDown, Lock, HandCoins } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useBackToClose from '@/utils/useBackToClose';
 
 // Channel-aware 3-way chat: vendor sees Rider/Customer tabs, rider sees
 // Vendor/Customer, customer sees Vendor/Rider (once assigned).
@@ -27,6 +28,8 @@ export default function OrderChat({
 }) {
   const supabase = createClient();
   const isAnonymous = viewerRole === 'customer';
+  // Android Back closes the chat sheet instead of leaving the app.
+  useBackToClose(true, onClose);
 
   const availableChannels = (CHANNELS_BY_ROLE[viewerRole] || CHANNELS_BY_ROLE.vendor)
     .filter(c => !c.needsRider || riderAssigned);

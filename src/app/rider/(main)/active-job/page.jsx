@@ -14,6 +14,7 @@ import SlideToConfirm from '@/components/rider/SlideToConfirm';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import OrderChat from '@/components/OrderChat';
 import DropoffChecklist from '@/components/rider/DropoffChecklist';
+import useWakeLock from '@/utils/useWakeLock';
 import { distanceMeters } from '@/utils/geolocation';
 
 // "General location of the pickup spot", not an exact building - Kano's
@@ -122,6 +123,10 @@ export default function ActiveJobPage() {
   const [pickupDistanceMeters, setPickupDistanceMeters] = useState(null);
   const [pickupLocationError, setPickupLocationError] = useState(false);
   const [autoPickupDetected, setAutoPickupDetected] = useState(false);
+
+  // Keep the screen awake during a live delivery so GPS tracking is not
+  // throttled when the phone would otherwise lock.
+  useWakeLock(!!order);
   const deliveryPhotoInputRef = useRef(null);
   // Auto-pickup detection state, kept in refs (not React state) since they
   // need to persist across GPS pings without re-triggering renders/effects
@@ -131,6 +136,8 @@ export default function ActiveJobPage() {
   const lastDropoffDistanceRef = useRef(null);
   const autoPickupFiredRef = useRef(false);
   const updateStatusRef = useRef(null);
+  const markArrivedRef = useRef(null);
+  const arrivalSentRef = useRef(false);
 
   // FIX: previously this ran once on mount, re-fetched from scratch AND
   // tore down/recreated the realtime channel every time order.id changed,
@@ -242,7 +249,9 @@ export default function ActiveJobPage() {
   // "Start Transit" and "Mark Delivered" are untouched by any of this -
   // delivered in particular stays a manual slide always, by design.
   useEffect(() => {
-    if (!order || order.status !== 'matched' || order.payment_status !== 'paid') {
+    // PAY AT PICKUP orders also need the proximity watch BEFORE payment, to detect arrival.
+    const atPickupMode = order?.payment_timing === 'at_pickup';
+    if (!order || order.status !== 'matched' || (order.payment_status !== 'paid' && !atPickupMode)) {
       setPickupDistanceMeters(null);
       setPickupLocationError(false);
       setAutoPickupDetected(false);
@@ -273,9 +282,15 @@ export default function ActiveJobPage() {
 
         if (distToPickup <= PICKUP_PROXIMITY_METERS) {
           hasEnteredPickupRegionRef.current = true;
+          // Reaching the pickup point is what asks the customer to pay.
+          if (atPickupMode && order.payment_status !== 'paid' && !order.pickup_arrived_at) {
+            markArrivedRef.current?.();
+          }
         }
 
+        // Auto-pickup (moving away toward drop-off) only ever fires once paid.
         if (
+          order.payment_status === 'paid' &&
           hasEnteredPickupRegionRef.current &&
           !autoPickupFiredRef.current &&
           distToDropoff !== null &&
@@ -303,7 +318,7 @@ export default function ActiveJobPage() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [order?.id, order?.status, order?.payment_status, order?.pickup_lat, order?.pickup_lng, order?.dropoff_lat, order?.dropoff_lng]);
+  }, [order?.id, order?.status, order?.payment_status, order?.payment_timing, order?.pickup_lat, order?.pickup_lng, order?.dropoff_lat, order?.dropoff_lng]);
 
   const isWithinPickupRange = pickupDistanceMeters !== null && pickupDistanceMeters <= PICKUP_PROXIMITY_METERS;
 
@@ -312,7 +327,8 @@ export default function ActiveJobPage() {
   // one state where a rider is actively watching the screen for it to
   // change. Realtime normally beats this; it's the fallback for a silently
   // dropped websocket.
-  const awaitingPaymentNow = !!order && order.status === 'matched' && order.payment_status !== 'paid';
+  const awaitingPaymentNow = !!order && order.status === 'matched' && order.payment_status !== 'paid' &&
+    (order.payment_timing !== 'at_pickup' || !!order.pickup_arrived_at);
   useEffect(() => {
     if (!awaitingPaymentNow) return;
     const id = setInterval(fetchActiveJob, 5000);
@@ -354,6 +370,33 @@ export default function ActiveJobPage() {
 
   useEffect(() => {
     updateStatusRef.current = updateStatus;
+  });
+
+  // PAY AT PICKUP: tell the customer the rider has reached the pickup point so
+  // they can pay. Stamped once (the database also enforces "once, assigned rider only").
+  const markArrived = async () => {
+    if (!order || order.pickup_arrived_at || arrivalSentRef.current) return;
+    arrivalSentRef.current = true;
+    const stamp = new Date().toISOString();
+    const { error } = await supabase
+      .from('orders')
+      .update({ pickup_arrived_at: stamp })
+      .eq('id', order.id)
+      .is('pickup_arrived_at', null);
+    if (error) {
+      arrivalSentRef.current = false;
+      return;
+    }
+    setOrder(prev => (prev ? { ...prev, pickup_arrived_at: stamp } : prev));
+    fetch('/api/push/send-order-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.id }),
+    }).catch(() => {});
+  };
+
+  useEffect(() => {
+    markArrivedRef.current = markArrived;
   });
 
   // Optional but encouraged proof-of-delivery photo, taken right before the
@@ -403,7 +446,7 @@ export default function ActiveJobPage() {
   // its own dedicated waiting screen, and the full details only appear once
   // payment clears (this re-renders automatically via the realtime update
   // and the fast poll above).
-  if (order.status === 'matched' && order.payment_status !== 'paid') {
+  if (order.status === 'matched' && order.payment_status !== 'paid' && order.payment_timing !== 'at_pickup') {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10 space-y-8">
         {riderId && <DriverHeartbeat riderId={riderId} isOnline={true} />}
@@ -479,6 +522,8 @@ export default function ActiveJobPage() {
   const targetLat = isHeadingToPickup ? order.pickup_lat : order.dropoff_lat;
   const targetLng = isHeadingToPickup ? order.pickup_lng : order.dropoff_lng;
   const targetName = isHeadingToPickup ? order.pickup_name : order.dropoff_name;
+  // Pay-at-pickup: drop-off and receiver details stay hidden until payment clears.
+  const dropoffLocked = order.payment_timing === 'at_pickup' && order.status === 'matched' && order.payment_status !== 'paid';
 
   return (
     <div className="space-y-6 pb-24">
@@ -557,8 +602,8 @@ export default function ActiveJobPage() {
             <div className={`w-6 h-6 rounded-lg border-4 border-charcoal-950 shrink-0 z-10 ${!isHeadingToPickup ? 'bg-emerald-500 shadow-glow' : 'bg-charcoal-800'}`}></div>
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
-               <div className="text-lg font-black text-ink leading-tight mb-2">{order.dropoff_name}</div>
-               <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>
+               <div className="text-lg font-black text-ink leading-tight mb-2">{dropoffLocked ? 'Revealed after payment' : order.dropoff_name}</div>
+               {!dropoffLocked && <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>}
                {!isHeadingToPickup && <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} />}
             </div>
           </div>
@@ -580,11 +625,11 @@ export default function ActiveJobPage() {
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">Call Vendor</span>
            </a>
-           <a href={`tel:${order.recipient_phone}`} className="flex flex-col items-center justify-center gap-3 py-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white/10 transition-all active:scale-95">
+           <a href={dropoffLocked ? undefined : `tel:${order.recipient_phone}`} aria-disabled={dropoffLocked} className={`${dropoffLocked ? 'pointer-events-none opacity-40 ' : ''}flex flex-col items-center justify-center gap-3 py-6 bg-white/5 border border-white/10 rounded-[2rem] hover:bg-white/10 transition-all active:scale-95`}>
               <div className="w-12 h-12 bg-charcoal-900 rounded-2xl flex items-center justify-center text-blue-500 border border-white/5">
                 <MessageSquare size={24} />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">Call Receiver</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-400">{dropoffLocked ? 'Receiver (after payment)' : 'Call Receiver'}</span>
            </a>
         </div>
 
@@ -630,7 +675,47 @@ export default function ActiveJobPage() {
                (set server-side by /api/verify-payment once the vendor pays
                on /payment). The realtime subscription above already updates
                `order` in place, so this unlocks live without a refresh. */}
-           {order.status === 'matched' && order.payment_status !== 'paid' && (
+           {/* PAY AT PICKUP: go to pickup first. Arrival (GPS or slide) asks the customer to pay;
+               the usual pickup slider unlocks only once payment is confirmed. */}
+           {order.status === 'matched' && order.payment_status !== 'paid' && order.payment_timing === 'at_pickup' && (
+             order.pickup_arrived_at ? (
+               <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-3">
+                 <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                   <Loader2 size={22} className="animate-spin" />
+                 </div>
+                 <p className="text-amber-500 font-black text-sm uppercase tracking-widest">Waiting for payment at pickup</p>
+                 <p className="text-charcoal-400 text-xs leading-relaxed">
+                   The customer has been asked to pay. Drop-off details unlock the moment payment is confirmed, then you set off with the package.
+                 </p>
+               </div>
+             ) : (isWithinPickupRange || pickupLocationError) ? (
+               <>
+                 <p className="text-amber-500/70 text-[10px] font-black uppercase tracking-widest text-center mb-3">
+                   {pickupLocationError
+                     ? "Couldn't verify your location — slide once you're at the pickup point."
+                     : "Also watching automatically — arrival confirms itself at the pickup point."}
+                 </p>
+                 <SlideToConfirm
+                   text="Slide: I've arrived at pickup"
+                   color="bg-amber-500"
+                   onConfirm={markArrived}
+                 />
+               </>
+             ) : (
+               <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-2">
+                 <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                   <MapPin size={22} />
+                 </div>
+                 <p className="text-amber-500 font-black text-sm uppercase tracking-widest">
+                   {pickupDistanceMeters === null ? 'Locating you...' : `${Math.round(pickupDistanceMeters)}m from pickup`}
+                 </p>
+                 <p className="text-charcoal-400 text-xs leading-relaxed">
+                   Pay-at-pickup order. Head to {order.pickup_name} — the customer pays when you arrive, then you set off.
+                 </p>
+               </div>
+             )
+           )}
+           {order.status === 'matched' && order.payment_status !== 'paid' && order.payment_timing !== 'at_pickup' && (
              <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-6 text-center space-y-3">
                <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
                  <Loader2 size={22} className="animate-spin" />

@@ -56,7 +56,7 @@ function ConfirmContent() {
 
   const paystackConfig = {
     reference: (new Date()).getTime().toString(),
-    email: rider?.users?.email || "customer@naijadrops.com",
+    email: rider?.users?.email || "customer@naijadrops.tech",
     amount: (order?.agreed_price || 0) * 100, // Paystack uses kobo
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
     metadata: {
