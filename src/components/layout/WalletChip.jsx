@@ -31,9 +31,9 @@ export default function WalletChip() {
     <Link
       href="/wallet"
       title="NaijaDrops Wallet"
-      className="hidden sm:flex items-center gap-2 h-10 px-4 rounded-2xl text-xs font-black text-emerald-500 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/10 transition-all"
+      className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-black text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all border border-emerald-500/20"
     >
-      <Wallet size={16} /> {naira(balance)}
+      <Wallet size={15} /> <span>{naira(balance)}</span>
     </Link>
   );
 }

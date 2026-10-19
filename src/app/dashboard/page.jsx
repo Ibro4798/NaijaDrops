@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,10 @@ import {
   Phone,
   Briefcase,
   FileText,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Wallet,
+  Trash2,
+  Shield
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import MapSkeleton from "@/components/MapSkeleton";
@@ -255,11 +258,35 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
               </div>
            </a>
 
+            <button onClick={() => { router.push("/wallet"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 transition-all group text-left">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all">
+                <Wallet size={20} className="text-emerald-400 group-hover:text-charcoal-950" />
+              </div>
+              <div>
+                <div className="font-black text-sm uppercase tracking-tight text-white">NaijaDrops Wallet</div>
+                <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Balance & Top Up</div>
+              </div>
+           </button>
+
            <button onClick={() => { router.push("/terms"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-400 transition-all">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                 <FileText size={20} />
               </div>
               <span className="font-bold text-sm text-charcoal-400">Terms & Conditions</span>
+           </button>
+
+           <button onClick={() => { router.push("/privacy"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-charcoal-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                <Shield size={20} />
+              </div>
+              <span className="font-bold text-sm text-charcoal-400">Privacy Policy</span>
+           </button>
+
+           <button onClick={() => { router.push("/delete-account"); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-red-500/10 text-charcoal-400 hover:text-red-400 transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500 group-hover:text-charcoal-950 transition-all">
+                <Trash2 size={20} />
+              </div>
+              <span className="font-bold text-sm">Delete Account</span>
            </button>
 
            <div className="h-px bg-white/5 my-2" />
