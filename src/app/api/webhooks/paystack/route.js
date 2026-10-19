@@ -29,6 +29,35 @@ export async function POST(req) {
     console.log(`Paystack Webhook Event: ${event}`);
 
     if (event === "charge.success") {
+      // WALLET TOP-UP (backup for a closed browser): credit the wallet. The database refuses to credit
+      // the same reference twice, so this is safe alongside /api/wallet/verify-topup.
+      if (body.data.metadata?.purpose === "wallet_topup") {
+        const topupUser = body.data.metadata.userId;
+        const naira = Number(body.data.amount) / 100;
+        if (!topupUser || body.data.currency !== "NGN" || !(naira > 0)) {
+          console.error(`Webhook: invalid wallet top-up ${body.data.reference} - ignoring.`);
+          return NextResponse.json({ received: true });
+        }
+        const { data: usedByOrder } = await supabase.from("orders").select("id").eq("payment_reference", body.data.reference).limit(1);
+        if (usedByOrder && usedByOrder.length > 0) {
+          console.error(`Webhook: top-up reference ${body.data.reference} already paid an order - ignoring.`);
+          return NextResponse.json({ received: true });
+        }
+        const { error: creditErr } = await supabase.rpc("wallet_credit", {
+          p_user_id: topupUser,
+          p_amount: naira,
+          p_reference: body.data.reference,
+          p_category: "topup",
+          p_description: "Wallet top-up",
+          p_metadata: { gateway: "paystack", via: "webhook" },
+        });
+        if (creditErr) {
+          console.error("Webhook wallet credit failed:", creditErr.message);
+          return NextResponse.json({ error: "credit failed" }, { status: 500 }); // Paystack will retry
+        }
+        return NextResponse.json({ received: true });
+      }
+
       const { orderId, riderId } = body.data.metadata || {};
       
       if (!orderId) {
@@ -48,7 +77,7 @@ export async function POST(req) {
       // amount and currency are checked against our own record.
       const { data: orderRow } = await supabase
         .from("orders")
-        .select("agreed_price, payment_status, status")
+        .select("agreed_price, payment_status, status, delivery_pin")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -67,11 +96,21 @@ export async function POST(req) {
         return NextResponse.json({ received: true });
       }
 
+      // A wallet top-up reference can never also pay for an order.
+      const { data: ledgerHit } = await supabase.from("wallet_ledger").select("id").eq("reference", body.data.reference).limit(1);
+      if (ledgerHit && ledgerHit.length > 0) {
+        console.error(`Webhook: reference ${body.data.reference} was a wallet top-up; refusing to apply it to order ${orderId}.`);
+        return NextResponse.json({ received: true });
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({
           payment_status: "paid",
+          payment_method: "paystack",
           payment_reference: body.data.reference,
+          // verify-payment normally issues the delivery PIN; make sure a webhook-first payment gets one too.
+          delivery_pin: orderRow.delivery_pin || String(Math.floor(1000 + Math.random() * 9000)),
           price_locked: true
         })
         .eq("id", orderId);

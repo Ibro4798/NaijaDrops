@@ -33,15 +33,15 @@ export default function FAQPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-charcoal-50">
+    <main className="min-h-screen bg-charcoal-950">
       <Navbar />
       
       <section className="pt-32 pb-20 max-w-3xl mx-auto px-6">
         <div className="text-center mb-20 animate-in fade-in slide-in-from-top-8">
-           <div className="inline-flex p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl mb-6">
+           <div className="inline-flex p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl mb-6">
               <MessageSquare size={32} />
            </div>
-           <h1 className="text-5xl font-black text-[#18181b] tracking-tighter mb-4 leading-none">Frequently Asked <br/>Questions</h1>
+           <h1 className="text-5xl font-black text-ink tracking-tighter mb-4 leading-none">Frequently Asked <br/>Questions</h1>
            <p className="text-charcoal-500 font-bold tracking-tight text-lg">Everything you need to know about NaijaDrops.</p>
         </div>
 
@@ -49,14 +49,14 @@ export default function FAQPage() {
            {faqs.map((faq, i) => (
              <div 
                 key={i} 
-                className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white/[0.04] rounded-[2rem] border border-white/10 overflow-hidden hover:bg-white/[0.06] transition-colors"
              >
                 <button 
                   onClick={() => setOpenIndex(openIndex === i ? -1 : i)}
                   className="w-full px-8 py-8 text-left flex items-center justify-between group"
                 >
-                   <span className="text-lg font-black text-[#18181b] tracking-tight group-hover:text-emerald-600 transition-colors">{faq.q}</span>
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${openIndex === i ? 'bg-emerald-500 text-white rotate-180' : 'bg-gray-100 text-charcoal-400'}`}>
+                   <span className="text-lg font-black text-ink tracking-tight group-hover:text-emerald-400 transition-colors">{faq.q}</span>
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${openIndex === i ? 'bg-emerald-500 text-white rotate-180' : 'bg-white/10 text-charcoal-400'}`}>
                       <ChevronDown size={20} />
                    </div>
                 </button>
@@ -68,7 +68,7 @@ export default function FAQPage() {
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.3, ease: "easeInOut" }}
                      >
-                        <div className="px-8 pb-8 text-charcoal-600 font-medium leading-relaxed">
+                        <div className="px-8 pb-8 text-charcoal-400 font-medium leading-relaxed">
                            {faq.a}
                         </div>
                      </motion.div>
@@ -78,10 +78,10 @@ export default function FAQPage() {
            ))}
         </div>
 
-        <div className="mt-20 p-10 bg-[#18181b] rounded-[3rem] text-center text-white relative overflow-hidden">
+        <div className="mt-20 p-10 bg-white/[0.04] border border-white/10 rounded-[3rem] text-center text-white relative overflow-hidden">
            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent"></div>
            <h3 className="text-2xl font-black mb-4 relative z-10">Still have questions?</h3>
-           <p className="text-charcoal-400 font-medium mb-8 relative z-10">Our support team is available 24/7 to assist you.</p>
+           <p className="text-charcoal-400 font-medium mb-8 relative z-10">Message us on WhatsApp, Instagram or by phone and we will help.</p>
            <a href="/contact" className="inline-flex px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-black transition-all relative z-10 shadow-glow">
               Contact Support
            </a>

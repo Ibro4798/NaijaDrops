@@ -11,7 +11,7 @@ export default function AboutPage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-charcoal-50">
+    <main className="min-h-screen bg-charcoal-950">
       <Navbar />
       
       {/* Hero Section */}
@@ -38,11 +38,11 @@ export default function AboutPage() {
       <section className="py-20 max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
           <div>
-            <h2 className="text-4xl font-black text-[#18181b] mb-8 tracking-tighter">Our Mission</h2>
-            <p className="text-charcoal-600 text-lg font-medium leading-relaxed mb-6">
+            <h2 className="text-4xl font-black text-ink mb-8 tracking-tighter">Our Mission</h2>
+            <p className="text-charcoal-400 text-lg font-medium leading-relaxed mb-6">
               Founded with the goal of solving the "last-mile" problem in Kano metropolis, NaijaDrops connects local vendors and individuals with a network of verified carriers.
             </p>
-            <p className="text-charcoal-600 text-lg font-medium leading-relaxed">
+            <p className="text-charcoal-400 text-lg font-medium leading-relaxed">
               We leverage proprietary geospatial data and precise pin resolution to ensure that your packages reach their destination with unmatched accuracy.
             </p>
           </div>
@@ -54,9 +54,9 @@ export default function AboutPage() {
                { icon: <Users className="text-emerald-500" />, label: "Verified Carriers" },
                { icon: <ShieldCheck className="text-emerald-500" />, label: "Secure Escrow" },
              ].map((item, i) => (
-               <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+               <div key={i} className="bg-white/[0.04] p-8 rounded-[2.5rem] border border-white/10 flex flex-col items-center justify-center text-center">
                   <div className="mb-4">{item.icon}</div>
-                  <div className="font-black text-xs uppercase tracking-widest text-[#18181b]">{item.label}</div>
+                  <div className="font-black text-xs uppercase tracking-widest text-ink">{item.label}</div>
                </div>
              ))}
           </div>
@@ -64,10 +64,10 @@ export default function AboutPage() {
       </section>
 
       {/* Values Section */}
-      <section className="bg-white py-32">
+      <section className="bg-charcoal-900 py-32">
          <div className="max-w-7xl mx-auto px-6">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500 mb-2">Our Core Values</h2>
-            <h3 className="text-5xl font-black text-[#18181b] tracking-tighter mb-20 leading-none">Built for the city. <br/>Defined by trust.</h3>
+            <h3 className="text-5xl font-black text-ink tracking-tighter mb-20 leading-none">Built for the city. <br/>Defined by trust.</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                {[
@@ -76,7 +76,7 @@ export default function AboutPage() {
                  { title: "Transparency", desc: "Full live tracking and transparent pricing. No hidden fees, ever." }
                ].map((v, i) => (
                  <div key={i} className="space-y-4">
-                    <h4 className="text-2xl font-black text-[#18181b] tracking-tight">{v.title}</h4>
+                    <h4 className="text-2xl font-black text-ink tracking-tight">{v.title}</h4>
                     <p className="text-charcoal-500 font-medium leading-relaxed">{v.desc}</p>
                  </div>
                ))}

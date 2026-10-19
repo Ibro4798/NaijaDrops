@@ -8,6 +8,7 @@ const BLOCKED = {
   ACTIVE_ORDERS: "You have an order in progress. Please wait until it is delivered or cancelled, then try again.",
   PENDING_PAYOUT: "You have a payout request that is still being processed. Please try again once it has been paid.",
   ADMIN_ACCOUNT: "Admin accounts can't be deleted here. Please contact support.",
+  WALLET_BALANCE: "Your wallet still has money in it. Spend it on a delivery, or contact support to arrange a refund, then try again.",
 };
 
 // Uploaded files live in the private "documents" bucket. Older rows may hold
@@ -37,6 +38,15 @@ export async function POST(request) {
 
     const admin = createAdminClient();
 
+    // Wallet: money must be spent or refunded first, and a wallet with history is a financial record
+    // we keep (so the account is anonymised instead of removed).
+    const { data: walletRow } = await admin.from("user_wallets").select("balance").eq("user_id", user.id).maybeSingle();
+    if (walletRow && Number(walletRow.balance) > 0) {
+      return NextResponse.json({ error: BLOCKED.WALLET_BALANCE, code: "WALLET_BALANCE" }, { status: 409 });
+    }
+    const { count: ledgerCount } = await admin.from("wallet_ledger").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+    const hasLedger = (ledgerCount || 0) > 0;
+
     // Capture the avatar path before it is cleared so the file can be removed too.
     const { data: profileRow } = await admin.from("users").select("avatar_url").eq("id", user.id).maybeSingle();
 
@@ -61,7 +71,7 @@ export async function POST(request) {
     //    Otherwise keep the (now anonymous) row that those records point at,
     //    but strip the email, metadata and linked sign-ins and block the login.
     let mode = "deleted";
-    if (result?.status === "no_profile" || !result?.has_records) {
+    if (result?.status === "no_profile" || (!result?.has_records && !hasLedger)) {
       const { error: delError } = await admin.auth.admin.deleteUser(user.id);
       if (delError) {
         console.error("[account/delete] auth delete failed, falling back to anonymize:", delError.message);

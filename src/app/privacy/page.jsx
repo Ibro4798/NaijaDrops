@@ -44,6 +44,7 @@ const sections = [
       "Location: your device's precise location when you use \"use my location\", set pickup or drop-off points, or - if you are a rider - while you are online or on a delivery with the app open. We also store the pickup and drop-off addresses and coordinates of each order. We do not collect your location when the app is closed.",
       "Order information: addresses, package description and size, the receiver's name and phone number, delivery notes, voice notes, delivery confirmation photos, chat messages, and ratings and reviews.",
       "Payments: card, bank-transfer and mobile-money payments are handled by Paystack. We receive a payment reference and status. We never see or store your card number.",
+      "Wallet: if you use the NaijaDrops Wallet we keep your balance and a history of your top-ups, payments and refunds.",
       "Notifications and technical data: if you turn on notifications we store the web-push subscription for your device so we can send order alerts, plus basic technical logs needed to run and secure the service.",
     ],
   },
@@ -77,14 +78,14 @@ const sections = [
   {
     title: "Keeping your data",
     body: [
-      "We keep your account information while your account is active. Order, delivery and payment records are kept as long as needed for accounting, fraud prevention, dispute handling and legal obligations, even after you delete your account - but after deletion they are no longer linked to your name or contact details.",
+      "We keep your account information while your account is active. Order, delivery, payment and wallet records are kept as long as needed for accounting, fraud prevention, dispute handling and legal obligations, even after you delete your account - but after deletion they are no longer linked to your name or contact details.",
     ],
   },
   {
     title: "Deleting your account and your rights",
     body: [
       "You can delete your account yourself in the app (Profile, then Delete account) or follow the steps on our Delete Account page. If you can't sign in, email " + CONTACT + " from the address on your account.",
-      "When an account is deleted we remove your name, contact details, photos, documents, bank details, saved location history and notification subscriptions, and clear the text of your chat messages and written review feedback. You can't delete while an order is in progress or a payout is pending.",
+      "When an account is deleted we remove your name, contact details, photos, documents, bank details, saved location history and notification subscriptions, and clear the text of your chat messages and written review feedback. You can't delete while an order is in progress, a payout is pending, or your wallet still has money in it.",
       "You may also ask us to access or correct the information we hold about you, in line with the Nigeria Data Protection Act 2023.",
     ],
   },
@@ -112,13 +113,13 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-charcoal-950">
       <Navbar />
 
       <section className="pt-40 pb-20 max-w-4xl mx-auto px-6">
         <div className="flex items-center gap-4 text-emerald-500 mb-6">
           <Lock size={40} />
-          <h1 className="text-5xl font-black text-[#18181b] tracking-tighter">Privacy Policy</h1>
+          <h1 className="text-5xl font-black text-ink tracking-tighter">Privacy Policy</h1>
         </div>
         <p className="text-charcoal-500 font-bold mb-12 uppercase tracking-widest text-xs">
           Last updated {UPDATED}
@@ -126,10 +127,10 @@ export default function PrivacyPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {highlights.map((sec) => (
-            <div key={sec.title} className="p-8 bg-charcoal-50 rounded-[2.5rem] border border-gray-100">
+            <div key={sec.title} className="p-8 bg-white/[0.04] rounded-[2.5rem] border border-white/10">
               <div className="text-emerald-500 mb-4">{sec.icon}</div>
-              <h2 className="text-xl font-black text-[#18181b] mb-3 tracking-tight">{sec.title}</h2>
-              <p className="text-charcoal-600 text-sm font-medium leading-relaxed">{sec.content}</p>
+              <h2 className="text-xl font-black text-ink mb-3 tracking-tight">{sec.title}</h2>
+              <p className="text-charcoal-400 text-sm font-medium leading-relaxed">{sec.content}</p>
             </div>
           ))}
         </div>
@@ -137,12 +138,12 @@ export default function PrivacyPage() {
         <div className="space-y-10">
           {sections.map((sec) => (
             <div key={sec.title}>
-              <h2 className="text-2xl font-black text-[#18181b] mb-4 tracking-tight">{sec.title}</h2>
+              <h2 className="text-2xl font-black text-ink mb-4 tracking-tight">{sec.title}</h2>
               {sec.body?.map((p) => (
-                <p key={p} className="text-charcoal-600 font-medium leading-relaxed mb-3">{p}</p>
+                <p key={p} className="text-charcoal-400 font-medium leading-relaxed mb-3">{p}</p>
               ))}
               {sec.list && (
-                <ul className="list-disc pl-6 space-y-2 text-charcoal-600 font-medium leading-relaxed">
+                <ul className="list-disc pl-6 space-y-2 text-charcoal-400 font-medium leading-relaxed">
                   {sec.list.map((item) => <li key={item}>{item}</li>)}
                 </ul>
               )}
@@ -151,7 +152,7 @@ export default function PrivacyPage() {
         </div>
 
         <p className="mt-12 text-charcoal-500 text-sm font-medium">
-          Want to delete your account? <Link href="/delete-account" className="text-emerald-600 underline">Here&apos;s how</Link>.
+          Want to delete your account? <Link href="/delete-account" className="text-emerald-400 underline">Here&apos;s how</Link>.
         </p>
       </section>
 

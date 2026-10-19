@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import WalletChip from "@/components/layout/WalletChip";
 import { useRouter, usePathname } from "next/navigation";
 import { Package, LogOut, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone, Sun, Moon, Radar, Truck } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -164,6 +165,7 @@ export default function Navbar() {
 
             {profile && (
               <>
+                <WalletChip />
                 <Link 
                   href="/profile"
                   className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all border border-transparent"

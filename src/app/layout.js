@@ -78,7 +78,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${inter.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`dark ${outfit.variable} ${inter.variable}`}>
       <head>
         {/* Warms the DNS/TLS connection to Mapbox ahead of time, site-wide,
             so whichever page first opens a map isn't also paying for that
@@ -90,7 +90,7 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://api.mapbox.com" />
         <link rel="dns-prefetch" href="https://events.mapbox.com" />
       </head>
-      <body className="font-sans bg-charcoal-50 text-charcoal-900 antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
+      <body className="font-sans bg-charcoal-950 text-ink antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white flex flex-col min-h-screen">
         <ThemeProvider>
           <ChunkErrorRecovery />
           <ServiceWorkerRegister />

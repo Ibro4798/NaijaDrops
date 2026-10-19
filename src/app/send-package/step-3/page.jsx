@@ -45,22 +45,38 @@ function Step3Content() {
   // "after_match": pay once a price is agreed. "at_pickup": pay when the rider reaches the pickup point.
   const [paymentTiming, setPaymentTiming] = useState("after_match");
 
+  // Scheduling stays completely hidden until the access check AND the window list have
+  // both loaded, and both are applied in one update, so nothing pops in and then vanishes.
+  // The list refreshes every minute and when the tab regains focus, so a window ops closes
+  // (or whose cut-off passes) disappears cleanly instead of failing at submit.
+  const [windowNotice, setWindowNotice] = useState(null);
   useEffect(() => {
-    (async () => {
+    let alive = true;
+    const load = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data } = await supabase
-          .from("vendors")
-          .select("scheduled_enabled")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (data?.scheduled_enabled) setScheduledEnabled(true);
-        // Windows ops has opened (empty unless this vendor is switched on).
-        const { data: ws } = await supabase.rpc("open_schedule_windows");
-        setWindows(ws || []);
+        const [{ data: vendor }, { data: ws }] = await Promise.all([
+          supabase.from("vendors").select("scheduled_enabled").eq("user_id", user.id).maybeSingle(),
+          supabase.rpc("open_schedule_windows"),
+        ]);
+        if (!alive) return;
+        const enabled = vendor?.scheduled_enabled === true;
+        const list = enabled ? (ws || []) : [];
+        setScheduledEnabled(enabled);
+        setWindows(list);
+        setWindowChoice((choice) => {
+          if (choice === "now" || list.some((w) => w.id === choice && isJoinable(w))) return choice;
+          setWindowNotice("The delivery window you picked just closed, so we switched you back to Now.");
+          return "now";
+        });
       } catch { /* feature simply stays hidden */ }
-    })();
+    };
+    load();
+    const refresh = () => { if (document.visibilityState === "visible") load(); };
+    const timer = setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { alive = false; clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -373,6 +389,7 @@ function Step3Content() {
                 No scheduled delivery window is open right now. Check back later, or send now.
               </p>
             )}
+            {windowNotice && <p className="text-amber-400 text-xs mt-3 leading-relaxed">{windowNotice}</p>}
           </div>
         )}
         {windowChoice === "now" && (

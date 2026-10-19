@@ -61,6 +61,15 @@ export async function POST(req) {
 
     const { status: txStatus, amount: paidAmount, currency } = paystackData.data;
 
+    // A wallet top-up can never also pay for an order (that would spend the same money twice).
+    if (paystackData.data.metadata?.purpose === 'wallet_topup') {
+      return NextResponse.json({ error: 'This payment was a wallet top-up and cannot pay for an order.' }, { status: 400 });
+    }
+    const { data: ledgerHit } = await supabaseAdmin.from('wallet_ledger').select('id').eq('reference', reference).limit(1);
+    if (ledgerHit && ledgerHit.length > 0) {
+      return NextResponse.json({ error: 'This payment was a wallet top-up and cannot pay for an order.' }, { status: 409 });
+    }
+
     if (txStatus !== 'success') {
       return NextResponse.json({ error: `Transaction is ${txStatus}` }, { status: 400 });
     }
@@ -131,6 +140,7 @@ export async function POST(req) {
             payment_status: 'paid',
             delivery_pin: generatedPin,
             payment_reference: reference,
+            payment_method: 'paystack',
             price_locked: true
         })
         .eq('id', orderId);

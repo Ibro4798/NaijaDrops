@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, CheckCircle2, CreditCard, Lock, ShieldCheck, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { loadPaystackScript, initializePaystack } from '@/utils/paystack';
+import { naira } from '@/utils/wallet';
+import { Wallet as WalletIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Suspense } from 'react';
@@ -29,6 +31,10 @@ function PaymentContent() {
     const [paystackReady, setPaystackReady] = useState(false);
     const [paystackLoadFailed, setPaystackLoadFailed] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    // Wallet: null until we know (so nothing flashes in), then the balance in naira.
+    const [walletBalance, setWalletBalance] = useState(null);
+    const [walletBusy, setWalletBusy] = useState(false);
+    const [walletError, setWalletError] = useState(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -99,6 +105,15 @@ function PaymentContent() {
                 }
 
                 setOrderData(order);
+
+                // Wallet balance (only the signed-in payer has one). Failure just hides the wallet option.
+                try {
+                    const { data: { user: authUser } } = await supabase.auth.getUser();
+                    if (authUser) {
+                        const { data: wallet } = await supabase.from('user_wallets').select('balance').eq('user_id', authUser.id).maybeSingle();
+                        setWalletBalance(Number(wallet?.balance || 0));
+                    }
+                } catch { /* wallet option stays hidden */ }
 
                 if (order.rider_id) {
                     // FIX: orders.rider_id is a foreign key to riders.id, not
@@ -193,6 +208,28 @@ function PaymentContent() {
     // USSD, and mobile money as channels within one verified transaction,
     // so there's no coverage lost by removing the separate fake button -
     // just one single, real, fully verified payment path now.
+
+    const handleWalletPay = async () => {
+        if (walletBusy) return;
+        setWalletBusy(true);
+        setWalletError(null);
+        try {
+            const res = await fetch('/api/wallet/pay-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                if (typeof data.balance === 'number') setWalletBalance(data.balance);
+                throw new Error(data.error || 'Wallet payment failed.');
+            }
+            router.replace(`/tracking/${orderId}`);
+        } catch (err) {
+            setWalletError(err.message);
+            setWalletBusy(false);
+        }
+    };
 
     const handleCancelOrder = async () => {
         if (!window.confirm("Cancel this order? The rider will be notified right away.")) return;
@@ -334,6 +371,38 @@ function PaymentContent() {
                                         </div>
                                     </div>
                                 )}
+
+                                {walletBalance !== null && (
+                                    walletBalance >= (orderData.agreed_price || 0) ? (
+                                        <>
+                                            <button
+                                                onClick={handleWalletPay}
+                                                disabled={walletBusy || isProcessing}
+                                                className="w-full py-5 rounded-2xl font-black text-lg uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 disabled:opacity-50"
+                                            >
+                                                {walletBusy ? (
+                                                    <><Loader2 size={22} className="animate-spin" /> Paying...</>
+                                                ) : (
+                                                    <><WalletIcon size={22} /> Pay {naira(orderData.agreed_price)} with Wallet</>
+                                                )}
+                                            </button>
+                                            <p className="text-center text-charcoal-500 text-xs font-bold">Wallet balance: {naira(walletBalance)}</p>
+                                        </>
+                                    ) : (
+                                        <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-4 space-y-2">
+                                            <p className="text-charcoal-400 text-xs font-bold leading-relaxed">
+                                                Wallet balance {naira(walletBalance)} is not enough for this {naira(orderData.agreed_price)} delivery.
+                                            </p>
+                                            <a
+                                                href={`/wallet?need=${Math.max(0, (orderData.agreed_price || 0) - walletBalance)}&next=${encodeURIComponent('/payment?orderId=' + orderId)}`}
+                                                className="block text-emerald-400 text-xs font-black uppercase tracking-widest"
+                                            >
+                                                Top up {naira(Math.max(0, (orderData.agreed_price || 0) - walletBalance))} and pay with wallet
+                                            </a>
+                                        </div>
+                                    )
+                                )}
+                                {walletError && <p className="text-red-400 text-xs font-medium leading-relaxed">{walletError}</p>}
 
                                 <button
                                     onClick={handleInitiatePayment}

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { Package, Instagram, Mail, MessageCircle, ArrowRight, Shield, Clock } from "lucide-react";
+import { Package, Instagram, MessageCircle, ArrowRight } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -87,10 +87,6 @@ export default function Footer() {
           <p className="text-charcoal-600 text-xs font-bold">
             &copy; {currentYear} NaijaDrops Logistics Platform. All Rights Reserved.
           </p>
-          <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-charcoal-600">
-            <span className="flex items-center gap-2"><Shield size={14} className="text-emerald-500" /> Secure Payments</span>
-            <span className="flex items-center gap-2"><Clock size={14} className="text-emerald-500" /> 24/7 Support</span>
-          </div>
         </div>
       </div>
     </footer>

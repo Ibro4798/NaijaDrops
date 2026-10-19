@@ -21,25 +21,29 @@ export default function TermsPage() {
     {
       title: "4. Payments and Refunds",
       content: "Payments are processed through our secure gateway. Refunds are subject to our cancellation policy, which varies based on the status of the delivery request."
+    },
+    {
+      title: "5. NaijaDrops Wallet",
+      content: "You can add money to your NaijaDrops Wallet and use it to pay for deliveries. Wallet money can only be spent on NaijaDrops deliveries and cannot be withdrawn as cash or transferred to another person. If a delivery you paid for from your wallet is cancelled before the rider picks it up, the amount is returned to your wallet straight away. Top-ups are processed by Paystack. If you believe a wallet balance is wrong, contact support."
     }
   ];
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-charcoal-950">
       <Navbar />
       
       <section className="pt-40 pb-20 max-w-4xl mx-auto px-6">
         <div className="flex items-center gap-4 text-emerald-500 mb-6">
            <FileText size={40} />
-           <h1 className="text-5xl font-black text-[#18181b] tracking-tighter">Terms of Service</h1>
+           <h1 className="text-5xl font-black text-ink tracking-tighter">Terms of Service</h1>
         </div>
-        <p className="text-charcoal-500 font-bold mb-12 uppercase tracking-widest text-xs">Last Updated: April 2026</p>
+        <p className="text-charcoal-500 font-bold mb-12 uppercase tracking-widest text-xs">Last Updated: October 2026</p>
 
         <div className="prose prose-lg prose-emerald max-w-none">
            {sections.map((sec, i) => (
              <div key={i} className="mb-12">
-                <h2 className="text-2xl font-black text-[#18181b] mb-4 tracking-tight">{sec.title}</h2>
-                <p className="text-charcoal-600 font-medium leading-relaxed">{sec.content}</p>
+                <h2 className="text-2xl font-black text-ink mb-4 tracking-tight">{sec.title}</h2>
+                <p className="text-charcoal-400 font-medium leading-relaxed">{sec.content}</p>
              </div>
            ))}
         </div>
