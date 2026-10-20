@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   MapPin, Zap, Shield, ArrowRight, Radar, ShieldCheck,
-  Package, ChevronRight, Globe, CheckCircle2
+  Package, Globe, CheckCircle2
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -81,6 +81,12 @@ export default function LandingPage() {
             className="text-[11px] font-black uppercase tracking-widest text-charcoal-400 hover:text-white transition-colors px-4 py-2 rounded-xl border border-white/10 hover:border-white/20"
           >
             Log In
+          </button>
+          <button
+            onClick={() => router.push("/auth/login?mode=signup")}
+            className="text-[11px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 transition-colors px-4 py-2 rounded-xl"
+          >
+            Create Account
           </button>
         </div>
       </nav>
@@ -191,12 +197,6 @@ export default function LandingPage() {
               Create a free account after placing your order to get live tracking, delivery history, and rider chat.
             </p>
           </div>
-          <button
-            onClick={() => router.push("/auth/login?mode=signup")}
-            className="shrink-0 flex items-center gap-2 px-7 py-3.5 bg-white/[0.08] border border-white/15 rounded-2xl text-white font-black text-sm uppercase tracking-wide hover:bg-white/[0.12] transition-all"
-          >
-            Create Account <ChevronRight size={16} />
-          </button>
         </div>
       </section>
 
