@@ -1,4 +1,5 @@
 ﻿import { getBestRider } from "@/utils/dispatch";
+import { notifyOpsNewOrder } from "@/utils/opsAlerts";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -48,6 +49,11 @@ export async function POST(req) {
     if (order.payment_required && order.payment_status !== "paid") {
       return NextResponse.json({ success: false, message: "Order is not paid yet - riders are not notified until payment is confirmed." });
     }
+    // From here the order is real and waiting for a rider. Whatever happens below (broadcast, nobody
+    // online, outside the zone, scheduled, even a crash), ops is told once via Telegram.
+    let response;
+    try {
+    response = await (async () => {
     // Scheduled orders are never auto-broadcast; ops releases them to a rider.
     if (order.scheduled_at) {
       return NextResponse.json({ success: false, scheduled: true, message: "Scheduled order - released by ops." });
@@ -102,6 +108,11 @@ export async function POST(req) {
       broadcastCount: riders.length,
       message: `Order broadcasted to ${riders.length} riders.` 
     });
+    })();
+    } finally {
+      await notifyOpsNewOrder(supabase, order);
+    }
+    return response;
 
   } catch (err) {
     console.error("Dispatch API Error:", err);

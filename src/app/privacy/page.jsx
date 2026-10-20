@@ -72,6 +72,7 @@ const sections = [
       "Paystack - payment processing.",
       "Mapbox and OpenStreetMap-based search services - maps, address search and routes. They receive coordinates and search text.",
       "Google - only if you choose to sign in with Google.",
+      "Telegram - private alerts to our operations team about new orders (order number, route area and price, never contact details).",
       "Your browser or phone's push-notification service - to deliver notifications you have turned on.",
     ],
   },
