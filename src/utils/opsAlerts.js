@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/utils/supabase/admin";
 import { sendTelegram, escapeHtml, telegramConfigured } from "@/utils/telegram";
 
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.naijadrops.tech").replace(/\/+$/, "");
@@ -60,6 +61,29 @@ export function buildNewOrderAlert(order, riderCount) {
   return { text: lines.join("\n"), rows };
 }
 
+// Voice notes are stored as bare paths in the PRIVATE documents bucket (older rows hold dead "public" URLs).
+// Telegram buttons need a real link, so sign each one at send time. 24h is the window ops realistically
+// acts in; after that the order page / rider app still serves a fresh link.
+async function signVoiceNotes(order) {
+  const out = { ...order };
+  try {
+    const admin = createAdminClient();
+    for (const col of ["voice_note_url", "pickup_voice_note_url", "dropoff_voice_note_url"]) {
+      const raw = order[col];
+      if (!raw) continue;
+      const m = raw.match(/\/object\/(?:public|sign|authenticated)\/documents\/([^?]+)/);
+      const path = m ? decodeURIComponent(m[1]) : /^https?:\/\//i.test(raw) ? null : raw;
+      out[col] = null;
+      if (!path) continue;
+      const { data } = await admin.storage.from("documents").createSignedUrl(path, 60 * 60 * 24);
+      out[col] = data?.signedUrl || null;
+    }
+  } catch (err) {
+    console.error("Voice note signing failed:", err?.message || err);
+  }
+  return out;
+}
+
 /**
  * Alert ops about an order, ONCE. Several paths call /api/dispatch for the same order (creation, payment,
  * webhook, retry), so the first caller "claims" the order in the database and only that caller sends.
@@ -85,7 +109,7 @@ export async function notifyOpsNewOrder(supabase, order) {
       .select("rider_id", { count: "exact", head: true })
       .eq("order_id", order.id);
 
-    const { text, rows } = buildNewOrderAlert(claimed, count || 0);
+    const { text, rows } = buildNewOrderAlert(await signVoiceNotes(claimed), count || 0);
     const result = await sendTelegram(text, { rows });
     if (!result.sent && !result.uncertain) {
       await supabase.from("orders").update({ ops_alerted_at: null }).eq("id", order.id); // refused: allow a retry

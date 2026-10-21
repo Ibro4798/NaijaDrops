@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,8 +12,14 @@ export default function RiderEarnings() {
   const router = useRouter();
   const supabase = createClient();
   const [profile, setProfile] = useState(null);
-  const [earningsData, setEarningsData] = useState({ total: 0, pending: 0, weekly: 0 });
+  const [earningsData, setEarningsData] = useState({ total: 0, pending: 0, weekly: 0, paidOut: 0, rate: 0, min: 1000 });
   const [transactions, setTransactions] = useState([]);
+  const [payoutAccount, setPayoutAccount] = useState(null);
+  const [editingAccount, setEditingAccount] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -25,48 +31,58 @@ export default function RiderEarnings() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/auth/login'); return; }
 
-    const { data: rider } = await supabase.from('riders').select('*').eq('user_id', user.id).single();
+    const { data: rider } = await supabase.from('riders').select('id').eq('user_id', user.id).single();
     setProfile(rider);
+
+    // All money maths happens in the database (rider_wallet_summary), so this screen, the withdrawal
+    // check and ops finance can never disagree about the rate or the balance.
+    const { data: summary, error: summaryError } = await supabase.rpc('rider_wallet_summary');
+    if (summaryError) {
+      setLoadError('Could not load your balance. Pull to refresh or try again shortly.');
+    } else {
+      setLoadError(null);
+      setEarningsData({
+        total: Number(summary.available), pending: Number(summary.pending), weekly: Number(summary.week_earned),
+        paidOut: Number(summary.paid_out), rate: Number(summary.rate), min: Number(summary.min_withdrawal),
+      });
+    }
+
+    const { data: account } = await supabase.from('rider_payout_accounts').select('bank_name, account_number, account_name').eq('user_id', user.id).maybeSingle();
+    setPayoutAccount(account || null);
+    setEditingAccount(!account);
+    if (account) { setBankName(account.bank_name); setAccountNumber(account.account_number); setAccountName(account.account_name); }
 
     const { data: orders } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, agreed_price, created_at, delivered_at')
       .eq('rider_id', rider?.id)   // orders.rider_id → riders.id (not users.id)
       .eq('status', 'delivered')
-      .order('created_at', { ascending: false });
-
-    const { data: walletTxs } = await supabase
-      .from('wallet_transactions')
-      .select('*')
-      .eq('rider_id', user.id)     // wallet_transactions.rider_id → users.id
-      .order('created_at', { ascending: false });
-
-    if (orders) {
-      const grossEarned = orders.reduce((sum, o) => sum + (o.agreed_price || 0), 0) * 0.80; // 20% platform commission
-      const alreadyWithdrawn = (walletTxs || [])
-        .filter(t => t.status === 'requested' || t.status === 'paid')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-      const pendingRequests = (walletTxs || [])
-        .filter(t => t.status === 'requested')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-
-      setEarningsData({
-        total: Math.floor(grossEarned - alreadyWithdrawn), // available to withdraw
-        pending: Math.floor(pendingRequests),               // awaiting admin approval
-        weekly: Math.floor(grossEarned * 0.4)
-      });
-      setTransactions(orders.slice(0, 5));
-    }
+      .order('delivered_at', { ascending: false, nullsFirst: false })
+      .limit(5);
+    setTransactions(orders || []);
     setLoading(false);
   }
 
   useEffect(() => { loadData(); }, [supabase, router]);
 
+  async function savePayoutAccount() {
+    setWithdrawError(null);
+    const { error } = await supabase.rpc('save_payout_account', {
+      p_bank_name: bankName, p_account_number: accountNumber, p_account_name: accountName,
+    });
+    if (error) { setWithdrawError(error.message); return false; }
+    setPayoutAccount({ bank_name: bankName.trim(), account_number: accountNumber, account_name: accountName.trim() });
+    setEditingAccount(false);
+    return true;
+  }
+
   async function submitWithdrawal() {
     const amount = Number(withdrawAmount);
     setWithdrawError(null);
 
+    if (editingAccount) { await savePayoutAccount(); return; }
     if (!amount || amount <= 0) { setWithdrawError('Enter a valid amount.'); return; }
+    if (amount < earningsData.min) { setWithdrawError(`Minimum withdrawal is ₦${earningsData.min.toLocaleString()}.`); return; }
     if (amount > earningsData.total) { setWithdrawError(`Amount exceeds your available balance of ₦${earningsData.total.toLocaleString()}.`); return; }
 
     setWithdrawing(true);
@@ -126,14 +142,15 @@ export default function RiderEarnings() {
                   <div className="text-lg font-black text-ink tracking-tight">₦{earningsData.pending.toLocaleString()}</div>
                </div>
                <div className="p-5 bg-charcoal-900/50 rounded-2xl border border-white/5 backdrop-blur-md">
-                  <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1 italic">Weekly Yield</div>
+                  <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-1 italic">Last 7 Days</div>
                   <div className="text-lg font-black text-ink tracking-tight">₦{earningsData.weekly.toLocaleString()}</div>
                </div>
             </div>
 
+            {loadError && <p className="text-red-400 text-xs font-bold mb-4">{loadError}</p>}
             <button
               onClick={() => setShowWithdrawModal(true)}
-              disabled={earningsData.total <= 0}
+              disabled={earningsData.total < earningsData.min}
               className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-charcoal-950 rounded-[2rem] font-black text-lg uppercase tracking-widest transition-all shadow-glow active:scale-95 flex items-center justify-center gap-3"
             >
                Withdraw Funds <ArrowUpRight size={20} strokeWidth={3} />
@@ -159,11 +176,11 @@ export default function RiderEarnings() {
                      </div>
                      <div>
                         <div className="text-sm font-black text-ink uppercase tracking-tight">Mission Settlement</div>
-                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.created_at).toLocaleDateString()} • ID: {tx.id.slice(0, 6)}</div>
+                        <div className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">{new Date(tx.delivered_at || tx.created_at).toLocaleDateString()} • ID: {tx.id.slice(0, 6)}</div>
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xl font-black text-ink italic tracking-tighter mb-1">+₦{Math.floor(tx.agreed_price * 0.80).toLocaleString()}</div>
+                     <div className="text-xl font-black text-ink italic tracking-tighter mb-1">+₦{Math.floor((tx.agreed_price || 0) * earningsData.rate).toLocaleString()}</div>
                      <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic flex items-center justify-end gap-1">
                         Cleared <Sparkles size={10} />
                      </div>
@@ -184,7 +201,7 @@ export default function RiderEarnings() {
 
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm relative">
+          <div className="bg-charcoal-900 border border-white/10 rounded-[2.5rem] p-8 w-full max-w-sm relative max-h-[90dvh] overflow-y-auto">
             <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-charcoal-500 hover:text-ink">
               <X size={20} />
             </button>
@@ -196,21 +213,41 @@ export default function RiderEarnings() {
             ) : (
               <>
                 <p className="text-ink font-black text-lg mb-1">Withdraw Funds</p>
-                <p className="text-charcoal-400 text-sm mb-6">Available: ₦{earningsData.total.toLocaleString()}</p>
-                <input
-                  type="number"
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="Amount (₦)"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold mb-3 outline-none focus:border-emerald-500/50"
-                />
+                <p className="text-charcoal-400 text-sm mb-5">Available: ₦{earningsData.total.toLocaleString()} · Minimum ₦{earningsData.min.toLocaleString()}</p>
+
+                {editingAccount ? (
+                  <div className="space-y-3 mb-3">
+                    <p className="text-charcoal-400 text-xs">Where should we send your money? Only you and NaijaDrops finance can see this.</p>
+                    <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank (e.g. GTBank, Opay)" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
+                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="10-digit account number" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
+                    <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account name" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 mb-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-ink text-sm font-black truncate">{payoutAccount?.bank_name}</div>
+                        <div className="text-charcoal-400 text-xs font-mono truncate">{payoutAccount?.account_number} · {payoutAccount?.account_name}</div>
+                      </div>
+                      <button onClick={() => setEditingAccount(true)} className="text-emerald-400 text-[10px] font-black uppercase tracking-widest shrink-0">Change</button>
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="Amount (₦)"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold mb-3 outline-none focus:border-emerald-500/50"
+                    />
+                  </>
+                )}
                 {withdrawError && <p className="text-red-400 text-xs font-bold mb-3">{withdrawError}</p>}
                 <button
                   onClick={submitWithdrawal}
                   disabled={withdrawing}
                   className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50"
                 >
-                  {withdrawing ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Request Withdrawal'}
+                  {withdrawing ? <Loader2 className="animate-spin mx-auto" size={18} /> : editingAccount ? 'Save Bank Account' : 'Request Withdrawal'}
                 </button>
               </>
             )}

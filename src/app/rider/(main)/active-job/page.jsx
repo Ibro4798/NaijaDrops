@@ -16,6 +16,7 @@ import OrderChat from '@/components/OrderChat';
 import DropoffChecklist from '@/components/rider/DropoffChecklist';
 import useWakeLock from '@/utils/useWakeLock';
 import { distanceMeters } from '@/utils/geolocation';
+import { compressAndUploadImage } from '@/utils/imageUpload';
 
 // "General location of the pickup spot", not an exact building - Kano's
 // informal addressing means a pin drop can legitimately be off by a
@@ -33,16 +34,43 @@ const PICKUP_PROXIMITY_METERS = 1000;
 // above that before it's trusted as a genuine trend rather than noise.
 const AUTO_PICKUP_MOVEMENT_METERS = 80;
 
-function NoteCard({ note, voiceUrl }) {
+// Voice notes sit in a private bucket: ask the server for a short-lived link (it checks this rider is on
+// the order) instead of playing a stored URL. `kind` is 'pickup' | 'dropoff' | 'general'.
+function NoteCard({ note, voiceUrl, orderId, kind = 'general' }) {
+  const [state, setState] = useState('idle'); // idle | loading | playing | error
+  const audioRef = useRef(null);
   if (!note && !voiceUrl) return null;
+
+  async function play() {
+    if (state === 'playing') { audioRef.current?.pause(); setState('idle'); return; }
+    setState('loading');
+    try {
+      const res = await fetch(`/api/voice-note?orderId=${orderId}&kind=${kind}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('sign failed');
+      const { url } = await res.json();
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => setState('idle');
+      audio.onerror = () => setState('error');
+      await audio.play();
+      setState('playing');
+    } catch {
+      setState('error');
+    }
+  }
+
   return (
     <div className="mt-3 bg-charcoal-900/60 border border-white/10 rounded-2xl p-4">
       <div className="text-[9px] font-black uppercase tracking-widest text-charcoal-500 mb-2">Note from vendor</div>
       {note && <p className="text-ink text-sm leading-snug mb-2">{note}</p>}
       {voiceUrl && (
-        <button onClick={() => { const a = new Audio(voiceUrl); a.play(); }} className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-colors">
-          <Play size={12} fill="currentColor" /> Play voice note
-        </button>
+        <>
+          <button onClick={play} disabled={state === 'loading'} className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-colors disabled:opacity-60">
+            {state === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} fill="currentColor" />}
+            {state === 'playing' ? 'Stop voice note' : 'Play voice note'}
+          </button>
+          {state === 'error' && <p className="text-red-400 text-[11px] font-bold mt-2">Couldn&apos;t load this voice note. Check your connection and tap again, or message the vendor.</p>}
+        </>
       )}
     </div>
   );
@@ -67,13 +95,13 @@ function NotesSheet({ order, onClose }) {
         </div>
         <div>
           <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Pickup — {order.pickup_name}</div>
-          {hasPickupNote ? <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} /> : (
+          {hasPickupNote ? <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} orderId={order.id} kind="pickup" /> : (
             <p className="text-charcoal-600 text-xs italic">No note left for pickup.</p>
           )}
         </div>
         <div>
           <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">Drop-off — {order.dropoff_name}</div>
-          {hasDropoffNote ? <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} /> : (
+          {hasDropoffNote ? <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} orderId={order.id} kind="dropoff" /> : (
             <p className="text-charcoal-600 text-xs italic">No note left for drop-off.</p>
           )}
           <p className="text-charcoal-500 text-sm mt-2">{order.recipient_name} • {order.recipient_phone}</p>
@@ -120,6 +148,8 @@ export default function ActiveJobPage() {
   const [stopsDone, setStopsDone] = useState(false);
   const stopsGateOpen = !(Number(order?.stop_count) > 1) || stopsDone;
   const [uploadingDeliveryPhoto, setUploadingDeliveryPhoto] = useState(false);
+  const [deliveryPhotoError, setDeliveryPhotoError] = useState(null);
+  const [statusError, setStatusError] = useState(null);
   const [pickupDistanceMeters, setPickupDistanceMeters] = useState(null);
   const [pickupLocationError, setPickupLocationError] = useState(false);
   const [autoPickupDetected, setAutoPickupDetected] = useState(false);
@@ -337,12 +367,25 @@ export default function ActiveJobPage() {
 
 
   const updateStatus = async (nextStatus) => {
+    if (nextStatus === 'delivered' && !deliveryPhotoUrl) {
+      setStatusError('Take a delivery photo before you mark this delivered.');
+      return;
+    }
+    setStatusError(null);
     setUpdating(true);
     const { error } = await supabase
       .from('orders')
       .update({ status: nextStatus, delivery_photo_url: deliveryPhotoUrl || undefined })
       .eq('id', order.id);
     
+    if (error) {
+      console.error('Status update failed:', error.message);
+      setStatusError(
+        error.message?.includes('DELIVERY_PHOTO_REQUIRED')
+          ? 'A delivery photo is required. Add one and slide again.'
+          : 'Could not update the delivery. Check your network and slide again.'
+      );
+    }
     if (!error) {
       if (nextStatus === 'delivered') {
         // FIX: nothing ever reversed the 'busy' status the accept RPCs set
@@ -405,17 +448,28 @@ export default function ActiveJobPage() {
   // doesn't feel like a new mechanic to learn.
   async function handleDeliveryPhotoSelect(e) {
     const file = e.target.files?.[0];
+    e.target.value = ''; // let the same file be re-picked after a failure
     if (!file) return;
+    setDeliveryPhotoError(null);
     setUploadingDeliveryPhoto(true);
     try {
-      const fileName = `delivery_${order.id}_${Date.now()}.jpg`;
-      const { data, error } = await supabase.storage.from('delivery-photos').upload(fileName, file, { contentType: file.type || 'image/jpeg' });
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage.from('delivery-photos').getPublicUrl(fileName);
-        setDeliveryPhotoUrl(publicUrlData.publicUrl);
-      } else {
-        alert("Couldn't upload the photo. You can still mark this delivered without one.");
-      }
+      // Same compress-then-upload path as every other photo. The raw upload used before failed silently
+      // on budget phones whose camera JPEGs exceed the bucket's 5MB limit.
+      const { publicUrl } = await compressAndUploadImage({
+        file,
+        supabase,
+        bucket: 'delivery-photos',
+        path: `delivery_${order.id}_${Date.now()}.jpg`,
+      });
+      if (!publicUrl) throw Object.assign(new Error('NO_URL'), { code: 'UPLOAD_FAILED' });
+      setDeliveryPhotoUrl(publicUrl);
+    } catch (err) {
+      console.error('Delivery photo upload failed:', err?.code, err?.message, err?.cause);
+      setDeliveryPhotoError(
+        err?.code === 'PHOTO_TOO_LARGE'
+          ? 'That photo is too large. Retake it a little further back, or lower your camera quality.'
+          : 'Photo did not upload. Check your network and tap to try again. You need it to finish this delivery.'
+      );
     } finally {
       setUploadingDeliveryPhoto(false);
     }
@@ -595,7 +649,7 @@ export default function ActiveJobPage() {
             <div>
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1">Step 1: Pick up</div>
                <div className="text-lg font-black text-ink leading-tight">{order.pickup_name}</div>
-               {isHeadingToPickup && <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} />}
+               {isHeadingToPickup && <NoteCard note={order.pickup_details} voiceUrl={order.pickup_voice_note_url} orderId={order.id} kind="pickup" />}
             </div>
           </div>
           <div className={`flex items-start gap-5 relative transition-opacity ${isHeadingToPickup ? 'opacity-30' : 'opacity-100'}`}>
@@ -604,7 +658,7 @@ export default function ActiveJobPage() {
                <div className="text-[10px] font-black uppercase text-charcoal-600 tracking-widest mb-1 italic">Step 2: Deliver to</div>
                <div className="text-lg font-black text-ink leading-tight mb-2">{dropoffLocked ? 'Revealed after payment' : order.dropoff_name}</div>
                {!dropoffLocked && <div className="text-sm font-bold text-emerald-500/70">{order.recipient_name} • {order.recipient_phone}</div>}
-               {!isHeadingToPickup && <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} />}
+               {!isHeadingToPickup && <NoteCard note={order.dropoff_details} voiceUrl={order.dropoff_voice_note_url} orderId={order.id} kind="dropoff" />}
             </div>
           </div>
         </div>
@@ -637,10 +691,9 @@ export default function ActiveJobPage() {
           <DropoffChecklist orderId={order.id} canComplete={order.status === 'in_transit'} onProgress={setStopsDone} />
         )}
 
-        {/* Delivery photo - encouraged, not required, right before the final
-            confirm. Cheap insurance for a "no one home" or "wrong item"
-            dispute later, without blocking a rider's income over an optional
-            step they may not always be able to do (gate handoffs, etc). */}
+        {/* Delivery photo - REQUIRED before the final confirm (also enforced by the
+            enforce_delivery_photo trigger). It is the proof in any "no one home" or
+            "wrong item" dispute, so a failed upload must block, not be skipped. */}
         {order.status === 'in_transit' && (
           <div>
             <input ref={deliveryPhotoInputRef} type="file" accept="image/*" capture="environment" onChange={handleDeliveryPhotoSelect} className="hidden" id="delivery-photo-input" />
@@ -659,10 +712,11 @@ export default function ActiveJobPage() {
                 {uploadingDeliveryPhoto ? (
                   <><Loader2 size={16} className="animate-spin text-emerald-500" /> <span className="text-charcoal-400 text-xs font-bold">Uploading...</span></>
                 ) : (
-                  <><Camera size={16} className="text-charcoal-500" /> <span className="text-charcoal-400 text-xs font-bold">Add a delivery photo (recommended)</span></>
+                  <><Camera size={16} className="text-charcoal-500" /> <span className="text-charcoal-400 text-xs font-bold">Take delivery photo (required)</span></>
                 )}
               </label>
             )}
+            {deliveryPhotoError && <p className="text-red-400 text-xs font-bold mt-2 px-1">{deliveryPhotoError}</p>}
           </div>
         )}
 
@@ -781,7 +835,12 @@ export default function ActiveJobPage() {
                <p className="text-amber-500 font-black text-xs uppercase tracking-widest">Complete every drop-off above first</p>
              </div>
            )}
-           {order.status === 'in_transit' && stopsGateOpen && (
+           {order.status === 'in_transit' && stopsGateOpen && !deliveryPhotoUrl && (
+             <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-5 text-center">
+               <p className="text-amber-500 font-black text-xs uppercase tracking-widest">Add the delivery photo to unlock</p>
+             </div>
+           )}
+           {order.status === 'in_transit' && stopsGateOpen && deliveryPhotoUrl && (
              <SlideToConfirm
                text="Slide to Mark Delivered" 
                color="bg-emerald-500" 
@@ -789,6 +848,7 @@ export default function ActiveJobPage() {
              />
            )}
            
+           {statusError && <p className="mt-3 text-center text-red-400 text-xs font-bold">{statusError}</p>}
            {updating && (
              <div className="mt-4 flex items-center justify-center gap-2 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
                <Loader2 size={14} className="animate-spin" /> Updating...

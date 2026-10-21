@@ -1,4 +1,4 @@
-﻿﻿import { validateAdmin } from "@/utils/admin";
+﻿import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { DollarSign, ArrowUpRight, ArrowDownRight, Wallet, Activity, CreditCard } from "lucide-react";
 import FinanceCharts from "./FinanceCharts";
@@ -21,41 +21,20 @@ export default async function OpsFinancePage() {
     .select("agreed_price, created_at")
     .eq("status", "delivered");
 
-  // Only count REQUESTED payouts as "pending" -- previously this counted paid and
-  // rejected rows too since it only filtered on type, not status.
-  const { data: pendingPayouts } = await supabase
-    .from("wallet_transactions")
-    .select("id, amount, created_at, rider_id, users:rider_id(full_name)")
-    .eq("type", "payout_request")
-    .eq("status", "requested")
-    .order("created_at", { ascending: true });
+  // Pending payouts + the rider's payout account come from one admin-only RPC. Bank details live in
+  // rider_payout_accounts (owner/admin RLS), NOT on the riders row that vendors can read.
+  const { data: pendingRows } = await supabase.rpc("admin_pending_withdrawals");
+  const withdrawalRequests = (pendingRows || []).map(r => ({
+    id: r.id, amount: r.amount, created_at: r.created_at, rider_name: r.rider_name,
+    bank_name: r.bank_name, account_number: r.account_number, account_name: r.account_name,
+  }));
 
   const currentEscrow = totalEscrow?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
   const totalRevenue = completedOrders?.reduce((acc, curr) => acc + (curr.agreed_price || 0), 0) || 0;
-  const platformCut = totalRevenue * 0.20; // 20% commission
-  const totalPayoutPending = pendingPayouts?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
-
-  // wallet_transactions.rider_id -> users.id, but bank details live on riders.user_id,
-  // so this needs a second lookup rather than a nested embed off users.
-  const riderUserIds = [...new Set((pendingPayouts || []).map(p => p.rider_id).filter(Boolean))];
-  let bankByUserId = {};
-  if (riderUserIds.length > 0) {
-    const { data: riderBankRows } = await supabase
-      .from("riders")
-      .select("user_id, bank_name, account_number, account_name")
-      .in("user_id", riderUserIds);
-    bankByUserId = Object.fromEntries((riderBankRows || []).map(r => [r.user_id, r]));
-  }
-
-  const withdrawalRequests = (pendingPayouts || []).map(p => ({
-    id: p.id,
-    amount: p.amount,
-    created_at: p.created_at,
-    rider_name: p.users?.full_name || null,
-    bank_name: bankByUserId[p.rider_id]?.bank_name || null,
-    account_number: bankByUserId[p.rider_id]?.account_number || null,
-    account_name: bankByUserId[p.rider_id]?.account_name || null,
-  }));
+  const { data: riderRate } = await supabase.rpc("rider_payout_rate");
+  const platformRate = 1 - Number(riderRate ?? 0.85);
+  const platformCut = totalRevenue * platformRate;
+  const totalPayoutPending = withdrawalRequests.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   // Formatting historical data for charts
   const last7Days = [...Array(7)].map((_, i) => {
@@ -70,7 +49,7 @@ export default async function OpsFinancePage() {
     return {
       date: date.slice(5),
       gmv: gmv,
-      revenue: gmv * 0.20
+      revenue: gmv * platformRate
     };
   });
 

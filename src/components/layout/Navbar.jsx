@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -165,7 +165,7 @@ export default function Navbar() {
 
             {profile && (
               <>
-                <WalletChip />
+                {profile.role !== 'rider' && <WalletChip />}
                 <Link 
                   href="/profile"
                   className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all border border-transparent"
@@ -174,6 +174,8 @@ export default function Navbar() {
                   <User size={20} />
                 </Link>
 
+                {/* Riders sign out from their own menu (RiderNav); a second control here was a duplicate. */}
+                {profile.role !== 'rider' && (
                 <form action="/api/auth/signout" method="POST" className="m-0 p-0">
                   <button 
                     type="submit"
@@ -183,6 +185,7 @@ export default function Navbar() {
                     <LogOut size={20} />
                   </button>
                 </form>
+                )}
               </>
             )}
 

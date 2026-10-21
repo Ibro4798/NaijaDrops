@@ -1,7 +1,8 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
-import { Clock, ShieldAlert, AlertTriangle, Radar, Truck, Wallet, User, LogOut } from "lucide-react";
+import { Clock, ShieldAlert, AlertTriangle } from "lucide-react";
+import { RiderTopBar, RiderTabBar } from "@/components/rider/RiderNav";
 import SignOutButton from "@/components/ui/SignOutButton";
 
 export default async function RiderLayout({ children }) {
@@ -34,36 +35,9 @@ export default async function RiderLayout({ children }) {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-charcoal-950 text-ink selection:bg-emerald-500 overflow-x-hidden">
-      {/* Universal Driver Header - icon-only nav so it stays readable on small
-          screens. Previously five text links plus the logo were crammed onto
-          one row with a pt-12 top offset, which visibly overlapped on
-          narrower devices. */}
-      <nav className="border-b border-white/5 px-4 sm:px-6 pt-6 pb-3 flex justify-between items-center bg-charcoal-950/80 backdrop-blur-xl z-50 sticky top-0">
-        <div className="font-outfit font-black text-lg italic tracking-tighter shrink-0">
-          NaijaDrops <span className="text-emerald-500">Rider</span>
-        </div>
-        {isApproved && (
-          <div className="flex gap-1">
-            <Link href="/rider" title="Feed" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Radar size={18} />
-            </Link>
-            <Link href="/rider/active-job" title="Active Job" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Truck size={18} />
-            </Link>
-            <Link href="/rider/earnings" title="Money" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <Wallet size={18} />
-            </Link>
-            <Link href="/profile" title="Profile" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-emerald-400 hover:bg-white/5 rounded-xl transition-all">
-              <User size={18} />
-            </Link>
-            <SignOutButton title="Sign Out" className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-red-400 hover:bg-white/5 rounded-xl transition-all bg-transparent border-0 cursor-pointer">
-              <LogOut size={18} />
-            </SignOutButton>
-          </div>
-        )}
-      </nav>
+      <RiderTopBar showMenu={isApproved || isPending} />
       
-      <main className="flex-1 w-full max-w-lg mx-auto relative px-5 py-4">
+      <main className="flex-1 w-full max-w-lg mx-auto relative px-5 pt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)" }}>
         {/* SOFT-LOCK OVERLAYS (STRICT SPEC RULE #16) */}
         
         {/* 1. Pending Toast (Removed Overlay so they can see feed) */}
@@ -105,6 +79,8 @@ export default async function RiderLayout({ children }) {
         {/* 3. Approved Content */}
         {(!isRejected && !isPaused) && children}
       </main>
+
+      {isApproved && <RiderTabBar />}
     </div>
   );
 }

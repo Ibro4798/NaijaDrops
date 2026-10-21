@@ -47,30 +47,45 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
   const [mode, setMode] = useState("text"); // 'text' | 'voice'
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const previewUrlRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      // iOS Safari records audio/mp4, Chrome/Android audio/webm. Record in whatever the browser
+      // supports and keep the REAL type, otherwise iPhone recordings are mislabelled and unplayable.
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"]
+        .find((t) => window.MediaRecorder?.isTypeSupported?.(t));
+      mediaRecorderRef.current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       chunksRef.current = [];
       mediaRecorderRef.current.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       mediaRecorderRef.current.onstop = async () => {
         setIsUploading(true);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const fileName = `${storagePrefix}_${Date.now()}.webm`;
-        const { data, error } = await supabase.storage.from("documents").upload(fileName, blob, { contentType: "audio/webm" });
-        if (!error && data) {
-          const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(fileName);
-          onVoiceUrlChange(publicUrlData.publicUrl);
-        } else {
+        try {
+          const realType = (mediaRecorderRef.current?.mimeType || mimeType || "audio/webm").split(";")[0];
+          const ext = realType.includes("mp4") || realType.includes("aac") ? "m4a" : "webm";
+          const blob = new Blob(chunksRef.current, { type: realType });
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Not signed in");
+          // Own folder + bare path. The bucket is private, so we store the PATH (never a public URL);
+          // the rider hears it through /api/voice-note, which checks they are on the order.
+          const path = `${user.id}/voice/${storagePrefix}_${Date.now()}.${ext}`;
+          const { error } = await supabase.storage.from("documents").upload(path, blob, { contentType: realType });
+          if (error) throw error;
+          if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+          previewUrlRef.current = URL.createObjectURL(blob);
+          onVoiceUrlChange(path);
+        } catch (err) {
+          console.error("Voice note upload failed:", err);
           alert("Couldn't upload the voice note. Try again or use text instead.");
+        } finally {
+          setIsUploading(false);
+          stream.getTracks().forEach((t) => t.stop());
         }
-        setIsUploading(false);
-        stream.getTracks().forEach(t => t.stop());
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
@@ -130,7 +145,15 @@ function LocationNoteSection({ label, note, onNoteChange, voiceUrl, onVoiceUrlCh
             </div>
           ) : voiceUrl ? (
             <>
-              <button onClick={() => { const a = new Audio(voiceUrl); a.play(); }} className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-colors">
+              <button onClick={async () => {
+                let src = previewUrlRef.current;
+                if (!src) {
+                  // Restored draft: the stored value is a private path, sign it as the owner.
+                  const { data } = await supabase.storage.from("documents").createSignedUrl(voiceUrl, 600);
+                  src = data?.signedUrl;
+                }
+                if (src) new Audio(src).play().catch(() => alert("Couldn't play the recording."));
+              }} className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-colors">
                 <Play size={16} fill="currentColor" />
               </button>
               <span className="text-charcoal-400 text-xs font-bold">Voice note recorded</span>
