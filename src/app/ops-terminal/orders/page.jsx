@@ -27,6 +27,13 @@ export default async function OpsOrdersPage() {
     .in("status", ["pending", "looking_for_driver", "matched", "picked_up", "in_transit"])
     .order("created_at", { ascending: false });
 
+  // Approved riders ops can hand a job to (online or not).
+  const { data: assignableRiders } = await supabase
+    .from("riders")
+    .select("id, operational_status, users(name)")
+    .eq("status", "approved")
+    .eq("approved", true);
+
   // Cancelled orders drop out of the live feed entirely (by design - it's a
   // live dispatch board), so cancellation_reason had nowhere to surface.
   // This pulls the last 15 cancellations specifically to show it.
@@ -51,7 +58,7 @@ export default async function OpsOrdersPage() {
       </div>
 
       {/* Real-time Client Component */}
-      <LiveOrdersFeed initialOrders={initialOrders || []} adminId={admin.id} />
+      <LiveOrdersFeed initialOrders={initialOrders || []} riders={assignableRiders || []} />
 
       <div className="mt-12 bg-charcoal-900/40 border border-white/5 rounded-[2rem] p-8">
         <div className="flex items-center justify-between mb-8">

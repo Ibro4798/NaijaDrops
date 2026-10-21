@@ -1,7 +1,7 @@
 ﻿import { getBestRider } from "@/utils/dispatch";
 import { notifyOpsNewOrder } from "@/utils/opsAlerts";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 // Section 7: Kano Pilot Geofence (Metropolitan Bounds)
 const KANO_BOUNDS = {
@@ -110,7 +110,7 @@ export async function POST(req) {
     });
     })();
     } finally {
-      await notifyOpsNewOrder(supabase, order);
+      after(() => notifyOpsNewOrder(supabase, order));
     }
     return response;
 

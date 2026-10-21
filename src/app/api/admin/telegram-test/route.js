@@ -20,10 +20,13 @@ export async function GET() {
       hint: "Set TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID in Vercel, then redeploy.",
     });
   }
-  const sent = await sendTelegram("\u2705 <b>NaijaDrops alerts are working.</b>\nYou will get a message like this for every new order.");
+  const result = await sendTelegram("\u2705 <b>NaijaDrops alerts are working.</b>\nYou will get a message like this for every new order.");
   return NextResponse.json({
     configured: true,
-    sent,
-    hint: sent ? "Check Telegram." : "Telegram refused it. Check the token, and that you pressed Start on the bot (or added it to the group).",
+    sent: result.sent,
+    uncertain: result.uncertain,
+    hint: result.sent ? "Check Telegram." : result.uncertain
+      ? "No confirmation from Telegram. Check the group; if nothing arrived, try again."
+      : "Telegram refused it. Check the token, and that the bot is a member of the group (or you pressed Start on it).",
   });
 }

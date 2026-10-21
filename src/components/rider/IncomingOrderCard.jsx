@@ -100,6 +100,13 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
           </button>
         )}
 
+        {order._assigned && (
+          <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
+            <p className="text-emerald-400 font-black text-xs uppercase tracking-widest">Assigned to you by NaijaDrops</p>
+            <p className="text-charcoal-400 text-xs mt-1 leading-relaxed">Other riders may be offered this job too. The first to accept gets it.</p>
+          </div>
+        )}
+
         {order.payment_timing === 'at_pickup' && !order.payment_required && (
           <div className="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
             <p className="text-amber-400 font-black text-xs uppercase tracking-widest mb-1">Pay at pickup</p>

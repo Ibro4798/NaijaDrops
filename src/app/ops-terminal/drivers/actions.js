@@ -105,25 +105,33 @@ export async function inviteRider(formData) {
     const { createAdminClient } = await import("@/utils/supabase/admin");
     const adminSupabase = createAdminClient();
 
-    const email = formData.get("email");
-    const fullName = formData.get("full_name");
-    const vehicleType = formData.get("vehicle_type");
+    const email = String(formData.get("email") || "").trim().toLowerCase();
+    if (!email) throw new Error("Email is required");
+    const typedName = String(formData.get("full_name") || "").trim();
+    const fullName = typedName || email.split("@")[0];
 
-    if (!email || !fullName) throw new Error("Email and Full Name are required");
-
-    // The on_auth_user_created trigger now reads this metadata and creates a
-    // draft riders row (status='draft') pre-filled with full_name/vehicle_type,
-    // so the rider lands on a partially-filled onboarding form instead of a
-    // blank one. It does NOT auto-approve - they still go through the normal
-    // review flow below once they submit.
+    // The link in the email opens /auth/update-password, where the rider picks a password and goes to their dashboard.
+    // (The site address must also be listed under Supabase > Authentication > URL Configuration > Redirect URLs.)
+    const origin = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.naijadrops.tech").replace(/\/+$/, "");
     const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName, role: 'rider', vehicle_type: vehicleType || 'bike' }
+      data: { full_name: fullName, role: "rider", vehicle_type: "bike" },
+      redirectTo: `${origin}/auth/update-password`,
     });
-
     if (inviteError) throw inviteError;
     const userId = inviteData.user.id;
 
-    await logAdminAction(admin.id, "RIDER_INVITE", "rider", userId, { email, fullName });
+    // The sign-up trigger creates a DRAFT rider. Ops is inviting this person on purpose, so approve them now:
+    // no documents step, no waiting.
+    const { data: approved } = await adminSupabase
+      .from("riders")
+      .update({ status: "approved", approved: true })
+      .eq("user_id", userId)
+      .select("id");
+    if (!approved || approved.length === 0) {
+      throw new Error("Invitation sent, but the rider profile was not created. Approve them from the drivers list.");
+    }
+
+    await logAdminAction(admin.id, "RIDER_INVITE", "rider", userId, { email, fullName, preApproved: true });
 
     revalidatePath("/ops-terminal/drivers");
     return { success: true };

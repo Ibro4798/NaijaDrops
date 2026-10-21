@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { forceCancelOrder } from "./actions";
+import AssignRider from "./AssignRider";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Truck, Navigation, AlertOctagon, XCircle, Info, Loader2, Map as MapIcon } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -18,7 +19,7 @@ const STATUS_CONFIG = {
   in_transit: { label: "In Transit", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
 };
 
-export default function LiveOrdersFeed({ initialOrders }) {
+export default function LiveOrdersFeed({ initialOrders, riders = [] }) {
   const [orders, setOrders] = useState(initialOrders);
   const [isCancelling, setIsCancelling] = useState(null);
   const supabase = createClient();
@@ -131,6 +132,10 @@ export default function LiveOrdersFeed({ initialOrders }) {
                     <span className="text-charcoal-300 truncate">{order.dropoff_name?.split(',')[0]}</span>
                  </div>
               </div>
+
+              {(order.status === "pending" || order.status === "looking_for_driver") && !order.riders && (
+                <AssignRider orderId={order.id} riders={riders} />
+              )}
 
               <div className="pt-4 border-t border-white/5 flex justify-between items-center">
                  <div className="flex items-center gap-2">

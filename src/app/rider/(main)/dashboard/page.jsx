@@ -55,13 +55,13 @@ export default function RiderDashboard() {
     // current (possibly expanded) radius. Join to orders for the actual job data.
     const { data, error: fetchErr } = await supabase
       .from('order_broadcasts')
-      .select('order_id, orders(*)')
+      .select('order_id, source, orders(*)')
       .eq('rider_id', riderId);
 
     if (fetchErr) { console.error('Job feed fetch error:', fetchErr); return; }
 
     const openJobs = (data || [])
-      .map(row => row.orders)
+      .map(row => row.orders && { ...row.orders, _assigned: row.source === 'admin' })
       .filter(o => o && (o.status === 'pending' || o.status === 'looking_for_driver') && (!o.payment_required || o.payment_status === 'paid'));
     setJobs(openJobs);
     return openJobs;
@@ -492,13 +492,16 @@ export default function RiderDashboard() {
             Open now
           </button>
         </div>
-      ) : rider.operational_status !== 'online' ? (
+      ) : rider.operational_status !== 'online' && jobs.filter(j => j._assigned).length === 0 ? (
         <p className="text-charcoal-400 text-center py-16">Go online to start receiving jobs.</p>
       ) : jobs.length === 0 ? (
         <p className="text-charcoal-400 text-center py-16">No jobs nearby right now. Stay online — the search radius expands automatically.</p>
       ) : (
         <div className="space-y-6">
-          {jobs.map(job => (
+          {rider.operational_status !== 'online' && (
+            <p className="text-amber-400 text-xs font-bold text-center">You are offline. Only jobs NaijaDrops assigned to you appear here.</p>
+          )}
+          {(rider.operational_status === 'online' ? jobs : jobs.filter(j => j._assigned)).map(job => (
             <IncomingOrderCard
               key={job.id}
               order={job}

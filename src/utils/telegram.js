@@ -16,13 +16,19 @@ export const escapeHtml = (value) =>
   String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /**
- * Send one message to every configured chat. `buttons` = [{ text, url }] shown under the message.
- * Never throws and never logs the token. Returns true if at least one chat received it.
+ * Send one message to every configured chat. `rows` = [[{ text, url }, ...], ...] shown as buttons under the message.
+ * Never throws and never logs the token.
+ *
+ * Returns { sent, uncertain }:
+ *   sent      - at least one chat definitely received it
+ *   uncertain - no confirmation, but the message MAY have been delivered (timeout / dropped connection).
+ *               Callers must NOT resend in that case, or the team gets duplicates.
+ *   (both false = Telegram definitely refused it)
  */
-export async function sendTelegram(text, { buttons } = {}) {
-  if (!telegramConfigured()) return false;
+export async function sendTelegram(text, { rows } = {}) {
+  if (!telegramConfigured()) return { sent: false, uncertain: false };
   const url = `${API_BASE}/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const results = await Promise.all(
+  const outcomes = await Promise.all(
     chatIds().map(async (chat_id) => {
       try {
         const res = await fetch(url, {
@@ -33,22 +39,23 @@ export async function sendTelegram(text, { buttons } = {}) {
             text,
             parse_mode: "HTML",
             disable_web_page_preview: true,
-            ...(buttons && buttons.length
-              ? { reply_markup: { inline_keyboard: [buttons.map((b) => ({ text: b.text, url: b.url }))] } }
+            ...(rows && rows.length
+              ? { reply_markup: { inline_keyboard: rows.map((r) => r.map((b) => ({ text: b.text, url: b.url }))) } }
               : {}),
           }),
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) {
-          console.error("Telegram send failed: HTTP", res.status);
-          return false;
+          console.error("Telegram send refused: HTTP", res.status);
+          return "refused";
         }
-        return true;
+        return "sent";
       } catch (err) {
-        console.error("Telegram send error:", err?.name || "unknown");
-        return false;
+        console.error("Telegram send unconfirmed:", err?.name || "unknown");
+        return "uncertain";
       }
     })
   );
-  return results.some(Boolean);
+  const sent = outcomes.includes("sent");
+  return { sent, uncertain: !sent && outcomes.includes("uncertain") };
 }

@@ -53,38 +53,32 @@ export default function InviteDriverButton() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest block mb-2 px-1">Full Name</label>
-                <input 
-                  name="full_name"
-                  type="text" 
-                  required
-                  placeholder="Rider's Legal Name"
-                  className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 transition-all"
-                />
-              </div>
-
-              <div>
                 <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest block mb-2 px-1">Email Address</label>
-                <input 
+                <input
                   name="email"
-                  type="email" 
+                  type="email"
                   required
                   placeholder="rider@example.com"
-                  className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 transition-all"
+                  className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest block mb-2 px-1">Vehicle Type</label>
-                <div className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm flex items-center justify-between">
-                  <span>Motorcycle (Bike)</span>
-                  <span className="text-[9px] font-black text-charcoal-600 uppercase tracking-widest">Only Option - Pilot Fleet</span>
-                </div>
-                <input type="hidden" name="vehicle_type" value="bike" />
+                <label className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest block mb-2 px-1">Name (optional)</label>
+                <input
+                  name="full_name"
+                  type="text"
+                  placeholder="Rider's name"
+                  className="w-full bg-charcoal-950 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500"
+                />
               </div>
 
+              <p className="text-charcoal-500 text-[11px] leading-relaxed px-1">
+                They get an email, choose a password, and land on their dashboard already approved (motorcycle).
+              </p>
+
               {error && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center">{error}</p>}
-              {success && <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest text-center">Invitation Sent! Rider Pre-Enrolled.</p>}
+              {success && <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest text-center">Invitation sent. They can set a password and start.</p>}
 
               <button 
                 type="submit"
