@@ -695,7 +695,7 @@ export default function TrackingPage() {
 
         {showCancelConfirm && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4">
+            <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4 max-h-[90dvh] overflow-y-auto overscroll-contain">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center shrink-0">
                   <AlertTriangle className="text-red-400" size={18} />
@@ -908,7 +908,7 @@ export default function TrackingPage() {
           never a silent dead end. */}
       {showLinkModal && (
         <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-charcoal-900 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 space-y-4 max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between">
               <h3 className="text-ink font-black text-base">Tracking link</h3>
               <button onClick={() => setShowLinkModal(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-charcoal-400 hover:text-ink">

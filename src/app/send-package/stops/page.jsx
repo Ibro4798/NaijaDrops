@@ -337,7 +337,7 @@ export default function StopsPage() {
       <AnimatePresence>
         {showLinkModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-charcoal-950/90 backdrop-blur-sm flex items-end">
-            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="w-full bg-charcoal-900 border-t border-white/10 rounded-t-[2rem] p-6">
+            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="w-full bg-charcoal-900 border-t border-white/10 rounded-t-[2rem] p-6 max-h-[90dvh] overflow-y-auto overscroll-contain">
               <h3 className="text-ink font-black text-lg mb-1">Paste a Map Link</h3>
               <p className="text-charcoal-500 text-sm mb-4">Works with Google Maps, Apple Maps URLs</p>
               <div className="relative mb-4">

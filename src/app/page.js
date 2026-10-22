@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   MapPin, Zap, Shield, ArrowRight, Radar, ShieldCheck,
@@ -26,6 +26,8 @@ const TRUST = [
 
 export default function LandingPage() {
   const [checking, setChecking] = useState(true);
+  const heroCtaRef = useRef(null);
+  const [heroCtaVisible, setHeroCtaVisible] = useState(true);
   const supabase = createClient();
   const router = useRouter();
 
@@ -44,6 +46,16 @@ export default function LandingPage() {
     }
     checkAuth();
   }, [router, supabase]);
+
+  // The floating bottom CTA only appears once the hero button has scrolled away, so the same
+  // "Send a Package Now" is never on screen twice.
+  useEffect(() => {
+    const el = heroCtaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setHeroCtaVisible(entry.isIntersecting), { threshold: 0.1 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [checking]);
 
   if (checking) {
     return (
@@ -75,16 +87,17 @@ export default function LandingPage() {
           <a href="/send-package/step-1" className="hidden md:block text-[11px] font-black uppercase tracking-widest text-charcoal-400 hover:text-emerald-400 transition-colors">
             Get a quote
           </a>
-          <InstallAppButton />
+          {/* Install + Create Account live in the hero on phones; the header keeps just Log In so it fits. */}
+          <div className="hidden md:block"><InstallAppButton /></div>
           <button
             onClick={() => router.push("/auth/login")}
-            className="text-[11px] font-black uppercase tracking-widest text-charcoal-400 hover:text-white transition-colors px-4 py-2 rounded-xl border border-white/10 hover:border-white/20"
+            className="text-[11px] font-black uppercase tracking-widest text-charcoal-300 hover:text-white transition-colors px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/20 whitespace-nowrap"
           >
             Log In
           </button>
           <button
             onClick={() => router.push("/auth/login?mode=signup")}
-            className="text-[11px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 transition-colors px-4 py-2 rounded-xl"
+            className="hidden md:block text-[11px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 transition-colors px-4 py-2 rounded-xl"
           >
             Create Account
           </button>
@@ -119,10 +132,11 @@ export default function LandingPage() {
 
           {/* PRIMARY CTA */}
           <motion.button
+            ref={heroCtaRef}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => router.push("/send-package/step-1")}
-            className="group relative inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 px-10 py-5 rounded-2xl font-black text-lg uppercase tracking-wide shadow-[0_0_40px_rgba(16,185,129,0.35)] transition-all"
+            className="group relative inline-flex w-full sm:w-auto justify-center items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 px-6 sm:px-10 py-4 sm:py-5 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wide shadow-[0_0_40px_rgba(16,185,129,0.35)] transition-all"
           >
             <Package size={22} />
             Send a Package Now
@@ -132,6 +146,13 @@ export default function LandingPage() {
           <p className="text-charcoal-600 text-xs font-bold uppercase tracking-widest mt-4">
             No sign-up required to get a quote
           </p>
+
+          <div className="md:hidden mt-5 flex items-center justify-center gap-4">
+            <InstallAppButton />
+            <a href="/auth/login?mode=signup" className="text-[11px] font-black uppercase tracking-widest text-emerald-400">
+              Create account
+            </a>
+          </div>
 
           <div className="mt-6">
             <ShareButton />
@@ -220,6 +241,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── STICKY BOTTOM CTA (mobile) ─── */}
+      {!heroCtaVisible && (
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-4 pb-6 pt-3 bg-gradient-to-t from-charcoal-950 via-charcoal-950/90 to-transparent pointer-events-none">
         <motion.button
           initial={{ y: 80 }}
@@ -231,6 +253,7 @@ export default function LandingPage() {
           <Zap size={18} /> Send a Package Now
         </motion.button>
       </div>
+      )}
 
       {/* ─── Footer ─── */}
       <footer className="relative z-10 border-t border-white/[0.06] py-10 px-6">

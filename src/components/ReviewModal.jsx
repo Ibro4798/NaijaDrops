@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from 'react';
 import { Star, X } from 'lucide-react';
@@ -74,7 +74,7 @@ export default function ReviewModal({ order, driverProfile, reviewerId, isOpen, 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#18181b]/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up sm:animate-in sm:zoom-in-95">
+      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-x-hidden max-h-[92dvh] overflow-y-auto overscroll-contain animate-slide-up sm:animate-in sm:zoom-in-95">
         
         <div className="p-4 flex justify-end">
             <button onClick={onClose} className="p-2 bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100">

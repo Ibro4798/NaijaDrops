@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,7 @@ export default function ProfilePage() {
         router.push("/login");
         return;
       }
+      if (r === "rider") { router.replace("/rider/profile"); return; }
       setUser(u);
       setRole(r);
       setProfile(p);

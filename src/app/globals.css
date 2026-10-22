@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
 @custom-variant dark (&:is(.dark *));
 
@@ -100,6 +100,34 @@
   --app-charcoal-500: #71717a;
   --app-charcoal-400: #a1a1aa;
   --app-ink: #ffffff;
+}
+
+/* RIDER THEME - a deliberately different identity from the vendor/customer app (emerald on neutral
+   charcoal). Riders get deep navy surfaces with a sky-blue accent. Scoped to `.rider-theme`, which the
+   rider layout applies, so it takes effect only on rider screens and no vendor/customer component or
+   class needs to change: every `emerald-*` utility reads var(--color-emerald-*), and we re-point those
+   variables inside this scope. To change the rider hue later, edit ONLY the values in this block. */
+.rider-theme,
+.dark .rider-theme {
+  --color-emerald-400: #38bdf8;
+  --color-emerald-500: #0ea5e9;
+  --color-emerald-600: #0284c7;
+  --color-emerald-700: #0369a1;
+  --color-emerald-800: #075985;
+  --color-emerald-900: #0c4a6e;
+  --color-emerald-950: #082f49;
+  --shadow-glow: 0 0 20px -5px #0ea5e9;
+
+  --app-charcoal-950: #060b16;
+  --app-charcoal-900: #0e1626;
+  --app-charcoal-800: #172238;
+  --app-charcoal-700: #243250;
+  --app-charcoal-600: #5b6b8c;
+  --app-charcoal-500: #7f8eac;
+  --app-charcoal-400: #a3b0c8;
+  --app-ink: #f1f5fb;
+  background-color: var(--app-charcoal-950);
+  color: var(--app-ink);
 }
 
 @layer base {

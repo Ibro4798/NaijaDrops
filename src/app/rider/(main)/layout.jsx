@@ -34,7 +34,7 @@ export default async function RiderLayout({ children }) {
   const isPaused = rider.status === "paused";
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-charcoal-950 text-ink selection:bg-emerald-500 overflow-x-hidden">
+    <div className="rider-theme flex flex-col min-h-[100dvh] bg-charcoal-950 text-ink selection:bg-emerald-500 overflow-x-hidden">
       <RiderTopBar showMenu={isApproved || isPending} />
       
       <main className="flex-1 w-full max-w-lg mx-auto relative px-5 pt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)" }}>
@@ -51,7 +51,7 @@ export default async function RiderLayout({ children }) {
 
         {/* 2. Rejected / Paused Lock */}
         {(isRejected || isPaused) && (
-          <div className="fixed inset-0 z-[100] bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
+          <div className="fixed inset-0 z-[100] bg-charcoal-950 flex flex-col items-center justify-center-safe overflow-y-auto p-8 text-center">
             <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mb-8">
                <ShieldAlert className="text-red-500" size={36} />
             </div>

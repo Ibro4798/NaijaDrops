@@ -53,7 +53,7 @@ export function RiderTopBar({ showMenu }) {
                 <X size={18} />
               </button>
             </div>
-            <Link href="/profile" onClick={() => setOpen(false)} className="mb-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-black text-ink">
+            <Link href="/rider/profile" onClick={() => setOpen(false)} className="mb-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-black text-ink">
               <User size={18} className="text-emerald-500" /> Profile
             </Link>
             <SignOutButton className="flex w-full items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-4 text-sm font-black text-red-400 cursor-pointer">

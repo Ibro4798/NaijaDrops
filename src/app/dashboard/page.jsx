@@ -210,14 +210,14 @@ function MenuModal({ isOpen, onClose, onLogout, onProfile, userAvatar }) {
       
       <motion.div 
         initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
-        className="relative w-full max-w-[280px] bg-charcoal-900 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-[280px] max-h-[calc(100dvh-3rem)] bg-charcoal-900 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
       >
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
            <span className="text-[10px] font-black text-charcoal-500 uppercase tracking-widest">Menu</span>
            <button onClick={onClose} className="p-2 text-charcoal-500 hover:text-ink transition-colors"><X size={20} /></button>
         </div>
 
-        <div className="p-4 space-y-2 overflow-y-auto flex-1">
+        <div className="p-4 space-y-2 overflow-y-auto overscroll-contain flex-1 min-h-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
            <button onClick={() => { onProfile(); onClose(); }} className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 text-ink transition-all group">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-charcoal-950 transition-all overflow-hidden">
                 {userAvatar ? <img src={userAvatar} className="w-full h-full object-cover" /> : <UserIcon size={20} />}

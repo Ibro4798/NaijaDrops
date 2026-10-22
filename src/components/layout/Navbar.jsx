@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import WalletChip from "@/components/layout/WalletChip";
 import { useRouter, usePathname } from "next/navigation";
-import { Package, LogOut, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone, Sun, Moon, Radar, Truck } from "lucide-react";
+import { Package, Shield, User, Wallet, ArrowRight, CreditCard, MessageCircle, Phone, Smartphone, Sun, Moon, Radar, Truck } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { getUserRole } from "@/utils/auth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -167,25 +167,15 @@ export default function Navbar() {
               <>
                 {profile.role !== 'rider' && <WalletChip />}
                 <Link 
-                  href="/profile"
+                  href={profile.role === 'rider' ? "/rider/profile" : "/profile"}
                   className="w-10 h-10 flex items-center justify-center text-charcoal-400 dark:text-white hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-white/10 rounded-2xl transition-all border border-transparent"
                   title="Profile Settings"
                 >
                   <User size={20} />
                 </Link>
 
-                {/* Riders sign out from their own menu (RiderNav); a second control here was a duplicate. */}
-                {profile.role !== 'rider' && (
-                <form action="/api/auth/signout" method="POST" className="m-0 p-0">
-                  <button 
-                    type="submit"
-                    className="w-10 h-10 flex items-center justify-center text-charcoal-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100"
-                    title="Logout"
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </form>
-                )}
+                {/* No sign-out here on purpose: each side has exactly ONE, inside its own menu
+                    (vendor: dashboard menu, rider: RiderNav menu). */}
               </>
             )}
 

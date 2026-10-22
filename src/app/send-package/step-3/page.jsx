@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
@@ -279,7 +279,7 @@ function Step3Content() {
       <AnimatePresence>
         {showAuthGate && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-charcoal-950/90 backdrop-blur-md z-50 flex items-end justify-center pb-10 px-5">
-            <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center">
+            <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center max-h-[90dvh] overflow-y-auto overscroll-contain">
               <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Lock size={28} className="text-emerald-500" />
               </div>
@@ -301,7 +301,7 @@ function Step3Content() {
       <AnimatePresence>
         {showPhoneGate && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-charcoal-950/90 backdrop-blur-md z-50 flex items-end justify-center pb-10 px-5">
-            <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center">
+            <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} className="w-full max-w-sm bg-charcoal-900 border border-white/10 rounded-[2rem] p-8 text-center max-h-[90dvh] overflow-y-auto overscroll-contain">
               <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Lock size={28} className="text-emerald-500" />
               </div>
