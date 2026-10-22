@@ -17,8 +17,12 @@ export default function RiderEarnings() {
   const [payoutAccount, setPayoutAccount] = useState(null);
   const [editingAccount, setEditingAccount] = useState(false);
   const [bankName, setBankName] = useState('');
+  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
+  const [resolvingAccount, setResolvingAccount] = useState(false);
+  const [accountResolved, setAccountResolved] = useState(false);
+  const [banksList, setBanksList] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -63,7 +67,43 @@ export default function RiderEarnings() {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, [supabase, router]);
+  useEffect(() => {
+    loadData();
+    // Fetch supported bank list from Paystack
+    fetch('https://api.paystack.co/bank')
+      .then(res => res.json())
+      .then(json => {
+        if (json?.status && Array.isArray(json.data)) {
+          setBanksList(json.data.sort((a, b) => a.name.localeCompare(b.name)));
+        }
+      })
+      .catch(() => {});
+  }, [supabase, router]);
+
+  async function resolveAccount(num, code) {
+    if (!num || num.length !== 10 || !code) return;
+    setResolvingAccount(true);
+    setWithdrawError(null);
+    setAccountResolved(false);
+    try {
+      const res = await fetch('/api/rider/verify-bank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_number: num, bank_code: code }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setWithdrawError(data.error || 'Could not verify account.');
+      } else {
+        setAccountName(data.account_name);
+        setAccountResolved(true);
+      }
+    } catch {
+      setWithdrawError('Error verifying account. Check network.');
+    } finally {
+      setResolvingAccount(false);
+    }
+  }
 
   async function savePayoutAccount() {
     setWithdrawError(null);
@@ -217,10 +257,52 @@ export default function RiderEarnings() {
 
                 {editingAccount ? (
                   <div className="space-y-3 mb-3">
-                    <p className="text-charcoal-400 text-xs">Where should we send your money? Only you and NaijaDrops finance can see this.</p>
-                    <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Bank (e.g. GTBank, Opay)" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
-                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="10-digit account number" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
-                    <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account name" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50" />
+                    <p className="text-charcoal-400 text-xs">Where should we send your money? Account is verified via Paystack.</p>
+                    <select
+                      value={bankCode}
+                      onChange={(e) => {
+                        const sel = banksList.find(b => b.code === e.target.value);
+                        setBankCode(e.target.value);
+                        setBankName(sel?.name || '');
+                        setAccountResolved(false);
+                        if (accountNumber.length === 10 && e.target.value) {
+                          resolveAccount(accountNumber, e.target.value);
+                        }
+                      }}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50"
+                    >
+                      <option value="" className="bg-charcoal-900 text-white">Select Bank...</option>
+                      {banksList.map(b => (
+                        <option key={b.id || b.code} value={b.code} className="bg-charcoal-900 text-white">{b.name}</option>
+                      ))}
+                    </select>
+
+                    <input
+                      value={accountNumber}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setAccountNumber(val);
+                        setAccountResolved(false);
+                        if (val.length === 10 && bankCode) {
+                          resolveAccount(val, bankCode);
+                        }
+                      }}
+                      inputMode="numeric"
+                      placeholder="10-digit account number"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-ink font-bold outline-none focus:border-emerald-500/50"
+                    />
+
+                    {resolvingAccount && (
+                      <div className="flex items-center gap-2 text-emerald-400 text-xs py-1">
+                        <Loader2 size={13} className="animate-spin" /> Verifying account with Paystack...
+                      </div>
+                    )}
+
+                    {accountResolved && accountName && (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-black uppercase tracking-wider">
+                        ✓ {accountName}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -244,7 +326,7 @@ export default function RiderEarnings() {
                 {withdrawError && <p className="text-red-400 text-xs font-bold mb-3">{withdrawError}</p>}
                 <button
                   onClick={submitWithdrawal}
-                  disabled={withdrawing}
+                  disabled={withdrawing || resolvingAccount || (editingAccount && (!accountResolved || !accountName))}
                   className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50"
                 >
                   {withdrawing ? <Loader2 className="animate-spin mx-auto" size={18} /> : editingAccount ? 'Save Bank Account' : 'Request Withdrawal'}

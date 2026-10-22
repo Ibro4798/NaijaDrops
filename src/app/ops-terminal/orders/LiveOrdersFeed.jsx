@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { forceCancelOrder } from "./actions";
 import AssignRider from "./AssignRider";
+import ReassignRider from "./ReassignRider";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Truck, Navigation, AlertOctagon, XCircle, Info, Loader2, Map as MapIcon } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -135,6 +136,10 @@ export default function LiveOrdersFeed({ initialOrders, riders = [] }) {
 
               {(order.status === "pending" || order.status === "looking_for_driver") && !order.riders && (
                 <AssignRider orderId={order.id} riders={riders} />
+              )}
+
+              {order.status === "matched" && order.riders && (
+                <ReassignRider orderId={order.id} currentRiderId={order.rider_id} riders={riders} />
               )}
 
               <div className="pt-4 border-t border-white/5 flex justify-between items-center">

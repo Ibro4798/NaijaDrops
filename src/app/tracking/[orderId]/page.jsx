@@ -253,6 +253,27 @@ export default function TrackingPage() {
     };
   }, [isVendorView, order?.id, order?.status, supabase]);
 
+  const [counterBidId, setCounterBidId] = useState(null);
+  const [counterAmount, setCounterAmount] = useState('');
+
+  const handleVendorCounter = async (bidId, amount) => {
+    setBidActionId(bidId);
+    setBidsError(null);
+    try {
+      const { error } = await supabase.rpc('vendor_counter_bid', {
+        p_bid_id: bidId,
+        p_vendor_amount: Number(amount),
+      });
+      if (error) throw error;
+      setCounterBidId(null);
+      setCounterAmount('');
+    } catch (err) {
+      setBidsError(err.message || 'Could not send counter-offer.');
+    } finally {
+      setBidActionId(null);
+    }
+  };
+
   const handleAcceptBid = async (bidId) => {
     setBidActionId(bidId);
     setBidsError(null);
@@ -647,20 +668,63 @@ export default function TrackingPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleDeclineBid(bid.id)}
-                        disabled={bidActionId === bid.id}
-                        className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center text-charcoal-400 hover:text-white transition-all disabled:opacity-40"
-                      >
-                        <X size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleAcceptBid(bid.id)}
-                        disabled={bidActionId === bid.id}
-                        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        {bidActionId === bid.id ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> Accept</>}
-                      </button>
+                      {bid.status === 'vendor_countered' ? (
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                          Counter ₦{Number(bid.vendor_amount).toLocaleString()} sent
+                        </span>
+                      ) : counterBidId === bid.id ? (
+                        <div className="flex items-center gap-1.5 bg-charcoal-900 border border-white/10 p-1.5 rounded-xl">
+                          <input
+                            type="number"
+                            step="50"
+                            placeholder="₦"
+                            value={counterAmount}
+                            onChange={(e) => setCounterAmount(e.target.value)}
+                            className="w-20 bg-charcoal-950 text-white font-mono text-xs px-2 py-1 rounded border border-white/10 outline-none"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleVendorCounter(bid.id, counterAmount)}
+                            disabled={!counterAmount || bidActionId === bid.id}
+                            className="px-2 py-1 bg-emerald-500 text-charcoal-950 text-[10px] font-black rounded uppercase"
+                          >
+                            Send
+                          </button>
+                          <button
+                            onClick={() => setCounterBidId(null)}
+                            className="px-1.5 py-1 text-charcoal-400 text-xs hover:text-white"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setCounterBidId(bid.id);
+                              setCounterAmount(String(order.agreed_price || ''));
+                            }}
+                            className="px-3 py-2 bg-white/5 hover:bg-white/10 text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/5"
+                            title="Counter-offer back to rider"
+                          >
+                            Counter
+                          </button>
+                          <button
+                            onClick={() => handleDeclineBid(bid.id)}
+                            disabled={bidActionId === bid.id}
+                            className="w-9 h-9 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center text-charcoal-400 hover:text-white transition-all disabled:opacity-40"
+                          >
+                            <X size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleAcceptBid(bid.id)}
+                            disabled={bidActionId === bid.id}
+                            className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-1"
+                          >
+                            {bidActionId === bid.id ? <Loader2 size={12} className="animate-spin" /> : <><Check size={12} /> Accept</>}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   );

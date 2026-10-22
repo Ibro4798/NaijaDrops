@@ -1,4 +1,4 @@
-﻿import { validateAdmin } from "@/utils/admin";
+import { validateAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import LiveOrdersFeed from "./LiveOrdersFeed";
 import CancelledOrdersPanel from "./CancelledOrdersPanel";
@@ -27,12 +27,25 @@ export default async function OpsOrdersPage() {
     .in("status", ["pending", "looking_for_driver", "matched", "picked_up", "in_transit"])
     .order("created_at", { ascending: false });
 
-  // Approved riders ops can hand a job to (online or not).
+  // Approved riders ops can assign / force-assign to.
+  // Also compute which riders are currently on an active job so the dropdown
+  // can badge them "On Active Delivery" instead of letting ops double-book.
   const { data: assignableRiders } = await supabase
     .from("riders")
-    .select("id, operational_status, users(name)")
-    .eq("status", "approved")
+    .select("id, full_name, operational_status, users(name, full_name)")
     .eq("approved", true);
+
+  const busyRiderIds = new Set(
+    (initialOrders || [])
+      .filter(o => ['matched', 'picked_up', 'in_transit'].includes(o.status) && o.rider_id)
+      .map(o => o.rider_id)
+  );
+
+  const ridersWithStatus = (assignableRiders || []).map(r => ({
+    ...r,
+    displayName: r.full_name || r.users?.full_name || r.users?.name || 'Rider',
+    isOnJob: busyRiderIds.has(r.id),
+  }));
 
   // Cancelled orders drop out of the live feed entirely (by design - it's a
   // live dispatch board), so cancellation_reason had nowhere to surface.
@@ -58,7 +71,7 @@ export default async function OpsOrdersPage() {
       </div>
 
       {/* Real-time Client Component */}
-      <LiveOrdersFeed initialOrders={initialOrders || []} riders={assignableRiders || []} />
+      <LiveOrdersFeed initialOrders={initialOrders || []} riders={ridersWithStatus} />
 
       <div className="mt-12 bg-charcoal-900/40 border border-white/5 rounded-[2rem] p-8">
         <div className="flex items-center justify-between mb-8">

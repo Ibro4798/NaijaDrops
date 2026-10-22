@@ -11,7 +11,7 @@ import useBackToClose from '@/utils/useBackToClose';
 // missing UI: a "Suggest a price" toggle with an amount field, and once a
 // bid is pending, the card switches to a waiting state instead of showing
 // stale accept/negotiate actions for an offer already in flight.
-export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepting = false, onAcceptBase, onCounterOffer, onReject, isEmbedded = false }) {
+export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepting = false, onAcceptBase, onCounterOffer, onAcceptVendorCounter, onReject, isEmbedded = false }) {
   const [showDetails, setShowDetails] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [confirmingAccept, setConfirmingAccept] = useState(false);
@@ -23,7 +23,12 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
   if (!order) return null;
 
   const basePrice = parseInt(order.agreed_price) || 0;
+  const minAllowed = Math.ceil((basePrice * 0.8) / 50) * 50;
+  const maxAllowed = Math.floor((basePrice * 1.2) / 50) * 50;
+
   const hasPendingBid = myBid && myBid.status === 'pending';
+  const isVendorCountered = myBid && myBid.status === 'vendor_countered';
+  const isRejectedBid = myBid && myBid.status === 'rejected';
 
   // FIX: a rider could previously type any exact number - ₦2020, ₦2034 -
   // odd amounts that are awkward for a vendor to reason about and
@@ -33,7 +38,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
   const roundedBidAmount = bidAmount ? roundUpTo50(bidAmount) : 0;
 
   const submitBid = () => {
-    if (!roundedBidAmount || roundedBidAmount < 100) return;
+    if (!roundedBidAmount || roundedBidAmount < minAllowed || roundedBidAmount > maxAllowed) return;
     onCounterOffer?.(roundedBidAmount);
     setShowBidInput(false);
   };
@@ -187,7 +192,34 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
         </AnimatePresence>
 
         {/* Primary Action area */}
-        {hasPendingBid ? (
+        {isVendorCountered ? (
+          <div className="space-y-3">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] px-6 py-5 flex items-center gap-4">
+              <div className="w-11 h-11 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
+                <HandCoins size={20} className="text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-emerald-400 font-black text-2xl font-outfit">₦{Number(myBid.vendor_amount).toLocaleString()}</p>
+                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">Vendor Counter-Offer</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={onReject}
+                className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-charcoal-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5"
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => onAcceptVendorCounter?.(myBid)}
+                disabled={accepting}
+                className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-charcoal-950 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                {accepting ? <Loader2 size={14} className="animate-spin" /> : "Accept Offer"}
+              </button>
+            </div>
+          </div>
+        ) : hasPendingBid ? (
           // A bid is already in flight for this job - accepting the base
           // price or sending another bid would both be confusing while the
           // vendor still has an outstanding offer to respond to.
@@ -227,7 +259,10 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
               </button>
             ) : (
               <div className="bg-charcoal-950/60 border border-white/10 rounded-2xl p-4 space-y-3">
-                <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">Your offer to the vendor</p>
+                <div className="flex justify-between items-center">
+                  <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">Your offer to vendor (±20%)</p>
+                  <p className="text-[9px] font-mono text-emerald-400">₦{minAllowed.toLocaleString()} - ₦{maxAllowed.toLocaleString()}</p>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black">₦</span>
@@ -235,6 +270,8 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                       type="number"
                       inputMode="numeric"
                       step="50"
+                      min={minAllowed}
+                      max={maxAllowed}
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
                       className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-ink font-black text-sm focus:outline-none focus:border-emerald-500"
@@ -243,7 +280,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                   </div>
                   <button
                     onClick={submitBid}
-                    disabled={bidSubmitting || !roundedBidAmount || roundedBidAmount < 100}
+                    disabled={bidSubmitting || !roundedBidAmount || roundedBidAmount < minAllowed || roundedBidAmount > maxAllowed}
                     className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                   >
                     {bidSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Send'}

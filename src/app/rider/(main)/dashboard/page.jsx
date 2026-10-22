@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -302,6 +302,27 @@ export default function RiderDashboard() {
     }
   }
 
+  async function acceptVendorCounter(bid) {
+    if (!bid?.order_id || !bid?.id) return;
+    setError(null);
+    setAcceptingOrderId(bid.order_id);
+    try {
+      const { error: rpcErr } = await supabase.rpc('accept_bid', {
+        p_order_id: bid.order_id,
+        p_bid_id: bid.id,
+      });
+      if (rpcErr) {
+        alert(rpcErr.message);
+        return;
+      }
+      router.push('/rider/active-job');
+    } catch {
+      alert('Could not accept counter-offer.');
+    } finally {
+      setAcceptingOrderId(null);
+    }
+  }
+
   async function counterOffer(order, amount) {
     // Defense in depth: IncomingOrderCard already rounds before calling
     // this, but this is the actual point the amount becomes a real bid in
@@ -511,6 +532,7 @@ export default function RiderDashboard() {
               onAcceptBase={() => acceptAtBasePrice(job)}
               accepting={acceptingOrderId === job.id}
               onCounterOffer={(amount) => counterOffer(job, amount)}
+              onAcceptVendorCounter={(bid) => acceptVendorCounter(bid)}
               onReject={() => rejectJob(job)}
             />
           ))}
