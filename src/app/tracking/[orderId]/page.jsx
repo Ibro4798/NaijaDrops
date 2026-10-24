@@ -262,7 +262,7 @@ export default function TrackingPage() {
     try {
       const { error } = await supabase.rpc('vendor_counter_bid', {
         p_bid_id: bidId,
-        p_vendor_amount: Number(amount),
+        p_vendor_amount: Math.ceil(Number(amount) / 10) * 10,
       });
       if (error) throw error;
       setCounterBidId(null);

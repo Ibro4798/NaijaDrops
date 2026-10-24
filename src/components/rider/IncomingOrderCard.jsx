@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MapPin, Navigation, Clock, Check, Plus, Minus, Package, User, Volume2, ChevronDown, ChevronUp, ChevronRight, Zap, X, HandCoins, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { roundUpTo50 } from '@/utils/pricing';
+import { riderNet, grossFromNet, roundUpTo10, commissionPercent, useRiderPayoutRate } from '@/utils/riderPay';
 import useBackToClose from '@/utils/useBackToClose';
 
 // FIX: this card accepted an `onCounterOffer` prop from day one, but never
@@ -12,6 +12,7 @@ import useBackToClose from '@/utils/useBackToClose';
 // bid is pending, the card switches to a waiting state instead of showing
 // stale accept/negotiate actions for an offer already in flight.
 export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepting = false, onAcceptBase, onCounterOffer, onAcceptVendorCounter, onReject, isEmbedded = false }) {
+  const rate = useRiderPayoutRate();
   const [showDetails, setShowDetails] = useState(false);
   const [photoExpanded, setPhotoExpanded] = useState(false);
   const [confirmingAccept, setConfirmingAccept] = useState(false);
@@ -22,24 +23,35 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
 
   if (!order) return null;
 
+  // agreed_price / bid amounts are GROSS (what the vendor pays). The rider
+  // only ever sees and types NET - what lands in their wallet after the
+  // platform commission - so there is never a surprise at payout.
   const basePrice = parseInt(order.agreed_price) || 0;
-  const minAllowed = Math.ceil((basePrice * 0.8) / 50) * 50;
-  const maxAllowed = Math.floor((basePrice * 1.2) / 50) * 50;
+  const baseNet = riderNet(basePrice, rate);
+  const feePct = commissionPercent(rate);
+  // Allowed negotiation window is +/-20% of the gross price (same cap the
+  // vendor counter uses), expressed in the rider's net terms.
+  const minGross = Math.ceil((basePrice * 0.8) / 10) * 10;
+  const maxGross = Math.floor((basePrice * 1.2) / 10) * 10;
+  const minNet = riderNet(minGross, rate);
+  const maxNet = riderNet(maxGross, rate);
 
   const hasPendingBid = myBid && myBid.status === 'pending';
   const isVendorCountered = myBid && myBid.status === 'vendor_countered';
   const isRejectedBid = myBid && myBid.status === 'rejected';
 
-  // FIX: a rider could previously type any exact number - ₦2020, ₦2034 -
-  // odd amounts that are awkward for a vendor to reason about and
-  // impossible to hand over cleanly in cash. Every bid now rounds UP to
-  // the nearest ₦50 before it's ever sent, so 2020 and 2034 both become
-  // 2050, and 1950 stays exactly 1950 since it's already on the grid.
-  const roundedBidAmount = bidAmount ? roundUpTo50(bidAmount) : 0;
+  // The rider types what THEY want to take home (rounded up to a clean
+  // ₦10). The vendor is then shown the gross that covers that figure plus
+  // our commission, so the commission is baked into the price the vendor
+  // sees and the rider always nets exactly what they asked for.
+  const desiredNet = bidAmount ? roundUpTo10(bidAmount) : 0;
+  const vendorSeesGross = desiredNet ? grossFromNet(desiredNet, rate) : 0;
+  const bidInRange = desiredNet > 0 && vendorSeesGross >= minGross && vendorSeesGross <= maxGross;
 
   const submitBid = () => {
-    if (!roundedBidAmount || roundedBidAmount < minAllowed || roundedBidAmount > maxAllowed) return;
-    onCounterOffer?.(roundedBidAmount);
+    if (!bidInRange) return;
+    // onCounterOffer receives the GROSS amount - that is what bids.amount stores.
+    onCounterOffer?.(vendorSeesGross);
     setShowBidInput(false);
   };
 
@@ -56,9 +68,10 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
            <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow shrink-0"></div>
-                 <p className="text-ink font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">Live Payload</p>
+                 <p className="text-ink font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">You earn</p>
               </div>
-              <div className="text-4xl sm:text-5xl font-black text-ink font-outfit tracking-tighter italic truncate">₦{basePrice.toLocaleString()}</div>
+              <div className="text-4xl sm:text-5xl font-black text-ink font-outfit tracking-tighter italic truncate">₦{baseNet.toLocaleString()}</div>
+              <p className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">After {feePct}% NaijaDrops fee · Delivery fee ₦{basePrice.toLocaleString()}</p>
               {Number(order.stop_count) > 1 && (
                 <div className="inline-flex self-start bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">{order.stop_count} drop-offs</div>
               )}
@@ -199,8 +212,8 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                 <HandCoins size={20} className="text-emerald-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-emerald-400 font-black text-2xl font-outfit">₦{Number(myBid.vendor_amount).toLocaleString()}</p>
-                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">Vendor Counter-Offer</p>
+                <p className="text-emerald-400 font-black text-2xl font-outfit">₦{riderNet(myBid.vendor_amount, rate).toLocaleString()}</p>
+                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">Vendor counter · you earn after {feePct}% fee</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -229,8 +242,8 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                 <HandCoins size={20} className="text-amber-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-amber-400 font-black text-lg font-outfit">₦{Number(myBid.amount).toLocaleString()}</p>
-                <p className="text-[10px] font-black text-amber-400/70 uppercase tracking-widest">Your offer • Waiting for vendor</p>
+                <p className="text-amber-400 font-black text-lg font-outfit">₦{riderNet(myBid.amount, rate).toLocaleString()}</p>
+                <p className="text-[10px] font-black text-amber-400/70 uppercase tracking-widest">Your ask (take-home) • Waiting for vendor</p>
               </div>
             </div>
             <button
@@ -238,7 +251,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
               disabled={accepting}
               className="w-full py-4 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-charcoal-300 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
             >
-              {accepting ? <Loader2 size={14} className="animate-spin" /> : `Or just accept ₦${basePrice.toLocaleString()} now instead`}
+              {accepting ? <Loader2 size={14} className="animate-spin" /> : `Or just accept ₦${baseNet.toLocaleString()} now instead`}
             </button>
           </div>
         ) : !confirmingAccept ? (
@@ -252,7 +265,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
 
             {((order.payment_required && order.payment_status === 'paid') || order.price_locked) ? null : !showBidInput ? (
               <button
-                onClick={() => { setShowBidInput(true); setBidAmount(basePrice ? String(basePrice) : ''); }}
+                onClick={() => { setShowBidInput(true); setBidAmount(baseNet ? String(roundUpTo10(baseNet)) : ''); }}
                 className="w-full py-4 bg-white/5 hover:bg-white/10 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
               >
                 <HandCoins size={14} /> Suggest a different price
@@ -260,8 +273,8 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
             ) : (
               <div className="bg-charcoal-950/60 border border-white/10 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">Your offer to vendor (±20%)</p>
-                  <p className="text-[9px] font-mono text-emerald-400">₦{minAllowed.toLocaleString()} - ₦{maxAllowed.toLocaleString()}</p>
+                  <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">What you want to take home (±20%)</p>
+                  <p className="text-[9px] font-mono text-emerald-400">₦{minNet.toLocaleString()} - ₦{maxNet.toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 relative">
@@ -269,9 +282,9 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                     <input
                       type="number"
                       inputMode="numeric"
-                      step="50"
-                      min={minAllowed}
-                      max={maxAllowed}
+                      step="10"
+                      min={minNet}
+                      max={maxNet}
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
                       className="w-full pl-9 pr-3 py-3 bg-charcoal-950 border border-white/10 rounded-xl text-ink font-black text-sm focus:outline-none focus:border-emerald-500"
@@ -280,7 +293,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                   </div>
                   <button
                     onClick={submitBid}
-                    disabled={bidSubmitting || !roundedBidAmount || roundedBidAmount < minAllowed || roundedBidAmount > maxAllowed}
+                    disabled={bidSubmitting || !bidInRange}
                     className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-charcoal-950 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                   >
                     {bidSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Send'}
@@ -292,9 +305,19 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                     <X size={16} />
                   </button>
                 </div>
-                {!!bidAmount && Number(bidAmount) !== roundedBidAmount && (
+                {!!bidAmount && Number(bidAmount) !== desiredNet && (
                   <p className="text-[10px] font-bold text-charcoal-500">
-                    Offers round up to the nearest ₦50 - this sends as <span className="text-emerald-400">₦{roundedBidAmount.toLocaleString()}</span>.
+                    Asks round up to the nearest ₦10 - you will ask for <span className="text-emerald-400">₦{desiredNet.toLocaleString()}</span>.
+                  </p>
+                )}
+                {!!desiredNet && bidInRange && (
+                  <p className="text-[10px] font-bold text-charcoal-500">
+                    You take home <span className="text-emerald-400">₦{desiredNet.toLocaleString()}</span>. The vendor sees <span className="text-ink">₦{vendorSeesGross.toLocaleString()}</span> (includes our {feePct}% fee).
+                  </p>
+                )}
+                {!!desiredNet && !bidInRange && (
+                  <p className="text-[10px] font-bold text-red-400">
+                    Pick an amount between ₦{minNet.toLocaleString()} and ₦{maxNet.toLocaleString()}.
                   </p>
                 )}
               </div>

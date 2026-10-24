@@ -17,6 +17,7 @@ import DropoffChecklist from '@/components/rider/DropoffChecklist';
 import useWakeLock from '@/utils/useWakeLock';
 import { distanceMeters } from '@/utils/geolocation';
 import { compressAndUploadImage } from '@/utils/imageUpload';
+import { riderNet, commissionPercent, useRiderPayoutRate } from '@/utils/riderPay';
 
 // "General location of the pickup spot", not an exact building - Kano's
 // informal addressing means a pin drop can legitimately be off by a
@@ -133,6 +134,7 @@ function ChatParamsReader({ onParams }) {
 
 export default function ActiveJobPage() {
   const router = useRouter();
+  const riderRate = useRiderPayoutRate();
   const supabase = createClient();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -542,8 +544,8 @@ export default function ActiveJobPage() {
           </div>
           {order.agreed_price ? (
             <div className="flex items-center justify-between pt-3 border-t border-white/5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">Agreed fare</span>
-              <span className="text-emerald-400 font-black text-lg">₦{Number(order.agreed_price).toLocaleString()}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">You earn (after {commissionPercent(riderRate)}% fee)</span>
+              <span className="text-emerald-400 font-black text-lg">₦{riderNet(order.agreed_price, riderRate).toLocaleString()}</span>
             </div>
           ) : null}
         </div>

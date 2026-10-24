@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { riderNet, grossFromNet, roundUpTo10, commissionPercent, useRiderPayoutRate } from '@/utils/riderPay';
 import { Send, X, AlertCircle, Check, ChevronDown, Lock, HandCoins } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useBackToClose from '@/utils/useBackToClose';
@@ -28,6 +29,12 @@ export default function OrderChat({
 }) {
   const supabase = createClient();
   const isAnonymous = viewerRole === 'customer';
+  // Riders see and type NET (their take-home); vendors/customers see GROSS.
+  // offer_amount and agreed_price are always stored as GROSS.
+  const isRider = viewerRole === 'rider';
+  const payoutRate = useRiderPayoutRate();
+  const feePct = commissionPercent(payoutRate);
+  const showAmount = (gross) => (gross == null ? undefined : (isRider ? riderNet(gross, payoutRate) : Number(gross)));
   // Android Back closes the chat sheet instead of leaving the app.
   useBackToClose(true, onClose);
 
@@ -242,8 +249,11 @@ export default function OrderChat({
   // negotiation and enforces server-side that the accepter isn't the
   // proposer).
   const handleSendOffer = async () => {
-    const priceNum = Number(newPrice);
-    if (!priceNum || priceNum < 100) {
+    const typed = Number(newPrice);
+    // A rider types what they want to TAKE HOME; the stored offer is the
+    // gross that covers that plus our commission. Vendors type gross directly.
+    const priceNum = isRider ? grossFromNet(roundUpTo10(typed), payoutRate) : roundUpTo10(typed);
+    if (!priceNum || (isRider ? typed < 100 : priceNum < 100)) {
       setError('Price must be at least ₦100');
       return;
     }
@@ -253,7 +263,7 @@ export default function OrderChat({
       const tempMsg = {
         id: crypto.randomUUID(), order_id: orderId, sender_id: currentUserId, sender_role: viewerRole,
         channel: 'vendor_rider', type: 'price_offer', offer_amount: priceNum, offer_status: 'pending',
-        text: `Proposed ₦${priceNum.toLocaleString()}`, created_at: new Date().toISOString(),
+        text: 'Proposed a new price', created_at: new Date().toISOString(),
       };
       setMessagesByChannel(prev => ({ ...prev, vendor_rider: [...(prev.vendor_rider || []), tempMsg] }));
 
@@ -265,7 +275,7 @@ export default function OrderChat({
         type: 'price_offer',
         offer_amount: priceNum,
         offer_status: 'pending',
-        text: `Proposed ₦${priceNum.toLocaleString()}`,
+        text: 'Proposed a new price',
       });
       if (insertErr) throw insertErr;
 
@@ -343,7 +353,7 @@ export default function OrderChat({
   // proposed something new. This shows whatever's actually on the table
   // right now: the pending offer if there is one, otherwise the real
   // agreed price.
-  const displayedAmount = latestPendingOffer ? latestPendingOffer.offer_amount : order?.agreed_price;
+  const displayedAmount = showAmount(latestPendingOffer ? latestPendingOffer.offer_amount : order?.agreed_price);
   const showingPendingAmount = !!latestPendingOffer;
 
   return (
@@ -422,7 +432,7 @@ export default function OrderChat({
             className="overflow-hidden border-b border-white/10 bg-charcoal-900/90 shrink-0"
           >
             <div className="p-5">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">Propose a New Price</p>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">{isRider ? `Propose what you take home (after ${feePct}% fee)` : 'Propose a New Price'}</p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">₦</span>
@@ -430,7 +440,7 @@ export default function OrderChat({
                     type="number"
                     value={newPrice}
                     onChange={e => setNewPrice(e.target.value)}
-                    placeholder={order?.agreed_price?.toString()}
+                    placeholder={showAmount(order?.agreed_price)?.toString()}
                     className="w-full pl-10 pr-4 py-3.5 bg-charcoal-950 border border-white/10 rounded-2xl text-white font-black focus:outline-none focus:border-emerald-500 transition-all"
                     inputMode="numeric"
                   />
@@ -498,7 +508,8 @@ export default function OrderChat({
                       <HandCoins size={14} className="text-emerald-500" />
                       <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Price offer</span>
                     </div>
-                    <p className="text-xl font-black text-white font-outfit">₦{Number(msg.offer_amount).toLocaleString()}</p>
+                    <p className="text-xl font-black text-white font-outfit">₦{showAmount(msg.offer_amount).toLocaleString()}</p>
+                    {isRider && <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mt-0.5">Your take-home after {feePct}% fee</p>}
                     <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${statusColor}`}>{statusLabel}</p>
                     {canRespond && (
                       <div className="flex gap-2 mt-3">

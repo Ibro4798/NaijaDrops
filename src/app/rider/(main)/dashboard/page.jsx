@@ -9,7 +9,6 @@ import Skeleton from '@/components/ui/Skeleton';
 import IncomingOrderCard from '@/components/rider/IncomingOrderCard';
 import DriverHeartbeat from '@/components/rider/DriverHeartbeat';
 import { getReliableLocation } from '@/utils/geolocation';
-import { roundUpTo50 } from '@/utils/pricing';
 
 export default function RiderDashboard() {
   const router = useRouter();
@@ -328,7 +327,10 @@ export default function RiderDashboard() {
     // this, but this is the actual point the amount becomes a real bid in
     // the database, so it rounds again rather than trusting every future
     // caller to remember to.
-    const roundedAmount = roundUpTo50(amount);
+    // The card sends the exact GROSS the vendor will see (rider's take-home
+    // + platform fee, already rounded). Do not re-round it here.
+    const roundedAmount = Math.ceil(Number(amount));
+    if (!Number.isFinite(roundedAmount) || roundedAmount <= 0) return;
     setError(null);
     setSubmittingBidFor(order.id);
     // FIX: this used to call supabase.auth.getUser() - a real network
