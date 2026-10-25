@@ -71,7 +71,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                  <p className="text-ink font-black text-[10px] uppercase tracking-[0.4em] font-outfit opacity-60 italic">You earn</p>
               </div>
               <div className="text-4xl sm:text-5xl font-black text-ink font-outfit tracking-tighter italic truncate">₦{baseNet.toLocaleString()}</div>
-              <p className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">After {feePct}% NaijaDrops fee · Delivery fee ₦{basePrice.toLocaleString()}</p>
+              <p className="text-[10px] font-bold text-charcoal-500 uppercase tracking-widest">Delivery fee ₦{basePrice.toLocaleString()}</p>
               {Number(order.stop_count) > 1 && (
                 <div className="inline-flex self-start bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">{order.stop_count} drop-offs</div>
               )}
@@ -213,7 +213,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
               </div>
               <div className="min-w-0">
                 <p className="text-emerald-400 font-black text-2xl font-outfit">₦{riderNet(myBid.vendor_amount, rate).toLocaleString()}</p>
-                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">Vendor counter · you earn after {feePct}% fee</p>
+                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">Vendor counter · Your take-home</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -273,7 +273,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
             ) : (
               <div className="bg-charcoal-950/60 border border-white/10 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">What you want to take home (±20%)</p>
+                  <p className="text-[9px] font-black text-charcoal-500 uppercase tracking-widest">What you want to take home</p>
                   <p className="text-[9px] font-mono text-emerald-400">₦{minNet.toLocaleString()} - ₦{maxNet.toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ export default function IncomingOrderCard({ order, myBid, bidSubmitting, accepti
                 )}
                 {!!desiredNet && bidInRange && (
                   <p className="text-[10px] font-bold text-charcoal-500">
-                    You take home <span className="text-emerald-400">₦{desiredNet.toLocaleString()}</span>. The vendor sees <span className="text-ink">₦{vendorSeesGross.toLocaleString()}</span> (includes our {feePct}% fee).
+                    You take home <span className="text-emerald-400">₦{desiredNet.toLocaleString()}</span>. The vendor sees <span className="text-ink">₦{vendorSeesGross.toLocaleString()}</span>.
                   </p>
                 )}
                 {!!desiredNet && !bidInRange && (

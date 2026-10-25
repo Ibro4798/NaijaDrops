@@ -544,7 +544,7 @@ export default function ActiveJobPage() {
           </div>
           {order.agreed_price ? (
             <div className="flex items-center justify-between pt-3 border-t border-white/5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">You earn (after {commissionPercent(riderRate)}% fee)</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-charcoal-500">You earn</span>
               <span className="text-emerald-400 font-black text-lg">₦{riderNet(order.agreed_price, riderRate).toLocaleString()}</span>
             </div>
           ) : null}

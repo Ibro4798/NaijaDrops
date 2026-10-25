@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -432,7 +432,7 @@ export default function OrderChat({
             className="overflow-hidden border-b border-white/10 bg-charcoal-900/90 shrink-0"
           >
             <div className="p-5">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">{isRider ? `Propose what you take home (after ${feePct}% fee)` : 'Propose a New Price'}</p>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">{isRider ? 'Propose what you take home' : 'Propose a New Price'}</p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-lg">₦</span>
@@ -509,7 +509,7 @@ export default function OrderChat({
                       <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Price offer</span>
                     </div>
                     <p className="text-xl font-black text-white font-outfit">₦{showAmount(msg.offer_amount).toLocaleString()}</p>
-                    {isRider && <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mt-0.5">Your take-home after {feePct}% fee</p>}
+                    {isRider && <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mt-0.5">Your take-home</p>}
                     <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${statusColor}`}>{statusLabel}</p>
                     {canRespond && (
                       <div className="flex gap-2 mt-3">
